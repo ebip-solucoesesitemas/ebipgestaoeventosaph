@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, LogIn, LogOut, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import APHForm from '@/components/APHForm';
@@ -30,7 +30,11 @@ interface Attendance {
 }
 
 interface TeamMember {
-  profiles: { nome: string; especialidade: string };
+  id: string;
+  profile_id: string;
+  checkin_at: string | null;
+  checkout_at: string | null;
+  profiles: { id: string; nome: string; especialidade: string };
 }
 
 export default function EventDetail() {
@@ -45,6 +49,9 @@ export default function EventDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
+  const [processingCheckin, setProcessingCheckin] = useState(false);
+
+  const myAssignment = team.find(t => t.profiles.id === profile?.id);
 
   const fetchData = async () => {
     if (!id) return;
@@ -54,7 +61,7 @@ export default function EventDetail() {
     const [eventRes, attendancesRes, teamRes] = await Promise.all([
       supabase.from('events').select('*, vehicles(prefixo, modelo)').eq('id', id).single(),
       supabase.from('clinical_attendances').select('*, profiles(nome)').eq('event_id', id).order('created_at', { ascending: false }),
-      supabase.from('event_assignments').select('profiles(nome, especialidade)').eq('event_id', id),
+      supabase.from('event_assignments').select('id, profile_id, checkin_at, checkout_at, profiles(id, nome, especialidade)').eq('event_id', id),
     ]);
 
     if (eventRes.error) {
@@ -72,6 +79,79 @@ export default function EventDetail() {
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  const handleCheckin = async () => {
+    if (!myAssignment) return;
+    
+    setProcessingCheckin(true);
+    const { error } = await supabase
+      .from('event_assignments')
+      .update({ checkin_at: new Date().toISOString() })
+      .eq('id', myAssignment.id);
+
+    if (error) {
+      toast({ title: 'Erro ao fazer check-in', variant: 'destructive' });
+    } else {
+      toast({ title: 'Check-in realizado!' });
+      fetchData();
+    }
+    setProcessingCheckin(false);
+  };
+
+  const handleCheckout = async () => {
+    if (!myAssignment || !profile) return;
+    
+    setProcessingCheckin(true);
+
+    // 1. Update checkout time
+    const { error: checkoutError } = await supabase
+      .from('event_assignments')
+      .update({ checkout_at: new Date().toISOString() })
+      .eq('id', myAssignment.id);
+
+    if (checkoutError) {
+      toast({ title: 'Erro ao fazer checkout', variant: 'destructive' });
+      setProcessingCheckin(false);
+      return;
+    }
+
+    // 2. Fetch professional rate to generate payment
+    const { data: rateData } = await supabase
+      .from('professional_rates')
+      .select('valor_evento')
+      .eq('profile_id', profile.id)
+      .single();
+
+    const valorEvento = rateData?.valor_evento || 0;
+
+    if (valorEvento > 0) {
+      // 3. Create pending payment
+      const { error: paymentError } = await supabase
+        .from('professional_payments')
+        .insert({
+          profile_id: profile.id,
+          event_id: id,
+          valor: valorEvento,
+          tipo_pagamento: 'pix',
+          status: 'pendente',
+          descricao: `Participação no evento: ${event?.nome_evento}`,
+        });
+
+      if (paymentError) {
+        console.error('Error creating payment:', paymentError);
+      } else {
+        toast({ 
+          title: 'Checkout realizado!',
+          description: `Pagamento de R$ ${valorEvento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} gerado.`
+        });
+      }
+    } else {
+      toast({ title: 'Checkout realizado!' });
+    }
+
+    fetchData();
+    setProcessingCheckin(false);
+  };
 
   const handleFormClose = () => {
     setShowForm(false);
@@ -121,6 +201,52 @@ export default function EventDetail() {
         </div>
       </div>
 
+      {/* Check-in/Checkout Card */}
+      {myAssignment && (
+        <Card className={myAssignment.checkout_at ? 'border-stable' : myAssignment.checkin_at ? 'border-warning' : ''}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Sua Participação</p>
+                {myAssignment.checkout_at ? (
+                  <p className="text-sm text-stable flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Checkout: {format(new Date(myAssignment.checkout_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                  </p>
+                ) : myAssignment.checkin_at ? (
+                  <p className="text-sm text-warning">
+                    Check-in: {format(new Date(myAssignment.checkin_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Faça check-in para iniciar</p>
+                )}
+              </div>
+              {!myAssignment.checkout_at && (
+                <Button
+                  onClick={myAssignment.checkin_at ? handleCheckout : handleCheckin}
+                  disabled={processingCheckin}
+                  className={myAssignment.checkin_at ? 'bg-warning hover:bg-warning/90' : ''}
+                >
+                  {processingCheckin ? (
+                    'Processando...'
+                  ) : myAssignment.checkin_at ? (
+                    <>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Fazer Checkout
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Fazer Check-in
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Info Cards */}
       <div className="grid grid-cols-2 gap-4">
         {event.vehicles && (
@@ -158,11 +284,29 @@ export default function EventDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="flex flex-wrap gap-2">
-            {team.map((member, idx) => (
-              <Badge key={idx} variant="secondary">
-                {member.profiles.nome} • {member.profiles.especialidade}
-              </Badge>
+          <div className="space-y-2">
+            {team.map((member) => (
+              <div key={member.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                <div>
+                  <p className="font-medium text-sm">{member.profiles.nome}</p>
+                  <p className="text-xs text-muted-foreground">{member.profiles.especialidade}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {member.checkout_at ? (
+                    <Badge className="bg-stable/20 text-stable text-xs">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Checkout
+                    </Badge>
+                  ) : member.checkin_at ? (
+                    <Badge className="bg-warning/20 text-warning text-xs">
+                      <LogIn className="w-3 h-3 mr-1" />
+                      Check-in
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs">Aguardando</Badge>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         </CardContent>
