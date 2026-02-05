@@ -17,9 +17,11 @@ interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   isAdmin: boolean;
+  needsProfile: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, profileData: Omit<Profile, 'id' | 'user_id'>) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -111,6 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      const p = await fetchProfile(user.id);
+      setProfile(p);
+    }
+  };
+
+  const needsProfile = !!user && !isLoading && !profile;
+
   return (
     <AuthContext.Provider
       value={{
@@ -119,9 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         isLoading,
         isAdmin: profile?.cargo === 'admin',
+        needsProfile,
         signIn,
         signUp,
         signOut,
+        refreshProfile,
       }}
     >
       {children}
