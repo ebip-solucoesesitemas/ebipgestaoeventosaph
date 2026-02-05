@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, Truck, ClipboardList, Shield, ArrowRight } from 'lucide-react';
+import { Calendar, Users, Truck, ClipboardList, Shield, ArrowRight, Building2, DollarSign, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Index() {
@@ -48,6 +48,27 @@ export default function Index() {
       icon: Truck,
       href: '/admin/vehicles',
       color: 'bg-warning',
+    },
+    {
+      title: 'Clientes',
+      description: 'Empresas contratantes',
+      icon: Building2,
+      href: '/admin/clients',
+      color: 'bg-accent',
+    },
+    {
+      title: 'Financeiro',
+      description: 'Receitas e despesas',
+      icon: DollarSign,
+      href: '/admin/finance',
+      color: 'bg-stable',
+    },
+    {
+      title: 'Pagamentos',
+      description: 'Folha de pagamento',
+      icon: Wallet,
+      href: '/admin/payroll',
+      color: 'bg-primary',
     },
   ];
 
