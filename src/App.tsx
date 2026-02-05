@@ -9,6 +9,9 @@ import Auth from "./pages/Auth";
 import AdminEvents from "./pages/admin/Events";
 import AdminProfessionals from "./pages/admin/Professionals";
 import AdminVehicles from "./pages/admin/Vehicles";
+import AdminClients from "./pages/admin/Clients";
+import AdminFinance from "./pages/admin/Finance";
+import AdminPayroll from "./pages/admin/Payroll";
 import TeamEvents from "./pages/team/TeamEvents";
 import EventDetail from "./pages/team/EventDetail";
 import NotFound from "./pages/NotFound";
@@ -41,6 +44,9 @@ const App = () => (
             <Route path="/admin/events" element={<AdminLayout><AdminEvents /></AdminLayout>} />
             <Route path="/admin/professionals" element={<AdminLayout><AdminProfessionals /></AdminLayout>} />
             <Route path="/admin/vehicles" element={<AdminLayout><AdminVehicles /></AdminLayout>} />
+            <Route path="/admin/clients" element={<AdminLayout><AdminClients /></AdminLayout>} />
+            <Route path="/admin/finance" element={<AdminLayout><AdminFinance /></AdminLayout>} />
+            <Route path="/admin/payroll" element={<AdminLayout><AdminPayroll /></AdminLayout>} />
             
             {/* Team Routes */}
             <Route path="/events" element={<TeamLayout><TeamEvents /></TeamLayout>} />

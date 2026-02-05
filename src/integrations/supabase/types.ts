@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_payments: {
+        Row: {
+          budget_id: string
+          comprovante_url: string | null
+          created_at: string | null
+          data_pagamento: string
+          id: string
+          observacao: string | null
+          tipo_pagamento: Database["public"]["Enums"]["tipo_pagamento"]
+          valor: number
+        }
+        Insert: {
+          budget_id: string
+          comprovante_url?: string | null
+          created_at?: string | null
+          data_pagamento?: string
+          id?: string
+          observacao?: string | null
+          tipo_pagamento: Database["public"]["Enums"]["tipo_pagamento"]
+          valor: number
+        }
+        Update: {
+          budget_id?: string
+          comprovante_url?: string | null
+          created_at?: string | null
+          data_pagamento?: string
+          id?: string
+          observacao?: string | null
+          tipo_pagamento?: Database["public"]["Enums"]["tipo_pagamento"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_payments_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "event_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string | null
+          documento: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       clinical_attendances: {
         Row: {
           created_at: string | null
@@ -110,6 +184,108 @@ export type Database = {
           },
         ]
       }
+      event_budgets: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          event_id: string
+          id: string
+          status: Database["public"]["Enums"]["status_financeiro"] | null
+          updated_at: string | null
+          valor_contrato: number
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          event_id: string
+          id?: string
+          status?: Database["public"]["Enums"]["status_financeiro"] | null
+          updated_at?: string | null
+          valor_contrato?: number
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          event_id?: string
+          id?: string
+          status?: Database["public"]["Enums"]["status_financeiro"] | null
+          updated_at?: string | null
+          valor_contrato?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_budgets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_budgets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_expenses: {
+        Row: {
+          categoria: Database["public"]["Enums"]["categoria_despesa"]
+          comprovante_url: string | null
+          created_at: string | null
+          data_despesa: string
+          descricao: string
+          event_id: string
+          id: string
+          registrado_por: string | null
+          valor: number
+        }
+        Insert: {
+          categoria: Database["public"]["Enums"]["categoria_despesa"]
+          comprovante_url?: string | null
+          created_at?: string | null
+          data_despesa?: string
+          descricao: string
+          event_id: string
+          id?: string
+          registrado_por?: string | null
+          valor: number
+        }
+        Update: {
+          categoria?: Database["public"]["Enums"]["categoria_despesa"]
+          comprovante_url?: string | null
+          created_at?: string | null
+          data_despesa?: string
+          descricao?: string
+          event_id?: string
+          id?: string
+          registrado_por?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_expenses_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_expenses_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string | null
@@ -147,6 +323,60 @@ export type Database = {
             columns: ["viatura_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_payments: {
+        Row: {
+          created_at: string | null
+          data_pagamento: string | null
+          descricao: string | null
+          event_id: string | null
+          id: string
+          profile_id: string
+          status: Database["public"]["Enums"]["status_financeiro"] | null
+          tipo_pagamento: Database["public"]["Enums"]["tipo_pagamento"]
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          descricao?: string | null
+          event_id?: string | null
+          id?: string
+          profile_id: string
+          status?: Database["public"]["Enums"]["status_financeiro"] | null
+          tipo_pagamento: Database["public"]["Enums"]["tipo_pagamento"]
+          updated_at?: string | null
+          valor: number
+        }
+        Update: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          descricao?: string | null
+          event_id?: string | null
+          id?: string
+          profile_id?: string
+          status?: Database["public"]["Enums"]["status_financeiro"] | null
+          tipo_pagamento?: Database["public"]["Enums"]["tipo_pagamento"]
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_payments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -306,8 +536,24 @@ export type Database = {
     }
     Enums: {
       cargo_tipo: "admin" | "equipe"
+      categoria_despesa:
+        | "combustivel"
+        | "equipamento"
+        | "diaria"
+        | "alimentacao"
+        | "hospedagem"
+        | "transporte"
+        | "outros"
       especialidade_tipo: "Médico" | "Enfermeiro" | "Técnico" | "Socorrista"
+      status_financeiro: "pendente" | "pago" | "cancelado" | "atrasado"
       status_viatura: "disponivel" | "em_uso" | "manutencao"
+      tipo_pagamento:
+        | "pix"
+        | "transferencia"
+        | "boleto"
+        | "cartao"
+        | "dinheiro"
+        | "cheque"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -436,8 +682,26 @@ export const Constants = {
   public: {
     Enums: {
       cargo_tipo: ["admin", "equipe"],
+      categoria_despesa: [
+        "combustivel",
+        "equipamento",
+        "diaria",
+        "alimentacao",
+        "hospedagem",
+        "transporte",
+        "outros",
+      ],
       especialidade_tipo: ["Médico", "Enfermeiro", "Técnico", "Socorrista"],
+      status_financeiro: ["pendente", "pago", "cancelado", "atrasado"],
       status_viatura: ["disponivel", "em_uso", "manutencao"],
+      tipo_pagamento: [
+        "pix",
+        "transferencia",
+        "boleto",
+        "cartao",
+        "dinheiro",
+        "cheque",
+      ],
     },
   },
 } as const
