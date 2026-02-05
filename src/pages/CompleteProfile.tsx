@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,20 +15,29 @@ type Cargo = 'admin' | 'equipe';
 
 export default function CompleteProfile() {
   const navigate = useNavigate();
-  const { user, refreshProfile } = useAuth();
+  const { user, isLoading: authLoading, refreshProfile } = useAuth();
   const { toast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [nome, setNome] = useState('');
   const [especialidade, setEspecialidade] = useState<Especialidade>('Socorrista');
   const [registroProfissional, setRegistroProfissional] = useState('');
   const [cargo, setCargo] = useState<Cargo>('equipe');
 
+  useEffect(() => {
+    if (!authLoading && !user) navigate('/auth');
+  }, [authLoading, user, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
 
-    setIsLoading(true);
+    if (!user) {
+      toast({ title: 'Você precisa estar logado', variant: 'destructive' });
+      navigate('/auth');
+      return;
+    }
+
+    setIsSaving(true);
 
     const { error } = await supabase.from('profiles').insert({
       user_id: user.id,
@@ -44,13 +53,14 @@ export default function CompleteProfile() {
         description: error.message,
         variant: 'destructive',
       });
-    } else {
-      toast({ title: 'Perfil criado!', description: 'Bem-vindo ao APH System.' });
-      await refreshProfile();
-      navigate('/');
+      setIsSaving(false);
+      return;
     }
 
-    setIsLoading(false);
+    toast({ title: 'Perfil criado!', description: 'Bem-vindo ao APH System.' });
+    await refreshProfile();
+    navigate('/');
+    setIsSaving(false);
   };
 
   return (
@@ -142,8 +152,8 @@ export default function CompleteProfile() {
               />
             </div>
 
-            <Button type="submit" className="w-full btn-touch" disabled={isLoading}>
-              {isLoading ? 'Salvando...' : 'Completar Cadastro'}
+            <Button type="submit" className="w-full btn-touch" disabled={isSaving || authLoading}>
+              {isSaving ? 'Salvando...' : 'Completar Cadastro'}
             </Button>
           </form>
         </CardContent>
