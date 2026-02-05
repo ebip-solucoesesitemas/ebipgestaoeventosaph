@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Truck, Edit, Trash2 } from 'lucide-react';
+import { Plus, Truck, Edit, Trash2, Calendar } from 'lucide-react';
 
 type VehicleStatus = 'disponivel' | 'em_uso' | 'manutencao';
 
@@ -18,6 +18,13 @@ interface Vehicle {
   placa: string;
   prefixo: string;
   status: VehicleStatus;
+}
+
+interface VehicleEvent {
+  id: string;
+  nome_evento: string;
+  data_inicio: string;
+  data_fim: string;
 }
 
 const statusLabels: Record<VehicleStatus, string> = {
@@ -35,6 +42,7 @@ const statusColors: Record<VehicleStatus, string> = {
 export default function AdminVehicles() {
   const { toast } = useToast();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicleEvents, setVehicleEvents] = useState<Record<string, VehicleEvent | null>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -57,6 +65,31 @@ export default function AdminVehicles() {
       toast({ title: 'Erro ao carregar', description: error.message, variant: 'destructive' });
     } else {
       setVehicles(data || []);
+      
+      // Fetch events for vehicles that are in use
+      const vehicleIds = data?.filter(v => v.status === 'em_uso').map(v => v.id) || [];
+      if (vehicleIds.length > 0) {
+        const now = new Date().toISOString();
+        const { data: eventsData } = await supabase
+          .from('events')
+          .select('id, nome_evento, data_inicio, data_fim, viatura_id')
+          .in('viatura_id', vehicleIds)
+          .gte('data_fim', now)
+          .order('data_inicio');
+
+        const eventsMap: Record<string, VehicleEvent | null> = {};
+        eventsData?.forEach(event => {
+          if (event.viatura_id && !eventsMap[event.viatura_id]) {
+            eventsMap[event.viatura_id] = {
+              id: event.id,
+              nome_evento: event.nome_evento,
+              data_inicio: event.data_inicio,
+              data_fim: event.data_fim,
+            };
+          }
+        });
+        setVehicleEvents(eventsMap);
+      }
     }
     setIsLoading(false);
   };
@@ -222,39 +255,51 @@ export default function AdminVehicles() {
             </CardContent>
           </Card>
         ) : (
-          vehicles.map((vehicle) => (
-            <Card key={vehicle.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Truck className="w-6 h-6 text-primary" />
+          vehicles.map((vehicle) => {
+            const event = vehicleEvents[vehicle.id];
+            return (
+              <Card key={vehicle.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Truck className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{vehicle.prefixo}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{vehicle.modelo}</p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{vehicle.prefixo}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{vehicle.modelo}</p>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(vehicle)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(vehicle.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(vehicle)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(vehicle.id)}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{vehicle.placa}</span>
+                    <Badge className={statusColors[vehicle.status]}>
+                      {statusLabels[vehicle.status]}
+                    </Badge>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{vehicle.placa}</span>
-                  <Badge className={statusColors[vehicle.status]}>
-                    {statusLabels[vehicle.status]}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                  {vehicle.status === 'em_uso' && event && (
+                    <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
+                      <div className="flex items-center gap-2 text-sm text-warning">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Empenhada em:</span>
+                      </div>
+                      <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
     </div>

@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock } from 'lucide-react';
+import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -34,12 +35,16 @@ interface Event {
   data_fim: string;
   local: string;
   viatura_id: string | null;
+  equipe_completa: boolean;
+  equipe_minima: number;
   vehicles?: Vehicle;
 }
 
 interface EventAssignment {
   id: string;
   profile_id: string;
+  checkin_at: string | null;
+  checkout_at: string | null;
   profiles?: Profile;
 }
 
@@ -47,6 +52,7 @@ export default function AdminEvents() {
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [assignments, setAssignments] = useState<Record<string, EventAssignment[]>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -59,14 +65,17 @@ export default function AdminEvents() {
     data_fim: '',
     local: '',
     viatura_id: '',
+    equipe_completa: false,
+    equipe_minima: 2,
     selectedProfiles: [] as string[],
   });
 
   const fetchData = async () => {
     setIsLoading(true);
     
-    const [eventsRes, vehiclesRes, profilesRes] = await Promise.all([
+    const [eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes] = await Promise.all([
       supabase.from('events').select('*, vehicles(*)').order('data_inicio', { ascending: false }),
+      supabase.from('vehicles').select('*').order('prefixo'),
       supabase.from('vehicles').select('*').eq('status', 'disponivel'),
       supabase.from('profiles').select('*').order('nome'),
     ]);
@@ -91,7 +100,8 @@ export default function AdminEvents() {
       }
     }
     
-    if (vehiclesRes.data) setVehicles(vehiclesRes.data);
+    if (allVehiclesRes.data) setAllVehicles(allVehiclesRes.data);
+    if (availableVehiclesRes.data) setVehicles(availableVehiclesRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
     
     setIsLoading(false);
@@ -108,6 +118,8 @@ export default function AdminEvents() {
       data_fim: '',
       local: '',
       viatura_id: '',
+      equipe_completa: false,
+      equipe_minima: 2,
       selectedProfiles: [],
     });
     setEditingEvent(null);
@@ -121,6 +133,8 @@ export default function AdminEvents() {
       data_fim: event.data_fim.slice(0, 16),
       local: event.local,
       viatura_id: event.viatura_id || '',
+      equipe_completa: event.equipe_completa || false,
+      equipe_minima: event.equipe_minima || 2,
       selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
     });
     setDialogOpen(true);
@@ -135,9 +149,12 @@ export default function AdminEvents() {
       data_fim: formData.data_fim,
       local: formData.local,
       viatura_id: formData.viatura_id || null,
+      equipe_completa: formData.equipe_completa,
+      equipe_minima: formData.equipe_minima,
     };
 
     let eventId: string;
+    const oldViaturaId = editingEvent?.viatura_id;
 
     if (editingEvent) {
       const { error } = await supabase
@@ -153,6 +170,11 @@ export default function AdminEvents() {
 
       // Remove old assignments
       await supabase.from('event_assignments').delete().eq('event_id', eventId);
+
+      // Update old vehicle status if changed
+      if (oldViaturaId && oldViaturaId !== formData.viatura_id) {
+        await supabase.from('vehicles').update({ status: 'disponivel' }).eq('id', oldViaturaId);
+      }
     } else {
       const { data, error } = await supabase
         .from('events')
@@ -165,6 +187,11 @@ export default function AdminEvents() {
         return;
       }
       eventId = data.id;
+    }
+
+    // Update new vehicle status to 'em_uso'
+    if (formData.viatura_id) {
+      await supabase.from('vehicles').update({ status: 'em_uso' }).eq('id', formData.viatura_id);
     }
 
     // Add new assignments
@@ -192,11 +219,17 @@ export default function AdminEvents() {
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este evento?')) return;
 
+    const event = events.find(e => e.id === id);
+    
     const { error } = await supabase.from('events').delete().eq('id', id);
 
     if (error) {
       toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
     } else {
+      // Release the vehicle if any
+      if (event?.viatura_id) {
+        await supabase.from('vehicles').update({ status: 'disponivel' }).eq('id', event.viatura_id);
+      }
       toast({ title: 'Evento excluído!' });
       fetchData();
     }
@@ -209,6 +242,30 @@ export default function AdminEvents() {
         ? prev.selectedProfiles.filter(id => id !== profileId)
         : [...prev.selectedProfiles, profileId],
     }));
+  };
+
+  // Get vehicles for select (available + current event's vehicle if editing)
+  const getAvailableVehicles = () => {
+    if (editingEvent?.viatura_id) {
+      const currentVehicle = allVehicles.find(v => v.id === editingEvent.viatura_id);
+      if (currentVehicle && !vehicles.find(v => v.id === currentVehicle.id)) {
+        return [...vehicles, currentVehicle];
+      }
+    }
+    return vehicles;
+  };
+
+  const getTeamStatus = (event: Event) => {
+    const eventAssignments = assignments[event.id] || [];
+    const teamSize = eventAssignments.length;
+    const isComplete = event.equipe_completa || teamSize >= event.equipe_minima;
+    
+    return {
+      size: teamSize,
+      minRequired: event.equipe_minima,
+      isComplete,
+      markedComplete: event.equipe_completa,
+    };
   };
 
   if (isLoading) {
@@ -294,13 +351,45 @@ export default function AdminEvents() {
                     <SelectValue placeholder="Selecione uma viatura" />
                   </SelectTrigger>
                   <SelectContent>
-                    {vehicles.map((v) => (
+                    {getAvailableVehicles().map((v) => (
                       <SelectItem key={v.id} value={v.id}>
                         {v.prefixo} - {v.modelo} ({v.placa})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
+                <Label className="text-base font-semibold">Configuração da Equipe</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Equipe Mínima</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={formData.equipe_minima}
+                      onChange={(e) => setFormData(prev => ({ ...prev, equipe_minima: parseInt(e.target.value) || 2 }))}
+                      className="input-touch"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-6">
+                    <Checkbox
+                      id="equipe_completa"
+                      checked={formData.equipe_completa}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, equipe_completa: !!checked }))}
+                    />
+                    <Label htmlFor="equipe_completa" className="text-sm cursor-pointer">
+                      Marcar equipe como completa
+                    </Label>
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Selecionados: {formData.selectedProfiles.length} / Mínimo: {formData.equipe_minima}
+                  {formData.selectedProfiles.length >= formData.equipe_minima && (
+                    <span className="text-stable ml-2">✓ Mínimo atingido</span>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -325,6 +414,11 @@ export default function AdminEvents() {
                       )}
                     </div>
                   ))}
+                  {profiles.length === 0 && (
+                    <p className="text-center text-sm text-muted-foreground py-4">
+                      Nenhum profissional cadastrado
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -345,51 +439,73 @@ export default function AdminEvents() {
             </CardContent>
           </Card>
         ) : (
-          events.map((event) => (
-            <Card key={event.id} className="overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{event.nome_evento}</CardTitle>
-                    <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        {event.local}
-                      </span>
+          events.map((event) => {
+            const teamStatus = getTeamStatus(event);
+            return (
+              <Card key={event.id} className="overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">{event.nome_evento}</CardTitle>
+                        {teamStatus.isComplete ? (
+                          <Badge className="bg-stable/20 text-stable border-stable/30 gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Equipe Completa
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-warning/20 text-warning border-warning/30 gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            Equipe Incompleta ({teamStatus.size}/{teamStatus.minRequired})
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-4 h-4" />
+                          {event.local}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(event.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(event.id)}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex flex-wrap gap-2">
+                    {event.vehicles && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Truck className="w-3 h-3" />
+                        {event.vehicles.prefixo}
+                      </Badge>
+                    )}
+                    {assignments[event.id]?.map((a) => (
+                      <Badge key={a.id} variant="outline" className="gap-1">
+                        <Users className="w-3 h-3" />
+                        {a.profiles?.nome}
+                        {a.checkin_at && !a.checkout_at && (
+                          <span className="ml-1 text-stable">●</span>
+                        )}
+                        {a.checkout_at && (
+                          <CheckCircle2 className="w-3 h-3 ml-1 text-stable" />
+                        )}
+                      </Badge>
+                    ))}
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex flex-wrap gap-2">
-                  {event.vehicles && (
-                    <Badge variant="secondary" className="gap-1">
-                      <Truck className="w-3 h-3" />
-                      {event.vehicles.prefixo}
-                    </Badge>
-                  )}
-                  {assignments[event.id]?.map((a) => (
-                    <Badge key={a.id} variant="outline" className="gap-1">
-                      <Users className="w-3 h-3" />
-                      {a.profiles?.nome}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
     </div>
