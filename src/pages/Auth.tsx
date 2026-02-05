@@ -82,8 +82,8 @@ export default function Auth() {
       });
     } else {
       toast({
-        title: 'Cadastro realizado!',
-        description: 'Verifique seu email para confirmar o cadastro.',
+        title: 'Cadastro iniciado!',
+        description: 'Verifique seu email para confirmar. Depois faça login e complete seu cadastro.',
       });
     }
 

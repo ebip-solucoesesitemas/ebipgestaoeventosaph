@@ -81,31 +81,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signUp = async (email: string, password: string, profileData: Omit<Profile, 'id' | 'user_id'>) => {
+  const signUp = async (email: string, password: string, _profileData: Omit<Profile, 'id' | 'user_id'>) => {
     const redirectUrl = `${window.location.origin}/`;
-    
-    const { data, error } = await supabase.auth.signUp({
+
+    const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: redirectUrl }
+      options: { emailRedirectTo: redirectUrl },
     });
 
-    if (error) return { error };
+    // IMPORTANT: we do NOT insert into `profiles` here.
+    // At this moment the user may not be authenticated yet (email confirmation flow),
+    // and RLS will correctly block profile creation.
+    // The profile will be created after login via the /complete-profile screen.
 
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: data.user.id,
-          ...profileData
-        });
-
-      if (profileError) {
-        return { error: profileError };
-      }
-    }
-
-    return { error: null };
+    return { error: error ?? null };
   };
 
   const signOut = async () => {
