@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import CompleteProfile from "./pages/CompleteProfile";
 import AdminEvents from "./pages/admin/Events";
 import AdminProfessionals from "./pages/admin/Professionals";
 import AdminVehicles from "./pages/admin/Vehicles";
@@ -39,6 +40,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/complete-profile" element={<CompleteProfile />} />
             
             {/* Admin Routes */}
             <Route path="/admin/events" element={<AdminLayout><AdminEvents /></AdminLayout>} />
