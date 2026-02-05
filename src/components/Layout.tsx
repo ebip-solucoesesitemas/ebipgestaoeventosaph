@@ -13,6 +13,9 @@ import {
   X,
   Shield,
   ClipboardList,
+  Building2,
+  DollarSign,
+  Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -35,6 +38,9 @@ export default function Layout({ children }: LayoutProps) {
     { href: '/admin/events', label: 'Eventos', icon: Calendar },
     { href: '/admin/professionals', label: 'Profissionais', icon: Users },
     { href: '/admin/vehicles', label: 'Viaturas', icon: Truck },
+    { href: '/admin/clients', label: 'Clientes', icon: Building2 },
+    { href: '/admin/finance', label: 'Financeiro', icon: DollarSign },
+    { href: '/admin/payroll', label: 'Pagamentos', icon: Wallet },
   ];
 
   const teamLinks = [
