@@ -57,6 +57,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          cep: string | null
           created_at: string | null
           documento: string | null
           email: string | null
@@ -67,6 +68,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          cep?: string | null
           created_at?: string | null
           documento?: string | null
           email?: string | null
@@ -77,6 +79,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          cep?: string | null
           created_at?: string | null
           documento?: string | null
           email?: string | null
@@ -150,18 +153,24 @@ export type Database = {
       }
       event_assignments: {
         Row: {
+          checkin_at: string | null
+          checkout_at: string | null
           created_at: string | null
           event_id: string
           id: string
           profile_id: string
         }
         Insert: {
+          checkin_at?: string | null
+          checkout_at?: string | null
           created_at?: string | null
           event_id: string
           id?: string
           profile_id: string
         }
         Update: {
+          checkin_at?: string | null
+          checkout_at?: string | null
           created_at?: string | null
           event_id?: string
           id?: string
@@ -291,6 +300,8 @@ export type Database = {
           created_at: string | null
           data_fim: string
           data_inicio: string
+          equipe_completa: boolean | null
+          equipe_minima: number | null
           id: string
           local: string
           nome_evento: string
@@ -301,6 +312,8 @@ export type Database = {
           created_at?: string | null
           data_fim: string
           data_inicio: string
+          equipe_completa?: boolean | null
+          equipe_minima?: number | null
           id?: string
           local: string
           nome_evento: string
@@ -311,6 +324,8 @@ export type Database = {
           created_at?: string | null
           data_fim?: string
           data_inicio?: string
+          equipe_completa?: boolean | null
+          equipe_minima?: number | null
           id?: string
           local?: string
           nome_evento?: string
@@ -376,6 +391,41 @@ export type Database = {
             foreignKeyName: "professional_payments_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_rates: {
+        Row: {
+          created_at: string | null
+          id: string
+          profile_id: string
+          updated_at: string | null
+          valor_evento: number
+          valor_hora: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          profile_id: string
+          updated_at?: string | null
+          valor_evento?: number
+          valor_hora?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          profile_id?: string
+          updated_at?: string | null
+          valor_evento?: number
+          valor_hora?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_rates_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
