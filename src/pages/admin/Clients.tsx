@@ -12,7 +12,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Building2, Phone, Mail } from 'lucide-react';
+import { Plus, Edit, Trash2, Building2, Phone, Mail, MapPin } from 'lucide-react';
+import { CepInput } from '@/components/CepInput';
 
 interface Client {
   id: string;
@@ -21,6 +22,7 @@ interface Client {
   email: string | null;
   telefone: string | null;
   endereco: string | null;
+  cep: string | null;
 }
 
 export default function Clients() {
@@ -35,6 +37,7 @@ export default function Clients() {
     email: '',
     telefone: '',
     endereco: '',
+    cep: '',
   });
 
   const fetchClients = async () => {
@@ -64,6 +67,7 @@ export default function Clients() {
       email: formData.email || null,
       telefone: formData.telefone || null,
       endereco: formData.endereco || null,
+      cep: formData.cep || null,
     };
 
     if (editingClient) {
@@ -89,7 +93,7 @@ export default function Clients() {
 
     setIsDialogOpen(false);
     setEditingClient(null);
-    setFormData({ nome: '', documento: '', email: '', telefone: '', endereco: '' });
+    setFormData({ nome: '', documento: '', email: '', telefone: '', endereco: '', cep: '' });
     fetchClients();
   };
 
@@ -101,6 +105,7 @@ export default function Clients() {
       email: client.email || '',
       telefone: client.telefone || '',
       endereco: client.endereco || '',
+      cep: client.cep || '',
     });
     setIsDialogOpen(true);
   };
@@ -116,6 +121,10 @@ export default function Clients() {
       toast({ title: 'Cliente excluído!' });
       fetchClients();
     }
+  };
+
+  const handleAddressFound = (address: { endereco: string }) => {
+    setFormData(prev => ({ ...prev, endereco: address.endereco }));
   };
 
   if (isLoading) {
@@ -139,7 +148,7 @@ export default function Clients() {
               className="btn-touch gap-2"
               onClick={() => {
                 setEditingClient(null);
-                setFormData({ nome: '', documento: '', email: '', telefone: '', endereco: '' });
+                setFormData({ nome: '', documento: '', email: '', telefone: '', endereco: '', cep: '' });
               }}
             >
               <Plus className="w-5 h-5" />
@@ -191,6 +200,14 @@ export default function Clients() {
                 </div>
               </div>
               <div className="space-y-2">
+                <Label>CEP</Label>
+                <CepInput
+                  value={formData.cep}
+                  onChange={(cep) => setFormData({ ...formData, cep })}
+                  onAddressFound={handleAddressFound}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="endereco">Endereço</Label>
                 <Input
                   id="endereco"
@@ -237,6 +254,12 @@ export default function Clients() {
                   <p className="text-sm flex items-center gap-2">
                     <Phone className="w-4 h-4 text-muted-foreground" />
                     {client.telefone}
+                  </p>
+                )}
+                {client.endereco && (
+                  <p className="text-sm flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    {client.endereco}
                   </p>
                 )}
                 <div className="flex gap-2 pt-2">
