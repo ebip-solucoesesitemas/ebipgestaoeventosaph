@@ -446,6 +446,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       vehicles: {
         Row: {
           created_at: string | null
@@ -531,10 +552,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_to_event: { Args: { event_uuid: string }; Returns: boolean }
     }
     Enums: {
+      app_role: "admin" | "equipe"
       cargo_tipo: "admin" | "equipe"
       categoria_despesa:
         | "combustivel"
@@ -681,6 +710,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "equipe"],
       cargo_tipo: ["admin", "equipe"],
       categoria_despesa: [
         "combustivel",
