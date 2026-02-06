@@ -241,6 +241,22 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
     setShowSummary(true);
   };
 
+  const handleSaveCurrentStep = async () => {
+    setIsLoading(true);
+    let success = false;
+
+    if (step === 'patient' || step === 'evolution') {
+      success = await savePatientData();
+    } else if (step === 'vitals' && savedAttendanceId) {
+      success = await saveVitals();
+    }
+
+    if (success) {
+      toast({ title: 'Alterações salvas!' });
+    }
+    setIsLoading(false);
+  };
+
   const handleNext = async () => {
     if (step === 'patient') {
       if (!nomePaciente || !queixaPrincipal) {
@@ -400,7 +416,7 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
           {step !== 'patient' && (
             <Button
               variant="outline"
-              className="flex-1 btn-touch"
+              className="btn-touch"
               onClick={() => {
                 const idx = steps.findIndex(s => s.key === step);
                 if (idx > 0) setStep(steps[idx - 1].key);
@@ -409,6 +425,20 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
               Voltar
             </Button>
           )}
+          
+          {/* Save Button - available on patient, vitals, and evolution steps */}
+          {step !== 'signatures' && (
+            <Button
+              variant="secondary"
+              className="btn-touch gap-2"
+              onClick={handleSaveCurrentStep}
+              disabled={isLoading || (step === 'patient' && (!nomePaciente || !queixaPrincipal))}
+            >
+              <Save className="w-4 h-4" />
+              Salvar
+            </Button>
+          )}
+          
           <Button className="flex-1 btn-touch gap-2" onClick={handleNext} disabled={isLoading}>
             {isLoading ? (
               'Salvando...'

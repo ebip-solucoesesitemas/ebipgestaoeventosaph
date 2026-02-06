@@ -1,0 +1,381 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  ArrowLeft, Calendar, MapPin, Truck, Users, Clock, 
+  CheckCircle2, AlertCircle, Fuel, FileText, DollarSign,
+  LogIn, LogOut, Navigation
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+interface Event {
+  id: string;
+  nome_evento: string;
+  data_inicio: string;
+  data_fim: string;
+  local: string;
+  viatura_id: string | null;
+  equipe_minima: number;
+  valor_litro_combustivel: number | null;
+  consumo_medio_km_litro: number | null;
+  vehicles?: {
+    id: string;
+    modelo: string;
+    placa: string;
+    prefixo: string;
+  };
+}
+
+interface Assignment {
+  id: string;
+  profile_id: string;
+  checkin_at: string | null;
+  checkout_at: string | null;
+  km_inicial: number | null;
+  km_final: number | null;
+  profiles: {
+    id: string;
+    nome: string;
+    especialidade: string;
+  };
+}
+
+interface Attendance {
+  id: string;
+  nome_paciente: string;
+  idade: number | null;
+  queixa_principal: string;
+  status: string | null;
+  created_at: string;
+  profissional_id: string;
+  profiles: {
+    nome: string;
+    especialidade: string;
+  };
+}
+
+interface Expense {
+  id: string;
+  descricao: string;
+  valor: number;
+  categoria: string;
+  data_despesa: string;
+}
+
+export default function AdminEventDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const [event, setEvent] = useState<Event | null>(null);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [attendances, setAttendances] = useState<Attendance[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+
+      const [eventRes, assignmentsRes, attendancesRes, expensesRes] = await Promise.all([
+        supabase.from('events').select('*, vehicles(*)').eq('id', id).single(),
+        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade)').eq('event_id', id),
+        supabase.from('clinical_attendances').select('*, profiles:profissional_id(nome, especialidade)').eq('event_id', id).order('created_at'),
+        supabase.from('event_expenses').select('*').eq('event_id', id).order('data_despesa'),
+      ]);
+
+      if (eventRes.error) {
+        toast({ title: 'Erro ao carregar evento', description: eventRes.error.message, variant: 'destructive' });
+        navigate('/admin/events');
+        return;
+      }
+
+      setEvent(eventRes.data);
+      setAssignments(assignmentsRes.data || []);
+      setAttendances(attendancesRes.data || []);
+      setExpenses(expensesRes.data || []);
+      setIsLoading(false);
+    };
+
+    fetchData();
+  }, [id, navigate, toast]);
+
+  if (isLoading || !event) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  // Calculate statistics
+  const checkinCount = assignments.filter(a => a.checkin_at).length;
+  const checkoutCount = assignments.filter(a => a.checkout_at).length;
+  const totalKm = assignments.reduce((sum, a) => {
+    if (a.km_inicial && a.km_final) {
+      return sum + (a.km_final - a.km_inicial);
+    }
+    return sum;
+  }, 0);
+  
+  const fuelCost = event.valor_litro_combustivel && event.consumo_medio_km_litro 
+    ? (totalKm / event.consumo_medio_km_litro) * event.valor_litro_combustivel 
+    : 0;
+
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.valor, 0);
+  const checkinProgress = assignments.length > 0 ? (checkinCount / assignments.length) * 100 : 0;
+
+  const getAssignmentStatus = (a: Assignment) => {
+    if (a.checkout_at) return { label: 'Concluído', color: 'bg-stable/20 text-stable', icon: CheckCircle2 };
+    if (a.checkin_at) return { label: 'Em campo', color: 'bg-primary/20 text-primary', icon: Clock };
+    return { label: 'Aguardando', color: 'bg-muted text-muted-foreground', icon: AlertCircle };
+  };
+
+  const categoriaLabels: Record<string, string> = {
+    combustivel: 'Combustível',
+    equipamento: 'Equipamento',
+    diaria: 'Diária',
+    alimentacao: 'Alimentação',
+    hospedagem: 'Hospedagem',
+    transporte: 'Transporte',
+    outros: 'Outros',
+  };
+
+  return (
+    <div className="space-y-6 animate-slide-up">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/admin/events')}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold">{event.nome_evento}</h1>
+          <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              {format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            </span>
+            <span className="flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
+              {event.local}
+            </span>
+            {event.vehicles && (
+              <span className="flex items-center gap-1">
+                <Truck className="w-4 h-4" />
+                {event.vehicles.prefixo} - {event.vehicles.modelo}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-primary">{checkinCount}/{assignments.length}</div>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <LogIn className="w-3 h-3" /> Check-ins
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-stable">{checkoutCount}/{assignments.length}</div>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <LogOut className="w-3 h-3" /> Checkouts
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">{totalKm}</div>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Navigation className="w-3 h-3" /> KM Total
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-warning">
+              R$ {fuelCost.toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Fuel className="w-3 h-3" /> Combustível
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Progress Bar */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="text-muted-foreground">Progresso da Equipe</span>
+            <span className="font-medium">{checkinProgress.toFixed(0)}%</span>
+          </div>
+          <Progress value={checkinProgress} className="h-2" />
+        </CardContent>
+      </Card>
+
+      {/* Team Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Equipe Escalada ({assignments.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {assignments.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum profissional escalado</p>
+          ) : (
+            assignments.map((a) => {
+              const status = getAssignmentStatus(a);
+              const StatusIcon = status.icon;
+              const kmRodado = a.km_inicial && a.km_final ? a.km_final - a.km_inicial : null;
+              
+              return (
+                <div key={a.id} className="p-4 border rounded-xl bg-card">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium">{a.profiles.nome}</p>
+                      <p className="text-sm text-muted-foreground">{a.profiles.especialidade}</p>
+                    </div>
+                    <Badge className={`gap-1 ${status.color}`}>
+                      <StatusIcon className="w-3 h-3" />
+                      {status.label}
+                    </Badge>
+                  </div>
+                  
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <LogIn className="w-4 h-4 text-muted-foreground" />
+                      <span>
+                        Check-in: {a.checkin_at 
+                          ? format(new Date(a.checkin_at), "HH:mm", { locale: ptBR })
+                          : '—'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <LogOut className="w-4 h-4 text-muted-foreground" />
+                      <span>
+                        Checkout: {a.checkout_at 
+                          ? format(new Date(a.checkout_at), "HH:mm", { locale: ptBR })
+                          : '—'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {(a.km_inicial || a.km_final) && (
+                    <div className="mt-2 p-2 bg-muted/50 rounded-lg text-sm flex items-center gap-2">
+                      <Navigation className="w-4 h-4 text-muted-foreground" />
+                      <span>
+                        KM: {a.km_inicial?.toLocaleString() || '—'} → {a.km_final?.toLocaleString() || '—'}
+                        {kmRodado !== null && (
+                          <span className="font-medium text-primary ml-2">({kmRodado} km)</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Attendances Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Atendimentos ({attendances.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {attendances.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum atendimento registrado</p>
+          ) : (
+            attendances.map((att) => (
+              <div key={att.id} className="p-4 border rounded-xl bg-card">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-medium">
+                      {att.nome_paciente}
+                      {att.idade && <span className="text-muted-foreground ml-1">({att.idade} anos)</span>}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">{att.queixa_principal}</p>
+                  </div>
+                  <Badge className={att.status === 'finalizado' ? 'bg-stable/20 text-stable' : 'bg-warning/20 text-warning'}>
+                    {att.status === 'finalizado' ? 'Finalizado' : 'Em andamento'}
+                  </Badge>
+                </div>
+                <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {format(new Date(att.created_at), "HH:mm", { locale: ptBR })}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {att.profiles?.nome || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Expenses Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <DollarSign className="w-5 h-5" />
+            Despesas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {expenses.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhuma despesa registrada</p>
+          ) : (
+            <div className="space-y-2">
+              {expenses.map((exp) => (
+                <div key={exp.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium text-sm">{exp.descricao}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {categoriaLabels[exp.categoria] || exp.categoria}
+                    </p>
+                  </div>
+                  <span className="font-semibold">R$ {exp.valor.toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg font-semibold">
+                <span>Total Despesas</span>
+                <span>R$ {totalExpenses.toFixed(2)}</span>
+              </div>
+              {fuelCost > 0 && (
+                <div className="flex items-center justify-between p-3 bg-warning/10 rounded-lg text-sm">
+                  <span className="flex items-center gap-2">
+                    <Fuel className="w-4 h-4" />
+                    Combustível estimado ({totalKm} km)
+                  </span>
+                  <span className="font-semibold">R$ {fuelCost.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
