@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -48,23 +49,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data as Profile | null;
   };
 
+  const checkAdminRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (error) throw error;
+      return !!data;
+    } catch (e) {
+      console.error('Error checking admin role:', e);
+      return false;
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
+    const safeSetAuth = (next: { session: Session | null; user: User | null }) => {
+      if (!isMounted) return;
+      setSession(next.session);
+      setUser(next.user);
+    };
+
     // Listener for ONGOING auth changes (does NOT control isLoading)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!isMounted) return;
-        setSession(session);
-        setUser(session?.user ?? null);
+      (_event, nextSession) => {
+        safeSetAuth({ session: nextSession, user: nextSession?.user ?? null });
 
-        if (session?.user) {
+        if (nextSession?.user) {
           // Fire and forget - don't await, don't set loading
-          fetchProfile(session.user.id).then((p) => {
+          fetchProfile(nextSession.user.id).then((p) => {
             if (isMounted) setProfile(p);
           });
+          checkAdminRole(nextSession.user.id).then((v) => {
+            if (isMounted) setIsAdmin(v);
+          });
         } else {
-          setProfile(null);
+          if (isMounted) {
+            setProfile(null);
+            setIsAdmin(false);
+          }
         }
       }
     );
@@ -72,16 +100,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // INITIAL load (controls isLoading)
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
         if (!isMounted) return;
 
-        setSession(session);
-        setUser(session?.user ?? null);
+        safeSetAuth({ session: initialSession, user: initialSession?.user ?? null });
 
-        // Fetch profile BEFORE setting loading false
-        if (session?.user) {
-          const p = await fetchProfile(session.user.id);
-          if (isMounted) setProfile(p);
+        if (initialSession?.user) {
+          const [p, admin] = await Promise.all([
+            fetchProfile(initialSession.user.id),
+            checkAdminRole(initialSession.user.id),
+          ]);
+          if (isMounted) {
+            setProfile(p);
+            setIsAdmin(admin);
+          }
+        } else {
+          if (isMounted) {
+            setProfile(null);
+            setIsAdmin(false);
+          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -141,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         isLoading,
-        isAdmin: profile?.cargo === 'admin',
+        isAdmin,
         needsProfile,
         signIn,
         signUp,
