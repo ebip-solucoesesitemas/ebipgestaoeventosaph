@@ -1,6 +1,7 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -16,11 +17,19 @@ import {
   Building2,
   DollarSign,
   Wallet,
+  MapPin,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
-import { useState } from 'react';
 
 interface LayoutProps {
   children: ReactNode;
+}
+
+interface Base {
+  id: string;
+  nome: string;
+  sigla: string;
 }
 
 export default function Layout({ children }: LayoutProps) {
@@ -28,13 +37,23 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [bases, setBases] = useState<Base[]>([]);
+  const [expandedBase, setExpandedBase] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isAdmin) {
+      supabase.from('bases').select('id, nome, sigla').order('sigla').then(({ data }) => {
+        setBases(data || []);
+      });
+    }
+  }, [isAdmin]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
   };
 
-  const adminLinks = [
+  const globalAdminLinks = [
     { href: '/admin/events', label: 'Eventos', icon: Calendar },
     { href: '/admin/professionals', label: 'Profissionais', icon: Users },
     { href: '/admin/vehicles', label: 'Viaturas', icon: Truck },
@@ -43,13 +62,22 @@ export default function Layout({ children }: LayoutProps) {
     { href: '/admin/payroll', label: 'Pagamentos', icon: Wallet },
     { href: '/admin/professional-rates', label: 'Valores', icon: DollarSign },
     { href: '/admin/professional-report', label: 'Relatórios', icon: ClipboardList },
+    { href: '/admin/bases', label: 'Bases', icon: MapPin },
   ];
 
   const teamLinks = [
     { href: '/events', label: 'Meus Eventos', icon: Calendar },
   ];
 
-  const links = isAdmin ? adminLinks : teamLinks;
+  const links = isAdmin ? globalAdminLinks : teamLinks;
+
+  // Base-specific links
+  const getBaseLinks = (baseId: string) => [
+    { href: `/admin/base/${baseId}/events`, label: 'Eventos', icon: Calendar },
+    { href: `/admin/base/${baseId}/professionals`, label: 'Profissionais', icon: Users },
+    { href: `/admin/base/${baseId}/vehicles`, label: 'Viaturas', icon: Truck },
+    { href: `/admin/base/${baseId}/finance`, label: 'Financeiro', icon: DollarSign },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,25 +95,61 @@ export default function Layout({ children }: LayoutProps) {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1 overflow-x-auto">
             {links.map((link) => (
               <Link key={link.href} to={link.href}>
                 <Button
                   variant="ghost"
+                  size="sm"
                   className={cn(
-                    'text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10',
+                    'text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-xs',
                     location.pathname.startsWith(link.href) && 'bg-white/20 text-primary-foreground'
                   )}
                 >
-                  <link.icon className="w-4 h-4 mr-2" />
+                  <link.icon className="w-4 h-4 mr-1" />
                   {link.label}
                 </Button>
               </Link>
             ))}
+            {/* Base dropdowns on desktop */}
+            {isAdmin && bases.map((base) => (
+              <div key={base.id} className="relative group">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-xs gap-1',
+                    location.pathname.includes(`/base/${base.id}`) && 'bg-white/20 text-primary-foreground'
+                  )}
+                  onClick={() => setExpandedBase(expandedBase === base.id ? null : base.id)}
+                >
+                  <MapPin className="w-3 h-3" />
+                  {base.sigla}
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+                {expandedBase === base.id && (
+                  <div className="absolute top-full left-0 mt-1 bg-card border rounded-lg shadow-lg py-1 min-w-[160px] z-50">
+                    {getBaseLinks(base.id).map((bl) => (
+                      <Link
+                        key={bl.href}
+                        to={bl.href}
+                        onClick={() => setExpandedBase(null)}
+                        className={cn(
+                          'flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted',
+                          location.pathname === bl.href && 'bg-muted font-medium'
+                        )}
+                      >
+                        <bl.icon className="w-4 h-4" />
+                        {bl.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </nav>
 
           <div className="flex items-center gap-3">
-            {/* User Info */}
             <div className="hidden sm:flex items-center gap-2 text-primary-foreground">
               <div className="text-right">
                 <p className="text-sm font-medium">{profile?.nome}</p>
@@ -105,7 +169,6 @@ export default function Layout({ children }: LayoutProps) {
               <LogOut className="w-5 h-5" />
             </Button>
 
-            {/* Mobile Menu Toggle */}
             <Button
               variant="ghost"
               size="icon"
@@ -119,7 +182,7 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Mobile Nav */}
         {mobileMenuOpen && (
-          <nav className="md:hidden border-t border-white/10 bg-primary pb-4">
+          <nav className="md:hidden border-t border-white/10 bg-primary pb-4 max-h-[70vh] overflow-y-auto">
             <div className="container space-y-1 pt-2">
               {links.map((link) => (
                 <Link key={link.href} to={link.href} onClick={() => setMobileMenuOpen(false)}>
@@ -134,6 +197,39 @@ export default function Layout({ children }: LayoutProps) {
                     {link.label}
                   </Button>
                 </Link>
+              ))}
+              {/* Base sections in mobile */}
+              {isAdmin && bases.map((base) => (
+                <div key={base.id} className="pt-1">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10"
+                    onClick={() => setExpandedBase(expandedBase === base.id ? null : base.id)}
+                  >
+                    <MapPin className="w-5 h-5 mr-3" />
+                    {base.sigla} - {base.nome}
+                    {expandedBase === base.id ? <ChevronDown className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto" />}
+                  </Button>
+                  {expandedBase === base.id && (
+                    <div className="pl-8 space-y-1">
+                      {getBaseLinks(base.id).map((bl) => (
+                        <Link key={bl.href} to={bl.href} onClick={() => setMobileMenuOpen(false)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              'w-full justify-start text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10',
+                              location.pathname === bl.href && 'bg-white/20 text-primary-foreground'
+                            )}
+                          >
+                            <bl.icon className="w-4 h-4 mr-2" />
+                            {bl.label}
+                          </Button>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
               <div className="pt-2 px-4 border-t border-white/10 mt-2">
                 <p className="text-sm text-primary-foreground">{profile?.nome}</p>

@@ -123,6 +123,7 @@ export default function Finance() {
     valor_contrato: '',
     descricao: '',
     data_vencimento: '',
+    forma_cobranca: '',
   });
 
   const [expenseForm, setExpenseForm] = useState({
@@ -185,14 +186,15 @@ export default function Finance() {
       valor_contrato: parseFloat(budgetForm.valor_contrato),
       descricao: budgetForm.descricao || null,
       data_vencimento: budgetForm.data_vencimento || null,
-    });
+      forma_cobranca: budgetForm.forma_cobranca || null,
+    } as any);
 
     if (error) {
       toast({ title: 'Erro ao criar orçamento', variant: 'destructive' });
     } else {
       toast({ title: 'Orçamento criado!' });
       setBudgetDialogOpen(false);
-      setBudgetForm({ event_id: '', client_id: '', valor_contrato: '', descricao: '', data_vencimento: '' });
+      setBudgetForm({ event_id: '', client_id: '', valor_contrato: '', descricao: '', data_vencimento: '', forma_cobranca: '' });
       fetchData();
     }
   };
@@ -376,9 +378,23 @@ export default function Finance() {
                         <p className="text-xl font-bold">
                           R$ {Number(budget.valor_contrato).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
-                        <Badge className={statusColors[budget.status]}>
-                          {budget.status.charAt(0).toUpperCase() + budget.status.slice(1)}
-                        </Badge>
+                        <div className="flex items-center gap-2 justify-end">
+                          <Badge className={statusColors[budget.status]}>
+                            {budget.status.charAt(0).toUpperCase() + budget.status.slice(1)}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 text-xs"
+                            onClick={async () => {
+                              const newStatus = budget.status === 'pago' ? 'pendente' : 'pago';
+                              await supabase.from('event_budgets').update({ status: newStatus }).eq('id', budget.id);
+                              fetchData();
+                            }}
+                          >
+                            {budget.status === 'pago' ? '↩ Pendente' : '✓ Marcar Pago'}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -547,6 +563,22 @@ export default function Finance() {
                 value={budgetForm.descricao}
                 onChange={(e) => setBudgetForm({ ...budgetForm, descricao: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Forma de Cobrança</Label>
+              <Select value={budgetForm.forma_cobranca} onValueChange={(v) => setBudgetForm({ ...budgetForm, forma_cobranca: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="emissao_nf">Emissão NF</SelectItem>
+                  <SelectItem value="empenho">Empenho</SelectItem>
+                  <SelectItem value="nao_cobrar">Não Cobrar</SelectItem>
+                  <SelectItem value="patrocinio">Patrocínio</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button type="submit" className="w-full btn-touch">Criar Orçamento</Button>
           </form>
