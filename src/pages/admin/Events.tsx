@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle, Fuel, Search } from 'lucide-react';
+import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle, Fuel, Search, Eye, LogIn, LogOut, Navigation } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -47,10 +49,13 @@ interface EventAssignment {
   profile_id: string;
   checkin_at: string | null;
   checkout_at: string | null;
+  km_inicial: number | null;
+  km_final: number | null;
   profiles?: Profile;
 }
 
 export default function AdminEvents() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -270,12 +275,24 @@ export default function AdminEvents() {
     const eventAssignments = assignments[event.id] || [];
     const teamSize = eventAssignments.length;
     const isComplete = event.equipe_completa || teamSize >= event.equipe_minima;
+    const checkinCount = eventAssignments.filter(a => a.checkin_at).length;
+    const checkoutCount = eventAssignments.filter(a => a.checkout_at).length;
+    const totalKm = eventAssignments.reduce((sum, a) => {
+      if (a.km_inicial && a.km_final) {
+        return sum + (a.km_final - a.km_inicial);
+      }
+      return sum;
+    }, 0);
     
     return {
       size: teamSize,
       minRequired: event.equipe_minima,
       isComplete,
       markedComplete: event.equipe_completa,
+      checkinCount,
+      checkoutCount,
+      totalKm,
+      checkinProgress: teamSize > 0 ? (checkinCount / teamSize) * 100 : 0,
     };
   };
 
@@ -538,6 +555,15 @@ export default function AdminEvents() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-1"
+                        onClick={() => navigate(`/admin/events/${event.id}`)}
+                      >
+                        <Eye className="w-4 h-4" />
+                        Detalhes
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -547,7 +573,31 @@ export default function AdminEvents() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 space-y-3">
+                  {/* Progress Indicators */}
+                  {teamStatus.size > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <LogIn className="w-4 h-4" />
+                          Check-ins: <span className="font-medium text-foreground">{teamStatus.checkinCount}/{teamStatus.size}</span>
+                        </span>
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <LogOut className="w-4 h-4" />
+                          Checkouts: <span className="font-medium text-foreground">{teamStatus.checkoutCount}/{teamStatus.size}</span>
+                        </span>
+                        {teamStatus.totalKm > 0 && (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Navigation className="w-4 h-4" />
+                            <span className="font-medium text-foreground">{teamStatus.totalKm} km</span>
+                          </span>
+                        )}
+                      </div>
+                      <Progress value={teamStatus.checkinProgress} className="h-1.5" />
+                    </div>
+                  )}
+                  
+                  {/* Team Badges */}
                   <div className="flex flex-wrap gap-2">
                     {event.vehicles && (
                       <Badge variant="secondary" className="gap-1">

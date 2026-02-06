@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminEvents from "./pages/admin/Events";
+import AdminEventDetail from "./pages/admin/EventDetail";
 import AdminProfessionals from "./pages/admin/Professionals";
 import AdminVehicles from "./pages/admin/Vehicles";
 import AdminClients from "./pages/admin/Clients";
@@ -15,7 +16,7 @@ import AdminPayroll from "./pages/admin/Payroll";
 import AdminProfessionalRates from "./pages/admin/ProfessionalRates";
 import AdminProfessionalReport from "./pages/admin/ProfessionalReport";
 import TeamEvents from "./pages/team/TeamEvents";
-import EventDetail from "./pages/team/EventDetail";
+import TeamEventDetail from "./pages/team/EventDetail";
 import NotFound from "./pages/NotFound";
 import Layout from "@/components/Layout";
 
@@ -44,6 +45,7 @@ const App = () => (
             
             {/* Admin Routes */}
             <Route path="/admin/events" element={<AdminLayout><AdminEvents /></AdminLayout>} />
+            <Route path="/admin/events/:id" element={<AdminLayout><AdminEventDetail /></AdminLayout>} />
             <Route path="/admin/professionals" element={<AdminLayout><AdminProfessionals /></AdminLayout>} />
             <Route path="/admin/vehicles" element={<AdminLayout><AdminVehicles /></AdminLayout>} />
             <Route path="/admin/clients" element={<AdminLayout><AdminClients /></AdminLayout>} />
@@ -54,7 +56,7 @@ const App = () => (
             
             {/* Team Routes */}
             <Route path="/events" element={<TeamLayout><TeamEvents /></TeamLayout>} />
-            <Route path="/events/:id" element={<TeamLayout><EventDetail /></TeamLayout>} />
+            <Route path="/events/:id" element={<TeamLayout><TeamEventDetail /></TeamLayout>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
