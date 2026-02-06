@@ -158,6 +158,8 @@ export type Database = {
           created_at: string | null
           event_id: string
           id: string
+          km_final: number | null
+          km_inicial: number | null
           profile_id: string
         }
         Insert: {
@@ -166,6 +168,8 @@ export type Database = {
           created_at?: string | null
           event_id: string
           id?: string
+          km_final?: number | null
+          km_inicial?: number | null
           profile_id: string
         }
         Update: {
@@ -174,6 +178,8 @@ export type Database = {
           created_at?: string | null
           event_id?: string
           id?: string
+          km_final?: number | null
+          km_inicial?: number | null
           profile_id?: string
         }
         Relationships: [
@@ -297,6 +303,7 @@ export type Database = {
       }
       events: {
         Row: {
+          consumo_medio_km_litro: number | null
           created_at: string | null
           data_fim: string
           data_inicio: string
@@ -306,9 +313,11 @@ export type Database = {
           local: string
           nome_evento: string
           updated_at: string | null
+          valor_litro_combustivel: number | null
           viatura_id: string | null
         }
         Insert: {
+          consumo_medio_km_litro?: number | null
           created_at?: string | null
           data_fim: string
           data_inicio: string
@@ -318,9 +327,11 @@ export type Database = {
           local: string
           nome_evento: string
           updated_at?: string | null
+          valor_litro_combustivel?: number | null
           viatura_id?: string | null
         }
         Update: {
+          consumo_medio_km_litro?: number | null
           created_at?: string | null
           data_fim?: string
           data_inicio?: string
@@ -330,6 +341,7 @@ export type Database = {
           local?: string
           nome_evento?: string
           updated_at?: string | null
+          valor_litro_combustivel?: number | null
           viatura_id?: string | null
         }
         Relationships: [

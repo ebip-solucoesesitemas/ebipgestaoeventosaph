@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2 } from 'lucide-react';
+import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2, Key } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -46,12 +46,15 @@ export default function AdminProfessionals() {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     nome: '',
     especialidade: '',
     registro_profissional: '',
     cargo: 'equipe',
+    email: '',
+    password: '',
   });
 
   const fetchProfiles = async () => {
@@ -74,7 +77,7 @@ export default function AdminProfessionals() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe' });
+    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', email: '', password: '' });
     setEditingProfile(null);
   };
 
@@ -85,21 +88,25 @@ export default function AdminProfessionals() {
       especialidade: profile.especialidade,
       registro_profissional: profile.registro_profissional,
       cargo: profile.cargo,
+      email: '',
+      password: '',
     });
     setDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const payload = {
-      nome: formData.nome,
-      especialidade: formData.especialidade as 'Médico' | 'Enfermeiro' | 'Técnico' | 'Socorrista',
-      registro_profissional: formData.registro_profissional,
-      cargo: formData.cargo as 'admin' | 'equipe',
-    };
+    setIsSubmitting(true);
 
     if (editingProfile) {
+      // Update existing profile
+      const payload = {
+        nome: formData.nome,
+        especialidade: formData.especialidade as 'Médico' | 'Enfermeiro' | 'Técnico' | 'Socorrista',
+        registro_profissional: formData.registro_profissional,
+        cargo: formData.cargo as 'admin' | 'equipe',
+      };
+
       const { error } = await supabase
         .from('profiles')
         .update(payload)
@@ -107,22 +114,56 @@ export default function AdminProfessionals() {
 
       if (error) {
         toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+        setIsSubmitting(false);
         return;
       }
       toast({ title: 'Profissional atualizado!' });
     } else {
-      const { error } = await supabase.from('profiles').insert(payload);
-
-      if (error) {
-        toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' });
+      // Create new user with profile via edge function
+      if (!formData.email || !formData.password) {
+        toast({ title: 'Preencha email e senha', variant: 'destructive' });
+        setIsSubmitting(false);
         return;
       }
-      toast({ title: 'Profissional cadastrado!' });
+
+      if (formData.password.length < 6) {
+        toast({ title: 'Senha deve ter no mínimo 6 caracteres', variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          profileData: {
+            nome: formData.nome,
+            especialidade: formData.especialidade,
+            registro_profissional: formData.registro_profissional,
+            cargo: formData.cargo,
+          },
+        },
+      });
+
+      if (error) {
+        toast({ title: 'Erro ao criar usuário', description: error.message, variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (data?.error) {
+        toast({ title: 'Erro ao criar usuário', description: data.error, variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast({ title: 'Profissional cadastrado com sucesso!', description: `Login: ${formData.email}` });
     }
 
     setDialogOpen(false);
     resetForm();
     fetchProfiles();
+    setIsSubmitting(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -177,7 +218,7 @@ export default function AdminProfessionals() {
               <span className="hidden sm:inline">Novo Profissional</span>
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingProfile ? 'Editar Profissional' : 'Novo Profissional'}</DialogTitle>
             </DialogHeader>
@@ -235,8 +276,45 @@ export default function AdminProfessionals() {
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full btn-touch">
-                {editingProfile ? 'Salvar Alterações' : 'Cadastrar'}
+              {!editingProfile && (
+                <>
+                  <div className="border-t pt-4 mt-4">
+                    <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
+                      <Key className="w-4 h-4" />
+                      Credenciais de Acesso
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Email de Login *</Label>
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="profissional@email.com"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Senha *</Label>
+                    <Input
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                      placeholder="Mínimo 6 caracteres"
+                      minLength={6}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Informe esta senha ao profissional para ele fazer login
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <Button type="submit" className="w-full btn-touch" disabled={isSubmitting}>
+                {isSubmitting ? 'Processando...' : editingProfile ? 'Salvar Alterações' : 'Cadastrar Profissional'}
               </Button>
             </form>
           </DialogContent>
@@ -284,6 +362,18 @@ export default function AdminProfessionals() {
                   <p className="text-sm text-muted-foreground">
                     {profile.registro_profissional}
                   </p>
+                  <div className="flex items-center gap-2">
+                    {profile.user_id ? (
+                      <Badge variant="outline" className="text-xs">
+                        <Key className="w-3 h-3 mr-1" />
+                        Com acesso
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">
+                        Sem login
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center justify-between">
                     <Badge variant={profile.cargo === 'admin' ? 'default' : 'secondary'}>
                       {profile.cargo === 'admin' && <Shield className="w-3 h-3 mr-1" />}
