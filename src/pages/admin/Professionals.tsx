@@ -226,7 +226,7 @@ export default function AdminProfessionals() {
               <span className="hidden sm:inline">Novo Profissional</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingProfile ? 'Editar Profissional' : 'Novo Profissional'}</DialogTitle>
             </DialogHeader>
