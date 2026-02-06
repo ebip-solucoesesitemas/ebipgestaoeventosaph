@@ -5,8 +5,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, LogIn, LogOut, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, LogIn, LogOut, CheckCircle2, Gauge, Fuel } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import APHForm from '@/components/APHForm';
@@ -17,6 +19,8 @@ interface Event {
   data_inicio: string;
   data_fim: string;
   local: string;
+  valor_litro_combustivel: number | null;
+  consumo_medio_km_litro: number | null;
   vehicles?: { prefixo: string; modelo: string };
 }
 
@@ -34,6 +38,8 @@ interface TeamMember {
   profile_id: string;
   checkin_at: string | null;
   checkout_at: string | null;
+  km_inicial: number | null;
+  km_final: number | null;
   profiles: { id: string; nome: string; especialidade: string };
 }
 
@@ -50,6 +56,10 @@ export default function EventDetail() {
   const [showForm, setShowForm] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
   const [processingCheckin, setProcessingCheckin] = useState(false);
+  
+  // Mileage inputs
+  const [kmInicial, setKmInicial] = useState('');
+  const [kmFinal, setKmFinal] = useState('');
 
   const myAssignment = team.find(t => t.profiles.id === profile?.id);
 
@@ -61,7 +71,7 @@ export default function EventDetail() {
     const [eventRes, attendancesRes, teamRes] = await Promise.all([
       supabase.from('events').select('*, vehicles(prefixo, modelo)').eq('id', id).single(),
       supabase.from('clinical_attendances').select('*, profiles(nome)').eq('event_id', id).order('created_at', { ascending: false }),
-      supabase.from('event_assignments').select('id, profile_id, checkin_at, checkout_at, profiles(id, nome, especialidade)').eq('event_id', id),
+      supabase.from('event_assignments').select('id, profile_id, checkin_at, checkout_at, km_inicial, km_final, profiles(id, nome, especialidade)').eq('event_id', id),
     ]);
 
     if (eventRes.error) {
@@ -73,6 +83,12 @@ export default function EventDetail() {
     setEvent(eventRes.data);
     setAttendances(attendancesRes.data || []);
     setTeam(teamRes.data as TeamMember[] || []);
+    
+    // Load existing km values for current user
+    const myData = teamRes.data?.find((t: TeamMember) => t.profiles.id === profile?.id);
+    if (myData?.km_inicial) setKmInicial(myData.km_inicial.toString());
+    if (myData?.km_final) setKmFinal(myData.km_final.toString());
+    
     setIsLoading(false);
   };
 
@@ -83,10 +99,18 @@ export default function EventDetail() {
   const handleCheckin = async () => {
     if (!myAssignment) return;
     
+    if (!kmInicial || isNaN(parseFloat(kmInicial))) {
+      toast({ title: 'Informe a quilometragem inicial', variant: 'destructive' });
+      return;
+    }
+    
     setProcessingCheckin(true);
     const { error } = await supabase
       .from('event_assignments')
-      .update({ checkin_at: new Date().toISOString() })
+      .update({ 
+        checkin_at: new Date().toISOString(),
+        km_inicial: parseFloat(kmInicial)
+      })
       .eq('id', myAssignment.id);
 
     if (error) {
@@ -101,12 +125,28 @@ export default function EventDetail() {
   const handleCheckout = async () => {
     if (!myAssignment || !profile) return;
     
+    if (!kmFinal || isNaN(parseFloat(kmFinal))) {
+      toast({ title: 'Informe a quilometragem final', variant: 'destructive' });
+      return;
+    }
+
+    const kmFinalNum = parseFloat(kmFinal);
+    const kmInicialNum = myAssignment.km_inicial || 0;
+
+    if (kmFinalNum < kmInicialNum) {
+      toast({ title: 'KM final deve ser maior que o inicial', variant: 'destructive' });
+      return;
+    }
+    
     setProcessingCheckin(true);
 
-    // 1. Update checkout time
+    // 1. Update checkout time and km_final
     const { error: checkoutError } = await supabase
       .from('event_assignments')
-      .update({ checkout_at: new Date().toISOString() })
+      .update({ 
+        checkout_at: new Date().toISOString(),
+        km_final: kmFinalNum
+      })
       .eq('id', myAssignment.id);
 
     if (checkoutError) {
@@ -159,6 +199,21 @@ export default function EventDetail() {
     fetchData();
   };
 
+  // Calculate fuel cost summary
+  const calculateFuelSummary = () => {
+    const completedAssignments = team.filter(t => t.km_inicial && t.km_final);
+    const totalKm = completedAssignments.reduce((acc, t) => {
+      return acc + ((t.km_final || 0) - (t.km_inicial || 0));
+    }, 0);
+    
+    const valorLitro = event?.valor_litro_combustivel || 0;
+    const consumoMedio = event?.consumo_medio_km_litro || 10;
+    const litrosUsados = totalKm / consumoMedio;
+    const custoTotal = litrosUsados * valorLitro;
+
+    return { totalKm, litrosUsados, custoTotal, valorLitro };
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -178,6 +233,8 @@ export default function EventDetail() {
       />
     );
   }
+
+  const fuelSummary = calculateFuelSummary();
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -201,10 +258,10 @@ export default function EventDetail() {
         </div>
       </div>
 
-      {/* Check-in/Checkout Card */}
+      {/* Check-in/Checkout Card with Mileage */}
       {myAssignment && (
         <Card className={myAssignment.checkout_at ? 'border-stable' : myAssignment.checkin_at ? 'border-warning' : ''}>
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Sua Participação</p>
@@ -221,28 +278,109 @@ export default function EventDetail() {
                   <p className="text-sm text-muted-foreground">Faça check-in para iniciar</p>
                 )}
               </div>
-              {!myAssignment.checkout_at && (
-                <Button
-                  onClick={myAssignment.checkin_at ? handleCheckout : handleCheckin}
-                  disabled={processingCheckin}
-                  className={myAssignment.checkin_at ? 'bg-warning hover:bg-warning/90' : ''}
-                >
-                  {processingCheckin ? (
-                    'Processando...'
-                  ) : myAssignment.checkin_at ? (
-                    <>
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Fazer Checkout
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="w-4 h-4 mr-2" />
-                      Fazer Check-in
-                    </>
-                  )}
-                </Button>
-              )}
             </div>
+
+            {/* Mileage inputs */}
+            {!myAssignment.checkout_at && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Gauge className="w-3 h-3" />
+                    KM Inicial
+                  </Label>
+                  <Input
+                    type="number"
+                    value={kmInicial}
+                    onChange={(e) => setKmInicial(e.target.value)}
+                    placeholder="Ex: 45230"
+                    disabled={!!myAssignment.checkin_at}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Gauge className="w-3 h-3" />
+                    KM Final
+                  </Label>
+                  <Input
+                    type="number"
+                    value={kmFinal}
+                    onChange={(e) => setKmFinal(e.target.value)}
+                    placeholder="Ex: 45350"
+                    disabled={!myAssignment.checkin_at}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Show recorded mileage after checkout */}
+            {myAssignment.checkout_at && myAssignment.km_inicial && myAssignment.km_final && (
+              <div className="flex items-center gap-4 text-sm bg-muted/50 rounded-lg p-2">
+                <span className="flex items-center gap-1">
+                  <Gauge className="w-4 h-4 text-muted-foreground" />
+                  KM: {myAssignment.km_inicial.toLocaleString('pt-BR')} → {myAssignment.km_final.toLocaleString('pt-BR')}
+                </span>
+                <Badge variant="outline">
+                  {((myAssignment.km_final || 0) - (myAssignment.km_inicial || 0)).toLocaleString('pt-BR')} km
+                </Badge>
+              </div>
+            )}
+
+            {!myAssignment.checkout_at && (
+              <Button
+                onClick={myAssignment.checkin_at ? handleCheckout : handleCheckin}
+                disabled={processingCheckin}
+                className={`w-full ${myAssignment.checkin_at ? 'bg-warning hover:bg-warning/90' : ''}`}
+              >
+                {processingCheckin ? (
+                  'Processando...'
+                ) : myAssignment.checkin_at ? (
+                  <>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Fazer Checkout
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Fazer Check-in
+                  </>
+                )}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Fuel/Mileage Summary Card */}
+      {fuelSummary.totalKm > 0 && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Fuel className="w-4 h-4" />
+              Resumo de Combustível
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold text-primary">{fuelSummary.totalKm.toLocaleString('pt-BR')}</p>
+                <p className="text-xs text-muted-foreground">KM Total</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-primary">{fuelSummary.litrosUsados.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">Litros (est.)</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-primary">
+                  R$ {fuelSummary.custoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-muted-foreground">Custo (est.)</p>
+              </div>
+            </div>
+            {fuelSummary.valorLitro === 0 && (
+              <p className="text-xs text-warning text-center mt-2">
+                Configure o valor do litro no evento para calcular o custo
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
@@ -290,6 +428,11 @@ export default function EventDetail() {
                 <div>
                   <p className="font-medium text-sm">{member.profiles.nome}</p>
                   <p className="text-xs text-muted-foreground">{member.profiles.especialidade}</p>
+                  {member.km_inicial && member.km_final && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      KM: {((member.km_final || 0) - (member.km_inicial || 0)).toLocaleString('pt-BR')} km
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {member.checkout_at ? (
