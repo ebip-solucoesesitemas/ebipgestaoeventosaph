@@ -8,7 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, User, Activity, FileText, PenTool, Save, Check } from 'lucide-react';
+import { ArrowLeft, User, Activity, FileText, PenTool, Save, Check, Plus, Trash2, Clock, Heart } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import VitalSignsInput from './VitalSignsInput';
 import SignaturePad, { SignaturePadRef } from './SignaturePad';
 import APHSummary from './APHSummary';
@@ -27,6 +29,11 @@ interface VitalSignsData {
   saturacao_o2: number | null;
   temperatura: number | null;
   glicemia: number | null;
+}
+
+interface SavedVitalSign extends VitalSignsData {
+  id: string;
+  horario: string | null;
 }
 
 const initialVitals: VitalSignsData = {
@@ -58,6 +65,8 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
 
   // Vitals
   const [vitals, setVitals] = useState<VitalSignsData>(initialVitals);
+  const [savedVitals, setSavedVitals] = useState<SavedVitalSign[]>([]);
+  const [showVitalsForm, setShowVitalsForm] = useState(false);
 
   // Evolution
   const [evolucao, setEvolucao] = useState('');
@@ -93,25 +102,25 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
         }
       }
 
-      // Load vitals
+      // Load all vitals
       const { data: vitalsData } = await supabase
         .from('vital_signs')
         .select('*')
         .eq('attendance_id', attendanceId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('horario', { ascending: true });
 
-      if (vitalsData) {
-        setVitals({
-          pa_sistolica: vitalsData.pa_sistolica,
-          pa_diastolica: vitalsData.pa_diastolica,
-          frequencia_cardiaca: vitalsData.frequencia_cardiaca,
-          frequencia_respiratoria: vitalsData.frequencia_respiratoria,
-          saturacao_o2: vitalsData.saturacao_o2,
-          temperatura: vitalsData.temperatura ? Number(vitalsData.temperatura) : null,
-          glicemia: vitalsData.glicemia,
-        });
+      if (vitalsData && vitalsData.length > 0) {
+        setSavedVitals(vitalsData.map(v => ({
+          id: v.id,
+          horario: v.horario,
+          pa_sistolica: v.pa_sistolica,
+          pa_diastolica: v.pa_diastolica,
+          frequencia_cardiaca: v.frequencia_cardiaca,
+          frequencia_respiratoria: v.frequencia_respiratoria,
+          saturacao_o2: v.saturacao_o2,
+          temperatura: v.temperatura ? Number(v.temperatura) : null,
+          glicemia: v.glicemia,
+        })));
       }
     };
 
@@ -168,12 +177,19 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
   const saveVitals = async () => {
     if (!savedAttendanceId) return false;
 
+    // Check if any vital value is filled
+    const hasValues = Object.values(vitals).some(v => v !== null);
+    if (!hasValues) {
+      toast({ title: 'Preencha ao menos um sinal vital', variant: 'destructive' });
+      return false;
+    }
+
     setIsLoading(true);
 
-    const { error } = await supabase.from('vital_signs').insert({
+    const { data, error } = await supabase.from('vital_signs').insert({
       attendance_id: savedAttendanceId,
       ...vitals,
-    });
+    }).select().single();
 
     if (error) {
       toast({ title: 'Erro ao salvar sinais', description: error.message, variant: 'destructive' });
@@ -181,8 +197,34 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
       return false;
     }
 
+    // Add to saved list and reset form
+    if (data) {
+      setSavedVitals(prev => [...prev, {
+        id: data.id,
+        horario: data.horario,
+        pa_sistolica: data.pa_sistolica,
+        pa_diastolica: data.pa_diastolica,
+        frequencia_cardiaca: data.frequencia_cardiaca,
+        frequencia_respiratoria: data.frequencia_respiratoria,
+        saturacao_o2: data.saturacao_o2,
+        temperatura: data.temperatura ? Number(data.temperatura) : null,
+        glicemia: data.glicemia,
+      }]);
+    }
+    setVitals(initialVitals);
+    setShowVitalsForm(false);
+    toast({ title: 'Sinais vitais registrados!' });
+
     setIsLoading(false);
     return true;
+  };
+
+  const deleteVitalSign = async (vitalId: string) => {
+    const { error } = await supabase.from('vital_signs').delete().eq('id', vitalId);
+    if (!error) {
+      setSavedVitals(prev => prev.filter(v => v.id !== vitalId));
+      toast({ title: 'Registro removido' });
+    }
   };
 
   const finalizeAttendance = async () => {
@@ -247,8 +289,6 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
 
     if (step === 'patient' || step === 'evolution') {
       success = await savePatientData();
-    } else if (step === 'vitals' && savedAttendanceId) {
-      success = await saveVitals();
     }
 
     if (success) {
@@ -266,7 +306,7 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
       const saved = await savePatientData();
       if (saved) setStep('vitals');
     } else if (step === 'vitals') {
-      await saveVitals();
+      // Don't auto-save vitals on next, just advance
       setStep('evolution');
     } else if (step === 'evolution') {
       await savePatientData();
@@ -386,7 +426,79 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
           )}
 
           {step === 'vitals' && (
-            <VitalSignsInput values={vitals} onChange={setVitals} />
+            <div className="space-y-4">
+              {/* Saved vital signs list */}
+              {savedVitals.length > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Registros Salvos</Label>
+                  {savedVitals.map((v, idx) => (
+                    <div key={v.id} className="p-3 border rounded-xl bg-muted/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {v.horario ? format(new Date(v.horario), "dd/MM 'às' HH:mm", { locale: ptBR }) : `Aferição ${idx + 1}`}
+                        </span>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteVitalSign(v.id)}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        {v.pa_sistolica != null && v.pa_diastolica != null && (
+                          <span>PA: {v.pa_sistolica}/{v.pa_diastolica}</span>
+                        )}
+                        {v.frequencia_cardiaca != null && (
+                          <span className="flex items-center gap-1"><Heart className="w-3 h-3 text-destructive" />{v.frequencia_cardiaca}</span>
+                        )}
+                        {v.frequencia_respiratoria != null && <span>FR: {v.frequencia_respiratoria}</span>}
+                        {v.saturacao_o2 != null && <span>SpO2: {v.saturacao_o2}%</span>}
+                        {v.temperatura != null && <span>T: {v.temperatura}°C</span>}
+                        {v.glicemia != null && <span>Gli: {v.glicemia}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* New vital signs form */}
+              {showVitalsForm ? (
+                <div className="space-y-4">
+                  <VitalSignsInput values={vitals} onChange={setVitals} />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => { setShowVitalsForm(false); setVitals(initialVitals); }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      className="flex-1 gap-2"
+                      onClick={saveVitals}
+                      disabled={isLoading}
+                    >
+                      <Save className="w-4 h-4" />
+                      Salvar Aferição
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 btn-touch"
+                  onClick={() => setShowVitalsForm(true)}
+                  disabled={!savedAttendanceId}
+                >
+                  <Plus className="w-4 h-4" />
+                  Nova Aferição de Sinais Vitais
+                </Button>
+              )}
+
+              {!savedAttendanceId && (
+                <p className="text-xs text-warning text-center">
+                  Salve os dados do paciente primeiro para registrar sinais vitais
+                </p>
+              )}
+            </div>
           )}
 
           {step === 'evolution' && (
@@ -426,8 +538,8 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
             </Button>
           )}
           
-          {/* Save Button - available on patient, vitals, and evolution steps */}
-          {step !== 'signatures' && (
+          {/* Save Button - available on patient and evolution steps */}
+          {step !== 'signatures' && step !== 'vitals' && (
             <Button
               variant="secondary"
               className="btn-touch gap-2"

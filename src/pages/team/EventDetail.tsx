@@ -62,6 +62,7 @@ export default function EventDetail() {
   const [kmFinal, setKmFinal] = useState('');
 
   const myAssignment = team.find(t => t.profiles.id === profile?.id);
+  const isSocorrista = profile?.especialidade === 'Socorrista';
 
   const fetchData = async () => {
     if (!id) return;
@@ -99,18 +100,21 @@ export default function EventDetail() {
   const handleCheckin = async () => {
     if (!myAssignment) return;
     
-    if (!kmInicial || isNaN(parseFloat(kmInicial))) {
+    if (isSocorrista && (!kmInicial || isNaN(parseFloat(kmInicial)))) {
       toast({ title: 'Informe a quilometragem inicial', variant: 'destructive' });
       return;
     }
     
     setProcessingCheckin(true);
+    const updateData: Record<string, unknown> = { 
+      checkin_at: new Date().toISOString(),
+    };
+    if (isSocorrista && kmInicial) {
+      updateData.km_inicial = parseFloat(kmInicial);
+    }
     const { error } = await supabase
       .from('event_assignments')
-      .update({ 
-        checkin_at: new Date().toISOString(),
-        km_inicial: parseFloat(kmInicial)
-      })
+      .update(updateData)
       .eq('id', myAssignment.id);
 
     if (error) {
@@ -125,28 +129,34 @@ export default function EventDetail() {
   const handleCheckout = async () => {
     if (!myAssignment || !profile) return;
     
-    if (!kmFinal || isNaN(parseFloat(kmFinal))) {
-      toast({ title: 'Informe a quilometragem final', variant: 'destructive' });
-      return;
-    }
+    if (isSocorrista) {
+      if (!kmFinal || isNaN(parseFloat(kmFinal))) {
+        toast({ title: 'Informe a quilometragem final', variant: 'destructive' });
+        return;
+      }
 
-    const kmFinalNum = parseFloat(kmFinal);
-    const kmInicialNum = myAssignment.km_inicial || 0;
+      const kmFinalNum = parseFloat(kmFinal);
+      const kmInicialNum = myAssignment.km_inicial || 0;
 
-    if (kmFinalNum < kmInicialNum) {
-      toast({ title: 'KM final deve ser maior que o inicial', variant: 'destructive' });
-      return;
+      if (kmFinalNum < kmInicialNum) {
+        toast({ title: 'KM final deve ser maior que o inicial', variant: 'destructive' });
+        return;
+      }
     }
     
     setProcessingCheckin(true);
 
+    const checkoutData: Record<string, unknown> = { 
+      checkout_at: new Date().toISOString(),
+    };
+    if (isSocorrista && kmFinal) {
+      checkoutData.km_final = parseFloat(kmFinal);
+    }
+
     // 1. Update checkout time and km_final
     const { error: checkoutError } = await supabase
       .from('event_assignments')
-      .update({ 
-        checkout_at: new Date().toISOString(),
-        km_final: kmFinalNum
-      })
+      .update(checkoutData)
       .eq('id', myAssignment.id);
 
     if (checkoutError) {
@@ -280,8 +290,8 @@ export default function EventDetail() {
               </div>
             </div>
 
-            {/* Mileage inputs */}
-            {!myAssignment.checkout_at && (
+            {/* Mileage inputs - only for Socorrista */}
+            {isSocorrista && !myAssignment.checkout_at && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs flex items-center gap-1">
@@ -312,8 +322,8 @@ export default function EventDetail() {
               </div>
             )}
 
-            {/* Show recorded mileage after checkout */}
-            {myAssignment.checkout_at && myAssignment.km_inicial && myAssignment.km_final && (
+            {/* Show recorded mileage after checkout - only for Socorrista */}
+            {isSocorrista && myAssignment.checkout_at && myAssignment.km_inicial && myAssignment.km_final && (
               <div className="flex items-center gap-4 text-sm bg-muted/50 rounded-lg p-2">
                 <span className="flex items-center gap-1">
                   <Gauge className="w-4 h-4 text-muted-foreground" />
