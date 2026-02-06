@@ -167,16 +167,24 @@ export default function AdminProfessionals() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este profissional?')) return;
+    if (!confirm('Tem certeza que deseja excluir este profissional? Isso também removerá o acesso ao sistema.')) return;
 
-    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    const { data, error } = await supabase.functions.invoke('delete-user', {
+      body: { profileId: id },
+    });
 
     if (error) {
       toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Profissional excluído!' });
-      fetchProfiles();
+      return;
     }
+
+    if (data?.error) {
+      toast({ title: 'Erro ao excluir', description: data.error, variant: 'destructive' });
+      return;
+    }
+
+    toast({ title: 'Profissional excluído!' });
+    fetchProfiles();
   };
 
   const toggleCargo = async (profile: Profile) => {
