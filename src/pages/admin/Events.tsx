@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle, Fuel } from 'lucide-react';
+import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle, Fuel, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -60,6 +60,7 @@ export default function AdminEvents() {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [profileSearch, setProfileSearch] = useState('');
 
   const [formData, setFormData] = useState({
     nome_evento: '',
@@ -301,7 +302,7 @@ export default function AdminEvents() {
               Novo Evento
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingEvent ? 'Editar Evento' : 'Novo Evento'}</DialogTitle>
             </DialogHeader>
@@ -440,8 +441,23 @@ export default function AdminEvents() {
 
               <div className="space-y-2">
                 <Label>Equipe Escalada</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar profissional..."
+                    value={profileSearch}
+                    onChange={(e) => setProfileSearch(e.target.value)}
+                    className="pl-10 input-touch"
+                  />
+                </div>
                 <div className="border rounded-xl p-3 space-y-2 max-h-48 overflow-y-auto">
-                  {profiles.map((p) => (
+                  {profiles
+                    .filter(p => 
+                      p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                      p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                      p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())
+                    )
+                    .map((p) => (
                     <div
                       key={p.id}
                       onClick={() => toggleProfile(p.id)}
@@ -460,9 +476,13 @@ export default function AdminEvents() {
                       )}
                     </div>
                   ))}
-                  {profiles.length === 0 && (
+                  {profiles.filter(p => 
+                    p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                    p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                    p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())
+                  ).length === 0 && (
                     <p className="text-center text-sm text-muted-foreground py-4">
-                      Nenhum profissional cadastrado
+                      {profiles.length === 0 ? 'Nenhum profissional cadastrado' : 'Nenhum profissional encontrado'}
                     </p>
                   )}
                 </div>
