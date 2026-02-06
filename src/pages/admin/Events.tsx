@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle, Fuel } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -37,6 +37,8 @@ interface Event {
   viatura_id: string | null;
   equipe_completa: boolean;
   equipe_minima: number;
+  valor_litro_combustivel: number | null;
+  consumo_medio_km_litro: number | null;
   vehicles?: Vehicle;
 }
 
@@ -67,6 +69,8 @@ export default function AdminEvents() {
     viatura_id: '',
     equipe_completa: false,
     equipe_minima: 2,
+    valor_litro_combustivel: '',
+    consumo_medio_km_litro: '10',
     selectedProfiles: [] as string[],
   });
 
@@ -120,6 +124,8 @@ export default function AdminEvents() {
       viatura_id: '',
       equipe_completa: false,
       equipe_minima: 2,
+      valor_litro_combustivel: '',
+      consumo_medio_km_litro: '10',
       selectedProfiles: [],
     });
     setEditingEvent(null);
@@ -135,6 +141,8 @@ export default function AdminEvents() {
       viatura_id: event.viatura_id || '',
       equipe_completa: event.equipe_completa || false,
       equipe_minima: event.equipe_minima || 2,
+      valor_litro_combustivel: event.valor_litro_combustivel?.toString() || '',
+      consumo_medio_km_litro: event.consumo_medio_km_litro?.toString() || '10',
       selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
     });
     setDialogOpen(true);
@@ -151,6 +159,8 @@ export default function AdminEvents() {
       viatura_id: formData.viatura_id || null,
       equipe_completa: formData.equipe_completa,
       equipe_minima: formData.equipe_minima,
+      valor_litro_combustivel: formData.valor_litro_combustivel ? parseFloat(formData.valor_litro_combustivel) : null,
+      consumo_medio_km_litro: formData.consumo_medio_km_litro ? parseFloat(formData.consumo_medio_km_litro) : 10,
     };
 
     let eventId: string;
@@ -358,6 +368,42 @@ export default function AdminEvents() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <Fuel className="w-4 h-4" />
+                  Configuração de Combustível
+                </Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Valor do Litro (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      value={formData.valor_litro_combustivel}
+                      onChange={(e) => setFormData(prev => ({ ...prev, valor_litro_combustivel: e.target.value }))}
+                      placeholder="Ex: 5.89"
+                      className="input-touch"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Consumo Médio (km/L)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min={1}
+                      value={formData.consumo_medio_km_litro}
+                      onChange={(e) => setFormData(prev => ({ ...prev, consumo_medio_km_litro: e.target.value }))}
+                      placeholder="Ex: 10"
+                      className="input-touch"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Usado para calcular o custo estimado de combustível com base na quilometragem
+                </p>
               </div>
 
               <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
