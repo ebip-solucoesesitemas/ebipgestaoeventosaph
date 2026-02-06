@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ArrowLeft, Calendar, MapPin, Truck, Users, Clock, 
   CheckCircle2, AlertCircle, Fuel, FileText, DollarSign,
-  LogIn, LogOut, Navigation
+  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -46,11 +47,26 @@ interface Assignment {
   };
 }
 
+interface VitalSign {
+  id: string;
+  horario: string | null;
+  pa_sistolica: number | null;
+  pa_diastolica: number | null;
+  frequencia_cardiaca: number | null;
+  frequencia_respiratoria: number | null;
+  saturacao_o2: number | null;
+  temperatura: number | null;
+  glicemia: number | null;
+}
+
 interface Attendance {
   id: string;
   nome_paciente: string;
   idade: number | null;
+  sexo: string | null;
+  documento: string | null;
   queixa_principal: string;
+  evolucao_clinica: string | null;
   status: string | null;
   created_at: string;
   profissional_id: string;
@@ -78,6 +94,11 @@ export default function AdminEventDetail() {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Dialog state for viewing attendance details
+  const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null);
+  const [attendanceVitals, setAttendanceVitals] = useState<VitalSign[]>([]);
+  const [loadingVitals, setLoadingVitals] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -107,6 +128,21 @@ export default function AdminEventDetail() {
 
     fetchData();
   }, [id, navigate, toast]);
+
+  const handleViewAttendance = async (attendance: Attendance) => {
+    setSelectedAttendance(attendance);
+    setLoadingVitals(true);
+    
+    // Fetch vital signs for this attendance
+    const { data } = await supabase
+      .from('vital_signs')
+      .select('*')
+      .eq('attendance_id', attendance.id)
+      .order('horario', { ascending: true });
+    
+    setAttendanceVitals(data || []);
+    setLoadingVitals(false);
+  };
 
   if (isLoading || !event) {
     return (
@@ -308,16 +344,25 @@ export default function AdminEventDetail() {
             attendances.map((att) => (
               <div key={att.id} className="p-4 border rounded-xl bg-card">
                 <div className="flex items-start justify-between">
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium">
                       {att.nome_paciente}
                       {att.idade && <span className="text-muted-foreground ml-1">({att.idade} anos)</span>}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">{att.queixa_principal}</p>
                   </div>
-                  <Badge className={att.status === 'finalizado' ? 'bg-stable/20 text-stable' : 'bg-warning/20 text-warning'}>
-                    {att.status === 'finalizado' ? 'Finalizado' : 'Em andamento'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={att.status === 'finalizado' ? 'bg-stable/20 text-stable' : 'bg-warning/20 text-warning'}>
+                      {att.status === 'finalizado' ? 'Finalizado' : 'Em andamento'}
+                    </Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleViewAttendance(att)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
@@ -376,6 +421,121 @@ export default function AdminEventDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Attendance Details Dialog */}
+      <Dialog open={!!selectedAttendance} onOpenChange={(open) => !open && setSelectedAttendance(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Detalhes do Atendimento
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedAttendance && (
+            <div className="space-y-4">
+              {/* Patient Info */}
+              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                <h3 className="font-semibold text-lg">{selectedAttendance.nome_paciente}</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {selectedAttendance.idade && (
+                    <p><span className="text-muted-foreground">Idade:</span> {selectedAttendance.idade} anos</p>
+                  )}
+                  {selectedAttendance.sexo && (
+                    <p><span className="text-muted-foreground">Sexo:</span> {selectedAttendance.sexo}</p>
+                  )}
+                  {selectedAttendance.documento && (
+                    <p className="col-span-2"><span className="text-muted-foreground">Documento:</span> {selectedAttendance.documento}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Complaint */}
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground mb-1">Queixa Principal</h4>
+                <p className="p-3 bg-muted/30 rounded-lg">{selectedAttendance.queixa_principal}</p>
+              </div>
+
+              {/* Vital Signs */}
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-1">
+                  <Heart className="w-4 h-4" />
+                  Sinais Vitais
+                </h4>
+                {loadingVitals ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                  </div>
+                ) : attendanceVitals.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-2">Nenhum sinal vital registrado</p>
+                ) : (
+                  <div className="space-y-2">
+                    {attendanceVitals.map((vital, idx) => (
+                      <div key={vital.id} className="p-3 border rounded-lg bg-card">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {vital.horario ? format(new Date(vital.horario), "dd/MM 'às' HH:mm", { locale: ptBR }) : `Registro ${idx + 1}`}
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                          {vital.pa_sistolica && vital.pa_diastolica && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">PA:</span>
+                              <span className="font-medium">{vital.pa_sistolica}/{vital.pa_diastolica}</span>
+                            </div>
+                          )}
+                          {vital.frequencia_cardiaca && (
+                            <div className="flex items-center gap-1">
+                              <Heart className="w-3 h-3 text-destructive" />
+                              <span className="font-medium">{vital.frequencia_cardiaca} bpm</span>
+                            </div>
+                          )}
+                          {vital.frequencia_respiratoria && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">FR:</span>
+                              <span className="font-medium">{vital.frequencia_respiratoria} irpm</span>
+                            </div>
+                          )}
+                          {vital.saturacao_o2 && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">SpO2:</span>
+                              <span className="font-medium">{vital.saturacao_o2}%</span>
+                            </div>
+                          )}
+                          {vital.temperatura && (
+                            <div className="flex items-center gap-1">
+                              <Thermometer className="w-3 h-3 text-warning" />
+                              <span className="font-medium">{vital.temperatura}°C</span>
+                            </div>
+                          )}
+                          {vital.glicemia && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">Glicemia:</span>
+                              <span className="font-medium">{vital.glicemia} mg/dL</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Clinical Evolution */}
+              {selectedAttendance.evolucao_clinica && (
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Evolução Clínica</h4>
+                  <p className="p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">{selectedAttendance.evolucao_clinica}</p>
+                </div>
+              )}
+
+              {/* Footer Info */}
+              <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
+                <span>Profissional: {selectedAttendance.profiles?.nome || 'N/A'}</span>
+                <span>{format(new Date(selectedAttendance.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
