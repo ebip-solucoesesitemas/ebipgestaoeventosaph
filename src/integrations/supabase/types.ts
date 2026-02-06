@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      bases: {
+        Row: {
+          created_at: string
+          endereco: string | null
+          id: string
+          nome: string
+          sigla: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome: string
+          sigla: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome?: string
+          sigla?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_payments: {
         Row: {
           budget_id: string
@@ -206,6 +233,7 @@ export type Database = {
           data_vencimento: string | null
           descricao: string | null
           event_id: string
+          forma_cobranca: Database["public"]["Enums"]["forma_cobranca"] | null
           id: string
           status: Database["public"]["Enums"]["status_financeiro"] | null
           updated_at: string | null
@@ -217,6 +245,7 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           event_id: string
+          forma_cobranca?: Database["public"]["Enums"]["forma_cobranca"] | null
           id?: string
           status?: Database["public"]["Enums"]["status_financeiro"] | null
           updated_at?: string | null
@@ -228,6 +257,7 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           event_id?: string
+          forma_cobranca?: Database["public"]["Enums"]["forma_cobranca"] | null
           id?: string
           status?: Database["public"]["Enums"]["status_financeiro"] | null
           updated_at?: string | null
@@ -303,6 +333,7 @@ export type Database = {
       }
       events: {
         Row: {
+          base_id: string | null
           consumo_medio_km_litro: number | null
           created_at: string | null
           data_fim: string
@@ -317,6 +348,7 @@ export type Database = {
           viatura_id: string | null
         }
         Insert: {
+          base_id?: string | null
           consumo_medio_km_litro?: number | null
           created_at?: string | null
           data_fim: string
@@ -331,6 +363,7 @@ export type Database = {
           viatura_id?: string | null
         }
         Update: {
+          base_id?: string | null
           consumo_medio_km_litro?: number | null
           created_at?: string | null
           data_fim?: string
@@ -345,6 +378,13 @@ export type Database = {
           viatura_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "events_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_viatura_id_fkey"
             columns: ["viatura_id"]
@@ -636,6 +676,13 @@ export type Database = {
         | "transporte"
         | "outros"
       especialidade_tipo: "Médico" | "Enfermeiro" | "Técnico" | "Socorrista"
+      forma_cobranca:
+        | "boleto"
+        | "pix"
+        | "emissao_nf"
+        | "empenho"
+        | "nao_cobrar"
+        | "patrocinio"
       status_financeiro: "pendente" | "pago" | "cancelado" | "atrasado"
       status_viatura: "disponivel" | "em_uso" | "manutencao"
       tipo_pagamento:
@@ -784,6 +831,14 @@ export const Constants = {
         "outros",
       ],
       especialidade_tipo: ["Médico", "Enfermeiro", "Técnico", "Socorrista"],
+      forma_cobranca: [
+        "boleto",
+        "pix",
+        "emissao_nf",
+        "empenho",
+        "nao_cobrar",
+        "patrocinio",
+      ],
       status_financeiro: ["pendente", "pago", "cancelado", "atrasado"],
       status_viatura: ["disponivel", "em_uso", "manutencao"],
       tipo_pagamento: [

@@ -11,8 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FileText, DollarSign, Calendar, Check, Wallet } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { FileText, DollarSign, Calendar, Check, Wallet, Clock } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface ReportData {
@@ -20,7 +20,9 @@ interface ReportData {
   profile_name: string;
   especialidade: string;
   total_events: number;
-  valor_unitario: number;
+  total_horas: number;
+  valor_hora: number;
+  total_calculado: number;
   total_pendente: number;
   total_pago: number;
 }
@@ -44,48 +46,58 @@ export default function ProfessionalReport() {
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
 
-    // Fetch profiles with their rates
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, nome, especialidade')
-      .order('nome');
+    const [profilesRes, ratesRes, assignmentsRes, paymentsRes] = await Promise.all([
+      supabase.from('profiles').select('id, nome, especialidade').order('nome'),
+      supabase.from('professional_rates').select('profile_id, valor_hora'),
+      supabase.from('event_assignments')
+        .select('profile_id, checkin_at, checkout_at')
+        .not('checkout_at', 'is', null)
+        .not('checkin_at', 'is', null)
+        .gte('checkout_at', monthStart.toISOString())
+        .lte('checkout_at', monthEnd.toISOString()),
+      supabase.from('professional_payments')
+        .select('profile_id, valor, status')
+        .gte('created_at', monthStart.toISOString())
+        .lte('created_at', monthEnd.toISOString()),
+    ]);
 
-    const { data: rates } = await supabase
-      .from('professional_rates')
-      .select('profile_id, valor_evento');
+    const profiles = profilesRes.data || [];
+    const rates = ratesRes.data || [];
+    const assignments = assignmentsRes.data || [];
+    const payments = paymentsRes.data || [];
 
-    // Fetch completed event assignments (with checkout) for the month
-    const { data: assignments } = await supabase
-      .from('event_assignments')
-      .select('profile_id, checkout_at')
-      .not('checkout_at', 'is', null)
-      .gte('checkout_at', monthStart.toISOString())
-      .lte('checkout_at', monthEnd.toISOString());
-
-    // Fetch payments for the month
-    const { data: payments } = await supabase
-      .from('professional_payments')
-      .select('profile_id, valor, status')
-      .gte('created_at', monthStart.toISOString())
-      .lte('created_at', monthEnd.toISOString());
-
-    const ratesMap = new Map(rates?.map(r => [r.profile_id, r.valor_evento || 0]));
+    const ratesMap = new Map(rates.map(r => [r.profile_id, r.valor_hora || 0]));
     
-    const reportData: ReportData[] = profiles?.map(profile => {
-      const eventCount = assignments?.filter(a => a.profile_id === profile.id).length || 0;
-      const valorUnitario = ratesMap.get(profile.id) || 0;
-      const profilePayments = payments?.filter(p => p.profile_id === profile.id) || [];
+    const reportData: ReportData[] = profiles.map(profile => {
+      const profileAssignments = assignments.filter(a => a.profile_id === profile.id);
+      const eventCount = profileAssignments.length;
+      
+      // Calculate total hours from checkin/checkout
+      const totalMinutes = profileAssignments.reduce((sum, a) => {
+        if (a.checkin_at && a.checkout_at) {
+          return sum + differenceInMinutes(new Date(a.checkout_at), new Date(a.checkin_at));
+        }
+        return sum;
+      }, 0);
+      const totalHoras = totalMinutes / 60;
+
+      const valorHora = ratesMap.get(profile.id) || 0;
+      const totalCalculado = totalHoras * valorHora;
+      
+      const profilePayments = payments.filter(p => p.profile_id === profile.id);
       
       return {
         profile_id: profile.id,
         profile_name: profile.nome,
         especialidade: profile.especialidade,
         total_events: eventCount,
-        valor_unitario: valorUnitario,
+        total_horas: totalHoras,
+        valor_hora: valorHora,
+        total_calculado: totalCalculado,
         total_pendente: profilePayments.filter(p => p.status === 'pendente').reduce((sum, p) => sum + Number(p.valor), 0),
         total_pago: profilePayments.filter(p => p.status === 'pago').reduce((sum, p) => sum + Number(p.valor), 0),
       };
-    }) || [];
+    });
 
     setReports(reportData);
     setIsLoading(false);
@@ -96,14 +108,13 @@ export default function ProfessionalReport() {
   }, [selectedMonth, selectedYear]);
 
   const generatePayment = async (report: ReportData) => {
-    if (report.total_events === 0) {
-      toast({ title: 'Nenhum evento para gerar pagamento', variant: 'destructive' });
+    if (report.total_horas === 0) {
+      toast({ title: 'Nenhuma hora registrada para gerar pagamento', variant: 'destructive' });
       return;
     }
 
-    const valorTotal = report.total_events * report.valor_unitario;
-    if (valorTotal <= 0) {
-      toast({ title: 'Configure o valor por evento deste profissional', variant: 'destructive' });
+    if (report.valor_hora <= 0) {
+      toast({ title: 'Configure o valor por hora deste profissional', variant: 'destructive' });
       return;
     }
 
@@ -111,10 +122,10 @@ export default function ProfessionalReport() {
 
     const { error } = await supabase.from('professional_payments').insert({
       profile_id: report.profile_id,
-      valor: valorTotal,
+      valor: report.total_calculado,
       tipo_pagamento: 'pix',
       status: 'pendente',
-      descricao: `Pagamento ref. ${months[parseInt(selectedMonth)]}/${selectedYear} - ${report.total_events} eventos`,
+      descricao: `Pagamento ref. ${months[parseInt(selectedMonth)]}/${selectedYear} - ${report.total_horas.toFixed(1)}h (${report.total_events} eventos)`,
     });
 
     if (error) {
@@ -142,7 +153,7 @@ export default function ProfessionalReport() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Relatório por Profissional</h1>
-          <p className="text-muted-foreground">Resumo de eventos e pagamentos</p>
+          <p className="text-muted-foreground">Resumo de horas trabalhadas e pagamentos</p>
         </div>
         <div className="flex gap-2">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -177,70 +188,74 @@ export default function ProfessionalReport() {
             </CardContent>
           </Card>
         ) : (
-          reports.map((report) => {
-            const totalCalculado = report.total_events * report.valor_unitario;
-            return (
-              <Card key={report.profile_id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{report.profile_name}</CardTitle>
-                      <Badge variant="outline" className="mt-1">{report.especialidade}</Badge>
-                    </div>
-                    <Button
-                      onClick={() => generatePayment(report)}
-                      disabled={generating === report.profile_id || report.total_events === 0}
-                      className="gap-2"
-                    >
-                      <Wallet className="w-4 h-4" />
-                      {generating === report.profile_id ? 'Gerando...' : 'Gerar Pagamento'}
-                    </Button>
+          reports.map((report) => (
+            <Card key={report.profile_id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{report.profile_name}</CardTitle>
+                    <Badge variant="outline" className="mt-1">{report.especialidade}</Badge>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="text-center p-3 bg-muted rounded-lg">
-                      <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
-                        <Calendar className="w-4 h-4" />
-                        Eventos
-                      </div>
-                      <p className="text-2xl font-bold">{report.total_events}</p>
+                  <Button
+                    onClick={() => generatePayment(report)}
+                    disabled={generating === report.profile_id || report.total_horas === 0}
+                    className="gap-2"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    {generating === report.profile_id ? 'Gerando...' : 'Gerar Pagamento'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                  <div className="text-center p-3 bg-muted rounded-lg">
+                    <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
+                      <Calendar className="w-4 h-4" />
+                      Eventos
                     </div>
-                    <div className="text-center p-3 bg-muted rounded-lg">
-                      <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
-                        <DollarSign className="w-4 h-4" />
-                        Valor Unit.
-                      </div>
-                      <p className="text-xl font-bold">
-                        R$ {report.valor_unitario.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 bg-primary/10 rounded-lg">
-                      <div className="text-muted-foreground text-sm mb-1">Total Calculado</div>
-                      <p className="text-xl font-bold text-primary">
-                        R$ {totalCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 bg-warning/10 rounded-lg">
-                      <div className="text-muted-foreground text-sm mb-1">Pendente</div>
-                      <p className="text-xl font-bold text-warning">
-                        R$ {report.total_pendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 bg-stable/10 rounded-lg">
-                      <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
-                        <Check className="w-4 h-4" />
-                        Pago
-                      </div>
-                      <p className="text-xl font-bold text-stable">
-                        R$ {report.total_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
+                    <p className="text-2xl font-bold">{report.total_events}</p>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })
+                  <div className="text-center p-3 bg-muted rounded-lg">
+                    <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
+                      <Clock className="w-4 h-4" />
+                      Horas
+                    </div>
+                    <p className="text-2xl font-bold">{report.total_horas.toFixed(1)}h</p>
+                  </div>
+                  <div className="text-center p-3 bg-muted rounded-lg">
+                    <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
+                      <DollarSign className="w-4 h-4" />
+                      Valor/Hora
+                    </div>
+                    <p className="text-xl font-bold">
+                      R$ {report.valor_hora.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-primary/10 rounded-lg">
+                    <div className="text-muted-foreground text-sm mb-1">Total Calculado</div>
+                    <p className="text-xl font-bold text-primary">
+                      R$ {report.total_calculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-warning/10 rounded-lg">
+                    <div className="text-muted-foreground text-sm mb-1">Pendente</div>
+                    <p className="text-xl font-bold text-warning">
+                      R$ {report.total_pendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-stable/10 rounded-lg">
+                    <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
+                      <Check className="w-4 h-4" />
+                      Pago
+                    </div>
+                    <p className="text-xl font-bold text-stable">
+                      R$ {report.total_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
         )}
       </div>
     </div>
