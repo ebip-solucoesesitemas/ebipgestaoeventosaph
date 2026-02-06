@@ -25,7 +25,18 @@ export default function Index() {
     );
   }
 
-  if (!user || !profile) return null;
+  if (!user) return null;
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <p className="text-sm text-muted-foreground">Carregando seu perfil...</p>
+        </div>
+      </div>
+    );
+  }
 
   const adminCards = [
     {
