@@ -15,6 +15,7 @@ import AdminFinance from "./pages/admin/Finance";
 import AdminPayroll from "./pages/admin/Payroll";
 import AdminProfessionalRates from "./pages/admin/ProfessionalRates";
 import AdminProfessionalReport from "./pages/admin/ProfessionalReport";
+import AdminOperationalRates from "./pages/admin/OperationalRates";
 import AdminBases from "./pages/admin/Bases";
 import TeamEvents from "./pages/team/TeamEvents";
 import TeamEventDetail from "./pages/team/EventDetail";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/admin/professional-rates" element={<AdminLayout><AdminProfessionalRates /></AdminLayout>} />
             <Route path="/admin/professional-report" element={<AdminLayout><AdminProfessionalReport /></AdminLayout>} />
             <Route path="/admin/bases" element={<AdminLayout><AdminBases /></AdminLayout>} />
+            <Route path="/admin/operational-rates" element={<AdminLayout><AdminOperationalRates /></AdminLayout>} />
             
             {/* Team Routes */}
             <Route path="/events" element={<TeamLayout><TeamEvents /></TeamLayout>} />
