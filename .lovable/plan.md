@@ -1,156 +1,115 @@
 
-# Plano de Melhorias: Sistema de Eventos e Atendimentos
 
-## Resumo das Solicitações
+# Plano de Correções e Melhorias - Sistema APH
 
-O usuário identificou 4 problemas/melhorias necessárias:
+## 1. Reestruturação do Menu (Sidebar Lateral)
 
-1. **Check-in/Checkout não funciona na tela de profissionais** - O botão não faz nada
-2. **Falta botão de Salvar na ficha de atendimento** - Para salvar parcialmente sem finalizar
-3. **Tela de Eventos (Admin) precisa mostrar andamento** - Check-ins, checkouts, KM, etc.
-4. **Falta tela de detalhes do evento para admin** - Para ver tudo que aconteceu
+**Problema:** O menu atual está no header horizontal, causando empilhamento e barra de rolagem com muitos itens.
 
----
+**Solucao:** Substituir o menu horizontal por um sidebar lateral usando o componente Shadcn Sidebar, que ja existe no projeto.
 
-## Análise Técnica
+- Criar componente `src/components/AppSidebar.tsx` com menu organizado em grupos:
+  - **Operacional:** Eventos, Profissionais, Viaturas
+  - **Comercial:** Clientes, Financeiro, Orcamentos
+  - **Configuracoes:** Bases, Valores Profissionais, Valores Operacionais, Relatorios, Pagamentos
+  - **Bases Descentralizadas:** Sub-menus dinamicos por base cadastrada (expansiveis)
+- Refatorar `src/components/Layout.tsx` para usar `SidebarProvider` + `Sidebar` + `SidebarTrigger`
+- Menu responsivo: no mobile, abre como sheet lateral; no desktop, sidebar fixa a esquerda
+- Header simplificado com apenas logo, nome do usuario e botao de logout
 
-### Problema 1: Check-in/Checkout em Profissionais
-A página `src/pages/admin/Professionals.tsx` **não tem** funcionalidade de check-in/checkout. Essa funcionalidade existe apenas na página `src/pages/team/EventDetail.tsx`, onde o profissional faz check-in ao entrar no evento.
+## 2. Calculo Automatico de KM no Orcamento
 
-**Diagnóstico:** A funcionalidade de check-in/checkout é por **evento**, não por profissional. Provavelmente o usuário esperava ver isso em outro lugar ou a navegação não está clara.
+**Problema:** O KM estimado e preenchido manualmente. Deveria ser calculado automaticamente com base nos enderecos da base e do evento.
 
-### Problema 2: Botão Salvar na Ficha APH
-A página `src/components/APHForm.tsx` salva automaticamente ao avançar de etapa, mas não tem um botão "Salvar" dedicado para salvar sem avançar.
+**Solucao:** Usar a API Nominatim (OpenStreetMap, gratuita) para geocodificar os enderecos e calcular a distancia.
 
-### Problema 3 e 4: Visão Admin do Evento
-A página `src/pages/admin/Events.tsx` mostra uma lista resumida dos eventos, mas:
-- Não mostra status de check-in/checkout com horários
-- Não mostra quilometragem
-- Não tem link para ver detalhes completos do evento
+- Criar funcao utilitaria `geocodeAddress` que usa Nominatim para obter coordenadas de um endereco brasileiro
+- Criar funcao `calculateDistance` usando formula Haversine com fator de correcao rodoviario (1.35x)
+- Quando a base e o endereco do evento forem preenchidos no formulario de orcamento, calcular automaticamente:
+  - KM de ida (distancia base -> evento)
+  - KM total ida e volta (2x a distancia)
+  - Custo de deslocamento (km total x valor por km)
+- Adicionar campo somente-leitura "KM Total Ida e Volta" no formulario
+- O campo KM estimado sera preenchido automaticamente mas editavel para ajustes manuais
 
----
+## 3. Correcao da Transferencia do Nome do Evento
 
-## Implementação Proposta
+**Problema:** Ao gerar evento a partir do orcamento, o nome nao e transferido.
 
-### 1. Criar Página de Detalhes do Evento (Admin)
-**Arquivo:** `src/pages/admin/EventDetail.tsx`
+**Causa raiz:** O codigo envia `budget.descricao` como parametro `nome`, que muitas vezes esta vazio ou e diferente do nome desejado.
 
-Essa página mostrará:
-- Informações gerais do evento
-- Lista de profissionais escalados com:
-  - Status: Aguardando / Check-in feito / Checkout feito
-  - Horário do check-in e checkout
-  - KM inicial e final registrados
-- Lista de atendimentos realizados
-- Resumo de combustível/quilometragem
-- Despesas do evento
+**Solucao:** 
+- Adicionar campo `nome_evento` na tabela `event_budgets` (migracao SQL)
+- Incluir campo "Nome do Evento" no formulario de orcamento
+- Usar esse campo ao criar o evento automaticamente
 
-### 2. Adicionar Rota para o Detalhe Admin
-**Arquivo:** `src/App.tsx`
+## 4. Orcamento - Botao Editar e Campo USB/USA
 
-Adicionar rota `/admin/events/:id` para acessar os detalhes do evento.
+**Problema:** Falta botao de editar e campo para escolher tipo de unidade.
 
-### 3. Adicionar Link na Lista de Eventos (Admin)
-**Arquivo:** `src/pages/admin/Events.tsx`
+**Solucao:**
+- Adicionar campo `tipo_unidade` (TEXT) na tabela `event_budgets` (migracao SQL)
+- Adicionar select "Tipo de Unidade" com opcoes: USB (Unidade Basica), USA (Unidade Avancada)
+- Adicionar botao "Editar" em cada card de orcamento na lista
+- Criar estado `editingBudget` e reutilizar o dialog de orcamento para edicao
+- O botao "Criar Evento" agora cria o evento automaticamente (sem redirecionar) e vincula ao orcamento
 
-- Cada card de evento terá um link "Ver Detalhes" que leva para a nova página
-- Mostrar indicadores visuais de andamento (quantos fizeram check-in, etc.)
+## 5. Criacao Automatica de Evento a partir do Orcamento
 
-### 4. Botão Salvar na Ficha APH
-**Arquivo:** `src/components/APHForm.tsx`
+**Problema:** Ao clicar em "Criar Evento", redireciona para outra pagina com parametros. Deveria criar automaticamente.
 
-Adicionar botão "Salvar" ao lado do "Próximo" que:
-- Salva os dados da etapa atual sem avançar
-- Mostra feedback "Salvo com sucesso!"
-- Permite o profissional ir e voltar salvando parcialmente
+**Solucao:**
+- Substituir `handleCreateEventFromBudget` para criar o evento diretamente via `supabase.from('events').insert(...)`
+- Preencher automaticamente: nome_evento, local (endereco_evento), data_inicio, data_fim, base_id
+- Vincular o orcamento ao evento criado (`event_budgets.event_id = novo_evento.id`)
+- Mostrar toast de confirmacao e atualizar a lista
 
----
+## 6. Correcao do Status da Viatura (Bug Critico)
 
-## Estrutura da Nova Página de Detalhes (Admin)
+**Problema:** A viatura fica em "Em Uso" mesmo apos todos os profissionais fazerem checkout.
+
+**Causa raiz identificada:** A politica RLS de `event_assignments` permite que um membro da equipe veja apenas SUAS PROPRIAS atribuicoes (SELECT). Quando o codigo no checkout consulta "todas as atribuicoes" para verificar se todos fizeram checkout, ele so ve a do usuario atual. Portanto, `every(a => a.checkout_at !== null)` retorna `true` prematuramente (so 1 registro).
+
+**Solucao:** Criar uma funcao no banco de dados (database function) que roda com `SECURITY DEFINER` para verificar se todos os membros fizeram checkout e liberar a viatura automaticamente.
+
+- Criar funcao SQL `check_and_release_vehicle(event_uuid UUID)`:
+  - Verifica TODAS as atribuicoes do evento (bypassando RLS via SECURITY DEFINER)
+  - Se todas tiverem `checkout_at` preenchido, atualiza o veiculo para `disponivel`
+- Chamar esta funcao via `supabase.rpc('check_and_release_vehicle', { event_uuid: id })` apos o checkout
+- Remover a logica de verificacao manual do frontend
+
+## 7. Migracao SQL Necessaria
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│ ← Voltar            [Nome do Evento]          Edit  │
-├─────────────────────────────────────────────────────┤
-│ 📅 15/02/2026 às 08:00 - 18:00                      │
-│ 📍 Estádio Municipal                                 │
-│ 🚗 Viatura: USA-01                                   │
-├─────────────────────────────────────────────────────┤
-│                RESUMO DO EVENTO                      │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
-│  │    3     │  │   150    │  │  R$ 89   │          │
-│  │ Check-ins│  │   KM     │  │  Comb.   │          │
-│  └──────────┘  └──────────┘  └──────────┘          │
-├─────────────────────────────────────────────────────┤
-│ 👥 EQUIPE ESCALADA                                   │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ Dr. João Silva          Médico                  │ │
-│ │ ✅ Check-in: 07:45  →  Checkout: 18:30         │ │
-│ │ 📍 KM: 45.230 → 45.380 (150 km)                │ │
-│ └─────────────────────────────────────────────────┘ │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ Enf. Maria Santos       Enfermeira              │ │
-│ │ 🟡 Check-in: 07:50  →  Aguardando checkout     │ │
-│ │ 📍 KM inicial: 32.100                          │ │
-│ └─────────────────────────────────────────────────┘ │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ Téc. Pedro Oliveira     Socorrista              │ │
-│ │ ⚪ Aguardando check-in                          │ │
-│ └─────────────────────────────────────────────────┘ │
-├─────────────────────────────────────────────────────┤
-│ 📋 ATENDIMENTOS (3)                                  │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ José da Silva, 45 anos  →  Mal súbito          │ │
-│ │ 🟢 Finalizado  |  08:30  |  Dr. João           │ │
-│ └─────────────────────────────────────────────────┘ │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ Maria Souza, 28 anos   →  Entorse tornozelo    │ │
-│ │ 🟢 Finalizado  |  10:15  |  Enf. Maria         │ │
-│ └─────────────────────────────────────────────────┘ │
-├─────────────────────────────────────────────────────┤
-│ 💰 DESPESAS                                          │
-│ • Combustível: R$ 89,34                             │
-│ • Pedágio: R$ 15,00                                 │
-│ • Total: R$ 104,34                                  │
-└─────────────────────────────────────────────────────┘
+Novas colunas:
+- event_budgets.nome_evento (TEXT, nullable)
+- event_budgets.tipo_unidade (TEXT, nullable)
+
+Nova funcao:
+- check_and_release_vehicle(event_uuid UUID) - SECURITY DEFINER
 ```
 
----
+## Arquivos Modificados
 
-## Arquivos a Criar/Modificar
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/components/AppSidebar.tsx` | NOVO - Componente sidebar lateral |
+| `src/components/Layout.tsx` | Refatorar para usar sidebar |
+| `src/pages/admin/Finance.tsx` | KM auto-calculo, editar orcamento, campo USB/USA, criacao automatica de evento, campo nome_evento |
+| `src/pages/team/EventDetail.tsx` | Usar RPC para liberar viatura |
+| `supabase/migrations/...` | Nova migracao com colunas e funcao |
 
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `src/pages/admin/EventDetail.tsx` | Criar | Nova página de detalhes do evento para admin |
-| `src/App.tsx` | Modificar | Adicionar rota `/admin/events/:id` |
-| `src/pages/admin/Events.tsx` | Modificar | Adicionar link "Ver Detalhes" e indicadores de progresso |
-| `src/components/APHForm.tsx` | Modificar | Adicionar botão "Salvar" que não avança etapa |
+## Sobre Precificacao
 
----
+Considerando as funcionalidades do sistema (gestao descentralizada de bases, controle de frotas, escala de profissionais, orcamentos, financeiro, atendimentos clinicos APH com sinais vitais, assinaturas digitais, relatorios automatizados), este e um sistema SaaS especializado de nicho (saude pre-hospitalar).
 
-## Detalhes Técnicos
+**Sugestao de precos para 2026 (mercado brasileiro):**
 
-### Nova Página EventDetail (Admin)
-```text
-- Buscar evento com joins para vehicles
-- Buscar assignments com profiles, checkin_at, checkout_at, km_inicial, km_final
-- Buscar atendimentos (clinical_attendances) com profissional
-- Buscar despesas (event_expenses)
-- Calcular totais de KM e custo de combustível
-- Mostrar timeline visual do evento
-```
+| Plano | Bases | Usuarios | Preco Mensal |
+|-------|-------|----------|-------------|
+| Starter | Ate 2 | Ate 10 | R$ 497/mes |
+| Professional | Ate 5 | Ate 30 | R$ 997/mes |
+| Enterprise | Ilimitadas | Ilimitados | R$ 1.997/mes |
 
-### Modificações no APHForm
-```text
-- Adicionar função saveCurrentStep() que salva sem avançar
-- Adicionar botão "Salvar" com ícone de disquete
-- Mostrar toast "Alterações salvas!" 
-- Manter botão "Próximo" funcionando normalmente
-```
+**Justificativa:** Sistemas SaaS especializados para saude/emergencia no Brasil em 2026 cobram entre R$ 300 e R$ 2.500/mes dependendo do porte. O valor se justifica pela automacao de processos manuais (escalas, relatorios, controle de frotas, orcamentos), reducao de erros e conformidade operacional. Concorrentes como Whitebook, TARM e sistemas de gestao de ambulancias operam nessa faixa.
 
-### Indicadores na Lista de Eventos (Admin)
-```text
-- Mostrar: "2/4 check-ins" no card do evento
-- Mostrar: "150 km percorridos" se houver
-- Adicionar botão/link para ir aos detalhes
-```
