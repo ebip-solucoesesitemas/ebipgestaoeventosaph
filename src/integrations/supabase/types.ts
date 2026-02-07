@@ -240,7 +240,9 @@ export type Database = {
           forma_cobranca: Database["public"]["Enums"]["forma_cobranca"] | null
           id: string
           km_estimado: number | null
+          nome_evento: string | null
           status: Database["public"]["Enums"]["status_financeiro"] | null
+          tipo_unidade: string | null
           updated_at: string | null
           valor_contrato: number
           valor_km: number | null
@@ -258,7 +260,9 @@ export type Database = {
           forma_cobranca?: Database["public"]["Enums"]["forma_cobranca"] | null
           id?: string
           km_estimado?: number | null
+          nome_evento?: string | null
           status?: Database["public"]["Enums"]["status_financeiro"] | null
+          tipo_unidade?: string | null
           updated_at?: string | null
           valor_contrato?: number
           valor_km?: number | null
@@ -276,7 +280,9 @@ export type Database = {
           forma_cobranca?: Database["public"]["Enums"]["forma_cobranca"] | null
           id?: string
           km_estimado?: number | null
+          nome_evento?: string | null
           status?: Database["public"]["Enums"]["status_financeiro"] | null
+          tipo_unidade?: string | null
           updated_at?: string | null
           valor_contrato?: number
           valor_km?: number | null
@@ -706,6 +712,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_and_release_vehicle: {
+        Args: { event_uuid: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
