@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -175,6 +175,7 @@ export default function Finance() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   const [budgetForm, setBudgetForm] = useState({ ...emptyBudgetForm });
+  const baseIdRef = useRef(budgetForm.base_id);
 
   const [expenseForm, setExpenseForm] = useState({
     event_id: '',
@@ -231,27 +232,30 @@ export default function Finance() {
 
   // Auto-calculate KM when base and event address change
   const calculateKm = useCallback(async (baseId: string, enderecoEvento: string) => {
-    if (!baseId || !enderecoEvento) return;
+    if (!baseId || !enderecoEvento || enderecoEvento.length < 5) return;
 
     const base = bases.find((b) => b.id === baseId);
     if (!base?.endereco) {
-      toast({ title: 'Base sem endereço cadastrado', description: 'Cadastre o endereço da base para calcular o KM automaticamente.', variant: 'destructive' });
+      toast({ title: 'Base sem endereço cadastrado', description: 'Cadastre o endereço da base primeiro (use o CEP na página de Bases).', variant: 'destructive' });
       return;
     }
 
     setCalculatingKm(true);
-    const distancia = await calculateDistanceBetweenAddresses(base.endereco, enderecoEvento);
-    setCalculatingKm(false);
+    try {
+      const distancia = await calculateDistanceBetweenAddresses(base.endereco, enderecoEvento);
 
-    if (distancia !== null) {
-      const kmIdaVolta = Math.round(distancia * 2 * 10) / 10;
-      setBudgetForm((prev) => ({
-        ...prev,
-        km_estimado: kmIdaVolta.toString(),
-      }));
-      toast({ title: `KM calculado: ${kmIdaVolta} km (ida e volta)` });
-    } else {
-      toast({ title: 'Não foi possível calcular a distância', description: 'Verifique os endereços e tente novamente.', variant: 'destructive' });
+      if (distancia !== null) {
+        const kmIdaVolta = Math.round(distancia * 2 * 10) / 10;
+        setBudgetForm((prev) => ({
+          ...prev,
+          km_estimado: kmIdaVolta.toString(),
+        }));
+        toast({ title: `KM calculado: ${kmIdaVolta} km (ida e volta)` });
+      } else {
+        toast({ title: 'Não foi possível calcular a distância', description: 'Verifique os endereços e tente novamente.', variant: 'destructive' });
+      }
+    } finally {
+      setCalculatingKm(false);
     }
   }, [bases, toast]);
 
@@ -313,6 +317,7 @@ export default function Finance() {
       valor_km: budget.valor_km?.toString() || '',
       tipo_unidade: budget.tipo_unidade || '',
     });
+    baseIdRef.current = budget.base_id || '';
     setEditingBudgetId(budget.id);
     setBudgetDialogOpen(true);
   };
@@ -395,15 +400,22 @@ export default function Finance() {
   };
 
   const handleBaseChange = (baseId: string) => {
-    setBudgetForm((prev) => ({ ...prev, base_id: baseId, valor_km: kmRate.toString() }));
-    // Auto-calculate if event address already filled
-    if (budgetForm.endereco_evento) {
-      calculateKm(baseId, budgetForm.endereco_evento);
-    }
+    baseIdRef.current = baseId;
+    setBudgetForm((prev) => {
+      const updated = { ...prev, base_id: baseId, valor_km: kmRate.toString() };
+      // Auto-calculate if event address already filled
+      if (updated.endereco_evento) {
+        calculateKm(baseId, updated.endereco_evento);
+      }
+      return updated;
+    });
   };
 
-  const handleEnderecoChange = (endereco: string) => {
+  const handleEnderecoEventoFound = (endereco: string, baseId: string) => {
     setBudgetForm((prev) => ({ ...prev, endereco_evento: endereco }));
+    if (baseId) {
+      calculateKm(baseId, endereco);
+    }
   };
 
   const handleRecalculateKm = () => {
@@ -794,10 +806,26 @@ export default function Finance() {
                 </SelectTrigger>
                 <SelectContent>
                   {bases.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>{b.sigla} - {b.nome}</SelectItem>
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.sigla} - {b.nome}
+                      {b.endereco ? '' : ' (sem endereço)'}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {budgetForm.base_id && (() => {
+                const selectedBase = bases.find(b => b.id === budgetForm.base_id);
+                return selectedBase?.endereco ? (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {selectedBase.endereco}
+                  </p>
+                ) : (
+                  <p className="text-xs text-destructive">
+                    ⚠ Base sem endereço. Cadastre na página de Bases para calcular KM.
+                  </p>
+                );
+              })()}
             </div>
 
             <div className="space-y-2">
@@ -807,10 +835,7 @@ export default function Finance() {
                 onChange={(cep) => setBudgetForm((prev) => ({ ...prev, cep }))}
                 onAddressFound={(addr) => {
                   const endereco = addr.endereco;
-                  setBudgetForm((prev) => ({ ...prev, endereco_evento: endereco }));
-                  if (budgetForm.base_id) {
-                    calculateKm(budgetForm.base_id, endereco);
-                  }
+                  handleEnderecoEventoFound(endereco, baseIdRef.current);
                 }}
               />
             </div>
@@ -819,7 +844,7 @@ export default function Finance() {
               <Label>Endereço do Evento</Label>
               <Input
                 value={budgetForm.endereco_evento}
-                onChange={(e) => handleEnderecoChange(e.target.value)}
+                onChange={(e) => setBudgetForm((prev) => ({ ...prev, endereco_evento: e.target.value }))}
                 placeholder="Endereço completo"
               />
             </div>
