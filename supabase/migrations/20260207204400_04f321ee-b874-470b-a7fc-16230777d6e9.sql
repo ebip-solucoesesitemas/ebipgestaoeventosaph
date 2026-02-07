@@ -1,0 +1,1 @@
+ALTER TABLE public.vehicles ADD COLUMN base_id UUID REFERENCES public.bases(id);
