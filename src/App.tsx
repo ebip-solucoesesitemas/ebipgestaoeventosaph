@@ -17,6 +17,10 @@ import AdminProfessionalRates from "./pages/admin/ProfessionalRates";
 import AdminProfessionalReport from "./pages/admin/ProfessionalReport";
 import AdminOperationalRates from "./pages/admin/OperationalRates";
 import AdminBases from "./pages/admin/Bases";
+import BaseEvents from "./pages/admin/base/BaseEvents";
+import BaseProfessionals from "./pages/admin/base/BaseProfessionals";
+import BaseVehicles from "./pages/admin/base/BaseVehicles";
+import BaseFinance from "./pages/admin/base/BaseFinance";
 import TeamEvents from "./pages/team/TeamEvents";
 import TeamEventDetail from "./pages/team/EventDetail";
 import NotFound from "./pages/NotFound";
@@ -57,6 +61,12 @@ const App = () => (
             <Route path="/admin/professional-report" element={<AdminLayout><AdminProfessionalReport /></AdminLayout>} />
             <Route path="/admin/bases" element={<AdminLayout><AdminBases /></AdminLayout>} />
             <Route path="/admin/operational-rates" element={<AdminLayout><AdminOperationalRates /></AdminLayout>} />
+            
+            {/* Base-specific Routes */}
+            <Route path="/admin/base/:baseId/events" element={<AdminLayout><BaseEvents /></AdminLayout>} />
+            <Route path="/admin/base/:baseId/professionals" element={<AdminLayout><BaseProfessionals /></AdminLayout>} />
+            <Route path="/admin/base/:baseId/vehicles" element={<AdminLayout><BaseVehicles /></AdminLayout>} />
+            <Route path="/admin/base/:baseId/finance" element={<AdminLayout><BaseFinance /></AdminLayout>} />
             
             {/* Team Routes */}
             <Route path="/events" element={<TeamLayout><TeamEvents /></TeamLayout>} />
