@@ -1,115 +1,80 @@
 
 
-# Plano de Correções e Melhorias - Sistema APH
+# Plano: Criar Telas Filtradas por Base
 
-## 1. Reestruturação do Menu (Sidebar Lateral)
+## Contexto
 
-**Problema:** O menu atual está no header horizontal, causando empilhamento e barra de rolagem com muitos itens.
+A sidebar ja possui os links para `/admin/base/:baseId/events`, `/admin/base/:baseId/professionals`, `/admin/base/:baseId/vehicles` e `/admin/base/:baseId/finance`, mas as paginas nao existem. Ao clicar nesses links, o usuario ve uma pagina 404.
 
-**Solucao:** Substituir o menu horizontal por um sidebar lateral usando o componente Shadcn Sidebar, que ja existe no projeto.
+## Abordagem
 
-- Criar componente `src/components/AppSidebar.tsx` com menu organizado em grupos:
-  - **Operacional:** Eventos, Profissionais, Viaturas
-  - **Comercial:** Clientes, Financeiro, Orcamentos
-  - **Configuracoes:** Bases, Valores Profissionais, Valores Operacionais, Relatorios, Pagamentos
-  - **Bases Descentralizadas:** Sub-menus dinamicos por base cadastrada (expansiveis)
-- Refatorar `src/components/Layout.tsx` para usar `SidebarProvider` + `Sidebar` + `SidebarTrigger`
-- Menu responsivo: no mobile, abre como sheet lateral; no desktop, sidebar fixa a esquerda
-- Header simplificado com apenas logo, nome do usuario e botao de logout
+Criar 4 paginas dedicadas que filtram os dados pela base selecionada. A tabela `events` ja possui `base_id`, e `event_budgets` tambem. Para profissionais e viaturas, a filtragem sera feita atraves dos eventos associados a base.
 
-## 2. Calculo Automatico de KM no Orcamento
+Alem disso, sera necessario adicionar uma coluna `base_id` na tabela `vehicles` para permitir que viaturas sejam vinculadas diretamente a uma base (uma ambulancia normalmente fica estacionada em uma base especifica).
 
-**Problema:** O KM estimado e preenchido manualmente. Deveria ser calculado automaticamente com base nos enderecos da base e do evento.
+## Paginas a Criar
 
-**Solucao:** Usar a API Nominatim (OpenStreetMap, gratuita) para geocodificar os enderecos e calcular a distancia.
+### 1. Eventos da Base (`src/pages/admin/base/BaseEvents.tsx`)
+- Extrai `baseId` da URL via `useParams`
+- Busca o nome da base para exibir no titulo
+- Lista eventos filtrados por `base_id`
+- Permite criar novos eventos ja vinculados a base
+- Permite editar e excluir eventos
+- Link para detalhes do evento
 
-- Criar funcao utilitaria `geocodeAddress` que usa Nominatim para obter coordenadas de um endereco brasileiro
-- Criar funcao `calculateDistance` usando formula Haversine com fator de correcao rodoviario (1.35x)
-- Quando a base e o endereco do evento forem preenchidos no formulario de orcamento, calcular automaticamente:
-  - KM de ida (distancia base -> evento)
-  - KM total ida e volta (2x a distancia)
-  - Custo de deslocamento (km total x valor por km)
-- Adicionar campo somente-leitura "KM Total Ida e Volta" no formulario
-- O campo KM estimado sera preenchido automaticamente mas editavel para ajustes manuais
+### 2. Profissionais da Base (`src/pages/admin/base/BaseProfessionals.tsx`)
+- Lista profissionais que ja foram escalados para eventos dessa base
+- Busca via join: `event_assignments` -> `events` (filtrado por `base_id`) -> `profiles`
+- Exibe cards com nome, especialidade, cargo e quantidade de eventos na base
+- Visualizacao somente (o cadastro de profissionais continua na tela global)
 
-## 3. Correcao da Transferencia do Nome do Evento
+### 3. Viaturas da Base (`src/pages/admin/base/BaseVehicles.tsx`)
+- Lista viaturas vinculadas a base (via nova coluna `base_id` na tabela `vehicles`)
+- Permite vincular/desvincular viaturas da base
+- Exibe status atual de cada viatura
+- Mostra evento atual se a viatura estiver empenhada
 
-**Problema:** Ao gerar evento a partir do orcamento, o nome nao e transferido.
+### 4. Financeiro da Base (`src/pages/admin/base/BaseFinance.tsx`)
+- Lista orcamentos filtrados por `base_id`
+- Resumo financeiro (receitas, despesas, saldo) apenas dos eventos da base
+- Mesma estrutura da tela financeira global, porem filtrada
 
-**Causa raiz:** O codigo envia `budget.descricao` como parametro `nome`, que muitas vezes esta vazio ou e diferente do nome desejado.
+## Migracao SQL
 
-**Solucao:** 
-- Adicionar campo `nome_evento` na tabela `event_budgets` (migracao SQL)
-- Incluir campo "Nome do Evento" no formulario de orcamento
-- Usar esse campo ao criar o evento automaticamente
-
-## 4. Orcamento - Botao Editar e Campo USB/USA
-
-**Problema:** Falta botao de editar e campo para escolher tipo de unidade.
-
-**Solucao:**
-- Adicionar campo `tipo_unidade` (TEXT) na tabela `event_budgets` (migracao SQL)
-- Adicionar select "Tipo de Unidade" com opcoes: USB (Unidade Basica), USA (Unidade Avancada)
-- Adicionar botao "Editar" em cada card de orcamento na lista
-- Criar estado `editingBudget` e reutilizar o dialog de orcamento para edicao
-- O botao "Criar Evento" agora cria o evento automaticamente (sem redirecionar) e vincula ao orcamento
-
-## 5. Criacao Automatica de Evento a partir do Orcamento
-
-**Problema:** Ao clicar em "Criar Evento", redireciona para outra pagina com parametros. Deveria criar automaticamente.
-
-**Solucao:**
-- Substituir `handleCreateEventFromBudget` para criar o evento diretamente via `supabase.from('events').insert(...)`
-- Preencher automaticamente: nome_evento, local (endereco_evento), data_inicio, data_fim, base_id
-- Vincular o orcamento ao evento criado (`event_budgets.event_id = novo_evento.id`)
-- Mostrar toast de confirmacao e atualizar a lista
-
-## 6. Correcao do Status da Viatura (Bug Critico)
-
-**Problema:** A viatura fica em "Em Uso" mesmo apos todos os profissionais fazerem checkout.
-
-**Causa raiz identificada:** A politica RLS de `event_assignments` permite que um membro da equipe veja apenas SUAS PROPRIAS atribuicoes (SELECT). Quando o codigo no checkout consulta "todas as atribuicoes" para verificar se todos fizeram checkout, ele so ve a do usuario atual. Portanto, `every(a => a.checkout_at !== null)` retorna `true` prematuramente (so 1 registro).
-
-**Solucao:** Criar uma funcao no banco de dados (database function) que roda com `SECURITY DEFINER` para verificar se todos os membros fizeram checkout e liberar a viatura automaticamente.
-
-- Criar funcao SQL `check_and_release_vehicle(event_uuid UUID)`:
-  - Verifica TODAS as atribuicoes do evento (bypassando RLS via SECURITY DEFINER)
-  - Se todas tiverem `checkout_at` preenchido, atualiza o veiculo para `disponivel`
-- Chamar esta funcao via `supabase.rpc('check_and_release_vehicle', { event_uuid: id })` apos o checkout
-- Remover a logica de verificacao manual do frontend
-
-## 7. Migracao SQL Necessaria
+Adicionar coluna `base_id` na tabela `vehicles` com foreign key para `bases`:
 
 ```text
-Novas colunas:
-- event_budgets.nome_evento (TEXT, nullable)
-- event_budgets.tipo_unidade (TEXT, nullable)
-
-Nova funcao:
-- check_and_release_vehicle(event_uuid UUID) - SECURITY DEFINER
+ALTER TABLE vehicles ADD COLUMN base_id UUID REFERENCES bases(id);
 ```
 
-## Arquivos Modificados
+Isso permite vincular viaturas diretamente a uma base.
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/components/AppSidebar.tsx` | NOVO - Componente sidebar lateral |
-| `src/components/Layout.tsx` | Refatorar para usar sidebar |
-| `src/pages/admin/Finance.tsx` | KM auto-calculo, editar orcamento, campo USB/USA, criacao automatica de evento, campo nome_evento |
-| `src/pages/team/EventDetail.tsx` | Usar RPC para liberar viatura |
-| `supabase/migrations/...` | Nova migracao com colunas e funcao |
+## Rotas a Adicionar em `App.tsx`
 
-## Sobre Precificacao
+```text
+/admin/base/:baseId/events       -> BaseEvents
+/admin/base/:baseId/professionals -> BaseProfessionals
+/admin/base/:baseId/vehicles     -> BaseVehicles
+/admin/base/:baseId/finance      -> BaseFinance
+```
 
-Considerando as funcionalidades do sistema (gestao descentralizada de bases, controle de frotas, escala de profissionais, orcamentos, financeiro, atendimentos clinicos APH com sinais vitais, assinaturas digitais, relatorios automatizados), este e um sistema SaaS especializado de nicho (saude pre-hospitalar).
+## Arquivos
 
-**Sugestao de precos para 2026 (mercado brasileiro):**
+| Arquivo | Acao |
+|---------|------|
+| `src/pages/admin/base/BaseEvents.tsx` | NOVO - Eventos filtrados por base |
+| `src/pages/admin/base/BaseProfessionals.tsx` | NOVO - Profissionais da base |
+| `src/pages/admin/base/BaseVehicles.tsx` | NOVO - Viaturas da base |
+| `src/pages/admin/base/BaseFinance.tsx` | NOVO - Financeiro da base |
+| `src/App.tsx` | Adicionar 4 novas rotas |
+| `supabase/migrations/...` | Adicionar `base_id` a tabela `vehicles` |
 
-| Plano | Bases | Usuarios | Preco Mensal |
-|-------|-------|----------|-------------|
-| Starter | Ate 2 | Ate 10 | R$ 497/mes |
-| Professional | Ate 5 | Ate 30 | R$ 997/mes |
-| Enterprise | Ilimitadas | Ilimitados | R$ 1.997/mes |
+## Detalhes Tecnicos
 
-**Justificativa:** Sistemas SaaS especializados para saude/emergencia no Brasil em 2026 cobram entre R$ 300 e R$ 2.500/mes dependendo do porte. O valor se justifica pela automacao de processos manuais (escalas, relatorios, controle de frotas, orcamentos), reducao de erros e conformidade operacional. Concorrentes como Whitebook, TARM e sistemas de gestao de ambulancias operam nessa faixa.
+- Cada pagina usa `useParams<{ baseId: string }>()` para obter o ID da base
+- Todas as paginas fazem fetch do nome/sigla da base para exibir no header (ex: "Eventos - FLN Florianopolis")
+- Botao de voltar navega para `/admin/events` ou a pagina global correspondente
+- Reutiliza os mesmos componentes UI (Card, Badge, Dialog, etc.) para manter consistencia visual
+- A tela de Profissionais da Base e somente leitura (lista quem ja trabalhou nessa base)
+- A tela de Viaturas permite atribuir uma viatura a base via select
 
