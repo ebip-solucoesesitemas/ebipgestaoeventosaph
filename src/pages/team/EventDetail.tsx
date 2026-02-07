@@ -199,30 +199,8 @@ export default function EventDetail() {
       toast({ title: 'Checkout realizado!' });
     }
 
-    // 4. Check if ALL team members have checked out, then release vehicle
-    if (event?.vehicles) {
-      const { data: allAssignments } = await supabase
-        .from('event_assignments')
-        .select('checkout_at')
-        .eq('event_id', id!);
-
-      const allCheckedOut = allAssignments?.every(a => a.checkout_at !== null);
-      if (allCheckedOut) {
-        // Find the vehicle by event's viatura_id
-        const { data: eventData } = await supabase
-          .from('events')
-          .select('viatura_id')
-          .eq('id', id!)
-          .single();
-
-        if (eventData?.viatura_id) {
-          await supabase
-            .from('vehicles')
-            .update({ status: 'disponivel' })
-            .eq('id', eventData.viatura_id);
-        }
-      }
-    }
+    // 4. Use SECURITY DEFINER function to check all assignments and release vehicle
+    await supabase.rpc('check_and_release_vehicle', { event_uuid: id! });
 
     fetchData();
     setProcessingCheckin(false);
