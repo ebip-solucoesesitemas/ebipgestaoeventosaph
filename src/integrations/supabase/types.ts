@@ -228,42 +228,67 @@ export type Database = {
       }
       event_budgets: {
         Row: {
+          base_id: string | null
           client_id: string | null
           created_at: string | null
+          data_fim: string | null
+          data_inicio: string | null
           data_vencimento: string | null
           descricao: string | null
-          event_id: string
+          endereco_evento: string | null
+          event_id: string | null
           forma_cobranca: Database["public"]["Enums"]["forma_cobranca"] | null
           id: string
+          km_estimado: number | null
           status: Database["public"]["Enums"]["status_financeiro"] | null
           updated_at: string | null
           valor_contrato: number
+          valor_km: number | null
         }
         Insert: {
+          base_id?: string | null
           client_id?: string | null
           created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
           data_vencimento?: string | null
           descricao?: string | null
-          event_id: string
+          endereco_evento?: string | null
+          event_id?: string | null
           forma_cobranca?: Database["public"]["Enums"]["forma_cobranca"] | null
           id?: string
+          km_estimado?: number | null
           status?: Database["public"]["Enums"]["status_financeiro"] | null
           updated_at?: string | null
           valor_contrato?: number
+          valor_km?: number | null
         }
         Update: {
+          base_id?: string | null
           client_id?: string | null
           created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
           data_vencimento?: string | null
           descricao?: string | null
-          event_id?: string
+          endereco_evento?: string | null
+          event_id?: string | null
           forma_cobranca?: Database["public"]["Enums"]["forma_cobranca"] | null
           id?: string
+          km_estimado?: number | null
           status?: Database["public"]["Enums"]["status_financeiro"] | null
           updated_at?: string | null
           valor_contrato?: number
+          valor_km?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "event_budgets_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "event_budgets_client_id_fkey"
             columns: ["client_id"]
@@ -393,6 +418,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      operational_rates: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          tipo: string
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          tipo?: string
+          updated_at?: string | null
+          valor?: number
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          tipo?: string
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: []
       }
       professional_payments: {
         Row: {
