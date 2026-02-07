@@ -629,6 +629,7 @@ export type Database = {
       }
       vehicles: {
         Row: {
+          base_id: string | null
           created_at: string | null
           id: string
           modelo: string
@@ -638,6 +639,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          base_id?: string | null
           created_at?: string | null
           id?: string
           modelo: string
@@ -647,6 +649,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          base_id?: string | null
           created_at?: string | null
           id?: string
           modelo?: string
@@ -655,7 +658,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["status_viatura"]
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vital_signs: {
         Row: {
