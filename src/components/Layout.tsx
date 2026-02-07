@@ -60,7 +60,8 @@ export default function Layout({ children }: LayoutProps) {
     { href: '/admin/clients', label: 'Clientes', icon: Building2 },
     { href: '/admin/finance', label: 'Financeiro', icon: DollarSign },
     { href: '/admin/payroll', label: 'Pagamentos', icon: Wallet },
-    { href: '/admin/professional-rates', label: 'Valores', icon: DollarSign },
+    { href: '/admin/professional-rates', label: 'Valores Prof.', icon: DollarSign },
+    { href: '/admin/operational-rates', label: 'Valores Oper.', icon: DollarSign },
     { href: '/admin/professional-report', label: 'Relatórios', icon: ClipboardList },
     { href: '/admin/bases', label: 'Bases', icon: MapPin },
   ];

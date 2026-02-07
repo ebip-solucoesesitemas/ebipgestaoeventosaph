@@ -66,7 +66,7 @@ export default function AdminVehicles() {
     } else {
       setVehicles(data || []);
       
-      // Fetch events for vehicles that are in use
+      // Fetch events for vehicles that are in use - check if currently within event hours (Brasilia time)
       const vehicleIds = data?.filter(v => v.status === 'em_uso').map(v => v.id) || [];
       if (vehicleIds.length > 0) {
         const now = new Date().toISOString();
@@ -74,18 +74,24 @@ export default function AdminVehicles() {
           .from('events')
           .select('id, nome_evento, data_inicio, data_fim, viatura_id')
           .in('viatura_id', vehicleIds)
-          .gte('data_fim', now)
           .order('data_inicio');
 
         const eventsMap: Record<string, VehicleEvent | null> = {};
         eventsData?.forEach(event => {
           if (event.viatura_id && !eventsMap[event.viatura_id]) {
-            eventsMap[event.viatura_id] = {
-              id: event.id,
-              nome_evento: event.nome_evento,
-              data_inicio: event.data_inicio,
-              data_fim: event.data_fim,
-            };
+            // Only show as "empenhada" if current time is within event period
+            const eventStart = new Date(event.data_inicio);
+            const eventEnd = new Date(event.data_fim);
+            const currentTime = new Date(now);
+            
+            if (currentTime >= eventStart && currentTime <= eventEnd) {
+              eventsMap[event.viatura_id] = {
+                id: event.id,
+                nome_evento: event.nome_evento,
+                data_inicio: event.data_inicio,
+                data_fim: event.data_fim,
+              };
+            }
           }
         });
         setVehicleEvents(eventsMap);
@@ -287,7 +293,7 @@ export default function AdminVehicles() {
                       {statusLabels[vehicle.status]}
                     </Badge>
                   </div>
-                  {vehicle.status === 'em_uso' && event && (
+                  {vehicle.status === 'em_uso' && event ? (
                     <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
                       <div className="flex items-center gap-2 text-sm text-warning">
                         <Calendar className="w-4 h-4" />
@@ -295,7 +301,11 @@ export default function AdminVehicles() {
                       </div>
                       <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
                     </div>
-                  )}
+                  ) : vehicle.status === 'em_uso' && !event ? (
+                    <p className="text-xs text-muted-foreground italic">
+                      Fora do horário do evento atual
+                    </p>
+                  ) : null}
                 </CardContent>
               </Card>
             );
