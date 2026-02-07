@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Plus, MapPin, Edit2, Trash2 } from 'lucide-react';
+import { CepInput } from '@/components/CepInput';
 
 interface Base {
   id: string;
@@ -26,7 +27,7 @@ export default function Bases() {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBase, setEditingBase] = useState<Base | null>(null);
-  const [form, setForm] = useState({ nome: '', sigla: '', endereco: '' });
+  const [form, setForm] = useState({ nome: '', sigla: '', endereco: '', cep: '' });
 
   const fetchBases = async () => {
     setIsLoading(true);
@@ -39,13 +40,13 @@ export default function Bases() {
 
   const openNew = () => {
     setEditingBase(null);
-    setForm({ nome: '', sigla: '', endereco: '' });
+    setForm({ nome: '', sigla: '', endereco: '', cep: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (base: Base) => {
     setEditingBase(base);
-    setForm({ nome: base.nome, sigla: base.sigla, endereco: base.endereco || '' });
+    setForm({ nome: base.nome, sigla: base.sigla, endereco: base.endereco || '', cep: '' });
     setDialogOpen(true);
   };
 
@@ -167,11 +168,21 @@ export default function Bases() {
               />
             </div>
             <div className="space-y-2">
+              <Label>CEP</Label>
+              <CepInput
+                value={form.cep}
+                onChange={(cep) => setForm({ ...form, cep })}
+                onAddressFound={(addr) => {
+                  setForm((prev) => ({ ...prev, endereco: addr.endereco }));
+                }}
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Endereço</Label>
               <Input
                 value={form.endereco}
                 onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-                placeholder="Endereço da base"
+                placeholder="Endereço da base (preenchido pelo CEP)"
               />
             </div>
             <Button type="submit" className="w-full">{editingBase ? 'Salvar' : 'Criar Base'}</Button>
