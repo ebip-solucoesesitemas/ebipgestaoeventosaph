@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +56,7 @@ interface EventAssignment {
 
 export default function AdminEvents() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -66,6 +67,7 @@ export default function AdminEvents() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [profileSearch, setProfileSearch] = useState('');
+  const [pendingBudgetId, setPendingBudgetId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     nome_evento: '',
@@ -120,6 +122,28 @@ export default function AdminEvents() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Open dialog from budget redirect
+  useEffect(() => {
+    if (searchParams.get('new') === 'true') {
+      const nome = searchParams.get('nome') || '';
+      const local = searchParams.get('local') || '';
+      const dataInicio = searchParams.get('data_inicio') || '';
+      const dataFim = searchParams.get('data_fim') || '';
+      const budgetId = searchParams.get('budget_id') || null;
+
+      setFormData(prev => ({
+        ...prev,
+        nome_evento: nome,
+        local: local,
+        data_inicio: dataInicio ? dataInicio.slice(0, 16) : '',
+        data_fim: dataFim ? dataFim.slice(0, 16) : '',
+      }));
+      setPendingBudgetId(budgetId);
+      setDialogOpen(true);
+      setSearchParams({});
+    }
+  }, [searchParams]);
 
   const resetForm = () => {
     setFormData({
@@ -203,6 +227,12 @@ export default function AdminEvents() {
         return;
       }
       eventId = data.id;
+
+      // Link budget to the new event if created from budget
+      if (pendingBudgetId) {
+        await supabase.from('event_budgets').update({ event_id: eventId }).eq('id', pendingBudgetId);
+        setPendingBudgetId(null);
+      }
     }
 
     // Update new vehicle status to 'em_uso'

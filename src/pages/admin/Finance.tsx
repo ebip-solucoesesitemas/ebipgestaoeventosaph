@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -30,14 +31,18 @@ import {
   Building2,
   CreditCard,
   Banknote,
+  MapPin,
+  ExternalLink,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { CepInput } from '@/components/CepInput';
 
-interface Event {
+interface Base {
   id: string;
-  nome_evento: string;
-  data_inicio: string;
+  nome: string;
+  sigla: string;
+  endereco: string | null;
 }
 
 interface Client {
@@ -47,14 +52,22 @@ interface Client {
 
 interface Budget {
   id: string;
-  event_id: string;
+  event_id: string | null;
   client_id: string | null;
   valor_contrato: number;
   descricao: string | null;
   status: string;
   data_vencimento: string | null;
-  events?: { nome_evento: string };
-  clients?: { nome: string };
+  forma_cobranca: string | null;
+  endereco_evento: string | null;
+  data_inicio: string | null;
+  data_fim: string | null;
+  base_id: string | null;
+  km_estimado: number | null;
+  valor_km: number | null;
+  events?: { nome_evento: string } | null;
+  clients?: { nome: string } | null;
+  bases?: { sigla: string; nome: string } | null;
 }
 
 interface Expense {
@@ -73,7 +86,13 @@ interface Payment {
   valor: number;
   tipo_pagamento: string;
   data_pagamento: string;
-  event_budgets?: { events?: { nome_evento: string }; clients?: { nome: string } };
+  event_budgets?: { events?: { nome_evento: string } | null; clients?: { nome: string } | null };
+}
+
+interface Event {
+  id: string;
+  nome_evento: string;
+  data_inicio: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -102,28 +121,44 @@ const tipoPagamentoLabels: Record<string, string> = {
   cheque: 'Cheque',
 };
 
+const formaCobrancaLabels: Record<string, string> = {
+  boleto: 'Boleto',
+  pix: 'PIX',
+  emissao_nf: 'Emissão NF',
+  empenho: 'Empenho',
+  nao_cobrar: 'Não Cobrar',
+  patrocinio: 'Patrocínio',
+};
+
 export default function Finance() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [bases, setBases] = useState<Base[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [kmRate, setKmRate] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Dialogs
   const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
-  // Form states
   const [budgetForm, setBudgetForm] = useState({
-    event_id: '',
     client_id: '',
     valor_contrato: '',
     descricao: '',
     data_vencimento: '',
     forma_cobranca: '',
+    endereco_evento: '',
+    cep: '',
+    data_inicio: '',
+    data_fim: '',
+    base_id: '',
+    km_estimado: '',
+    valor_km: '',
   });
 
   const [expenseForm, setExpenseForm] = useState({
@@ -144,19 +179,23 @@ export default function Finance() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const [eventsRes, clientsRes, budgetsRes, expensesRes, paymentsRes] = await Promise.all([
+    const [eventsRes, clientsRes, basesRes, budgetsRes, expensesRes, paymentsRes, ratesRes] = await Promise.all([
       supabase.from('events').select('id, nome_evento, data_inicio').order('data_inicio', { ascending: false }),
       supabase.from('clients').select('id, nome').order('nome'),
-      supabase.from('event_budgets').select('*, events(nome_evento), clients(nome)').order('created_at', { ascending: false }),
+      supabase.from('bases').select('id, nome, sigla, endereco').order('sigla'),
+      supabase.from('event_budgets').select('*, events(nome_evento), clients(nome), bases(sigla, nome)').order('created_at', { ascending: false }),
       supabase.from('event_expenses').select('*, events(nome_evento)').order('data_despesa', { ascending: false }),
       supabase.from('client_payments').select('*, event_budgets(events(nome_evento), clients(nome))').order('data_pagamento', { ascending: false }),
+      supabase.from('operational_rates').select('valor').eq('tipo', 'km').single(),
     ]);
 
     setEvents(eventsRes.data || []);
     setClients(clientsRes.data || []);
-    setBudgets(budgetsRes.data || []);
+    setBases(basesRes.data || []);
+    setBudgets((budgetsRes.data as Budget[]) || []);
     setExpenses(expensesRes.data || []);
     setPayments(paymentsRes.data || []);
+    if (ratesRes.data) setKmRate(ratesRes.data.valor);
     setIsLoading(false);
   };
 
@@ -164,7 +203,6 @@ export default function Finance() {
     fetchData();
   }, []);
 
-  // Calculate totals
   const totalReceitas = budgets
     .filter((b) => b.status === 'pago')
     .reduce((sum, b) => sum + Number(b.valor_contrato), 0);
@@ -174,19 +212,26 @@ export default function Finance() {
     .reduce((sum, b) => sum + Number(b.valor_contrato), 0);
 
   const totalDespesas = expenses.reduce((sum, e) => sum + Number(e.valor), 0);
-
   const saldo = totalReceitas - totalDespesas;
 
-  // Submit handlers
   const handleBudgetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const kmEstimado = parseFloat(budgetForm.km_estimado) || 0;
+    const valorKm = parseFloat(budgetForm.valor_km) || kmRate;
+
     const { error } = await supabase.from('event_budgets').insert({
-      event_id: budgetForm.event_id,
+      event_id: null,
       client_id: budgetForm.client_id || null,
       valor_contrato: parseFloat(budgetForm.valor_contrato),
       descricao: budgetForm.descricao || null,
       data_vencimento: budgetForm.data_vencimento || null,
       forma_cobranca: budgetForm.forma_cobranca || null,
+      endereco_evento: budgetForm.endereco_evento || null,
+      data_inicio: budgetForm.data_inicio || null,
+      data_fim: budgetForm.data_fim || null,
+      base_id: budgetForm.base_id || null,
+      km_estimado: kmEstimado,
+      valor_km: valorKm,
     } as any);
 
     if (error) {
@@ -194,16 +239,27 @@ export default function Finance() {
     } else {
       toast({ title: 'Orçamento criado!' });
       setBudgetDialogOpen(false);
-      setBudgetForm({ event_id: '', client_id: '', valor_contrato: '', descricao: '', data_vencimento: '', forma_cobranca: '' });
+      setBudgetForm({ client_id: '', valor_contrato: '', descricao: '', data_vencimento: '', forma_cobranca: '', endereco_evento: '', cep: '', data_inicio: '', data_fim: '', base_id: '', km_estimado: '', valor_km: '' });
       fetchData();
     }
+  };
+
+  const handleCreateEventFromBudget = (budget: Budget) => {
+    // Navigate to events page with budget data as query params
+    const params = new URLSearchParams();
+    if (budget.descricao) params.set('nome', budget.descricao);
+    if (budget.endereco_evento) params.set('local', budget.endereco_evento);
+    if (budget.data_inicio) params.set('data_inicio', budget.data_inicio);
+    if (budget.data_fim) params.set('data_fim', budget.data_fim);
+    params.set('budget_id', budget.id);
+    navigate(`/admin/events?new=true&${params.toString()}`);
   };
 
   const handleExpenseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await supabase.from('event_expenses').insert({
       event_id: expenseForm.event_id,
-      categoria: expenseForm.categoria as 'combustivel' | 'equipamento' | 'diaria' | 'alimentacao' | 'hospedagem' | 'transporte' | 'outros',
+      categoria: expenseForm.categoria as any,
       descricao: expenseForm.descricao,
       valor: parseFloat(expenseForm.valor),
       data_despesa: expenseForm.data_despesa,
@@ -224,7 +280,7 @@ export default function Finance() {
     const { error } = await supabase.from('client_payments').insert({
       budget_id: paymentForm.budget_id,
       valor: parseFloat(paymentForm.valor),
-      tipo_pagamento: paymentForm.tipo_pagamento as 'pix' | 'transferencia' | 'boleto' | 'cartao' | 'dinheiro' | 'cheque',
+      tipo_pagamento: paymentForm.tipo_pagamento as any,
       data_pagamento: paymentForm.data_pagamento,
       observacao: paymentForm.observacao || null,
     });
@@ -232,17 +288,17 @@ export default function Finance() {
     if (error) {
       toast({ title: 'Erro ao registrar pagamento', variant: 'destructive' });
     } else {
-      // Update budget status to paid
-      await supabase
-        .from('event_budgets')
-        .update({ status: 'pago' })
-        .eq('id', paymentForm.budget_id);
-
+      await supabase.from('event_budgets').update({ status: 'pago' }).eq('id', paymentForm.budget_id);
       toast({ title: 'Pagamento registrado!' });
       setPaymentDialogOpen(false);
       setPaymentForm({ budget_id: '', valor: '', tipo_pagamento: '', data_pagamento: format(new Date(), 'yyyy-MM-dd'), observacao: '' });
       fetchData();
     }
+  };
+
+  // When base changes, auto-set valor_km from operational rates
+  const handleBaseChange = (baseId: string) => {
+    setBudgetForm(prev => ({ ...prev, base_id: baseId, valor_km: kmRate.toString() }));
   };
 
   if (isLoading) {
@@ -277,7 +333,6 @@ export default function Finance() {
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -293,7 +348,6 @@ export default function Finance() {
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -309,7 +363,6 @@ export default function Finance() {
             </div>
           </CardContent>
         </Card>
-
         <Card className={saldo >= 0 ? 'border-stable/30' : 'border-critical/30'}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -358,18 +411,47 @@ export default function Finance() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-primary" />
-                          <span className="font-medium">{budget.events?.nome_evento}</span>
-                        </div>
+                        {budget.descricao && (
+                          <p className="font-medium">{budget.descricao}</p>
+                        )}
+                        {budget.events?.nome_evento && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="w-4 h-4 text-primary" />
+                            <span>{budget.events.nome_evento}</span>
+                          </div>
+                        )}
                         {budget.clients && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Building2 className="w-4 h-4" />
                             {budget.clients.nome}
                           </div>
                         )}
+                        {budget.bases && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="w-4 h-4" />
+                            Base: {budget.bases.sigla}
+                          </div>
+                        )}
+                        {budget.endereco_evento && (
+                          <p className="text-xs text-muted-foreground">{budget.endereco_evento}</p>
+                        )}
+                        {budget.data_inicio && (
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(budget.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR })} - {budget.data_fim ? format(new Date(budget.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR }) : ''}
+                          </p>
+                        )}
+                        {budget.km_estimado && Number(budget.km_estimado) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            KM: {Number(budget.km_estimado).toLocaleString('pt-BR')} km × R$ {Number(budget.valor_km || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} = R$ {(Number(budget.km_estimado) * Number(budget.valor_km || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
+                        )}
+                        {budget.forma_cobranca && (
+                          <Badge variant="outline" className="text-xs">
+                            {formaCobrancaLabels[budget.forma_cobranca] || budget.forma_cobranca}
+                          </Badge>
+                        )}
                         {budget.data_vencimento && (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             Vence em: {format(new Date(budget.data_vencimento), 'dd/MM/yyyy')}
                           </p>
                         )}
@@ -378,7 +460,7 @@ export default function Finance() {
                         <p className="text-xl font-bold">
                           R$ {Number(budget.valor_contrato).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
-                        <div className="flex items-center gap-2 justify-end">
+                        <div className="flex items-center gap-2 justify-end flex-wrap">
                           <Badge className={statusColors[budget.status]}>
                             {budget.status.charAt(0).toUpperCase() + budget.status.slice(1)}
                           </Badge>
@@ -395,6 +477,17 @@ export default function Finance() {
                             {budget.status === 'pago' ? '↩ Pendente' : '✓ Marcar Pago'}
                           </Button>
                         </div>
+                        {!budget.event_id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 text-xs mt-1"
+                            onClick={() => handleCreateEventFromBudget(budget)}
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Criar Evento
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -432,9 +525,7 @@ export default function Finance() {
                           <Calendar className="w-4 h-4" />
                           {expense.events?.nome_evento}
                         </div>
-                        <Badge variant="outline">
-                          {categoriaLabels[expense.categoria]}
-                        </Badge>
+                        <Badge variant="outline">{categoriaLabels[expense.categoria]}</Badge>
                       </div>
                       <div className="text-right">
                         <p className="text-xl font-bold text-critical">
@@ -476,7 +567,7 @@ export default function Finance() {
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
                         <p className="font-medium">
-                          {payment.event_budgets?.events?.nome_evento}
+                          {payment.event_budgets?.events?.nome_evento || 'Orçamento'}
                         </p>
                         {payment.event_budgets?.clients && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -508,24 +599,11 @@ export default function Finance() {
 
       {/* Budget Dialog */}
       <Dialog open={budgetDialogOpen} onOpenChange={setBudgetDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Orçamento</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleBudgetSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Evento *</Label>
-              <Select value={budgetForm.event_id} onValueChange={(v) => setBudgetForm({ ...budgetForm, event_id: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o evento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {events.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.nome_evento}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select value={budgetForm.client_id} onValueChange={(v) => setBudgetForm({ ...budgetForm, client_id: v })}>
@@ -539,6 +617,92 @@ export default function Finance() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label>Base</Label>
+              <Select value={budgetForm.base_id} onValueChange={handleBaseChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a base" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bases.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.sigla} - {b.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>CEP do Evento</Label>
+              <CepInput
+                value={budgetForm.cep}
+                onChange={(cep) => setBudgetForm(prev => ({ ...prev, cep }))}
+                onAddressFound={(addr) => {
+                  setBudgetForm(prev => ({ ...prev, endereco_evento: addr.endereco }));
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Endereço do Evento</Label>
+              <Input
+                value={budgetForm.endereco_evento}
+                onChange={(e) => setBudgetForm({ ...budgetForm, endereco_evento: e.target.value })}
+                placeholder="Endereço completo"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Início</Label>
+                <Input
+                  type="datetime-local"
+                  value={budgetForm.data_inicio}
+                  onChange={(e) => setBudgetForm({ ...budgetForm, data_inicio: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Fim</Label>
+                <Input
+                  type="datetime-local"
+                  value={budgetForm.data_fim}
+                  onChange={(e) => setBudgetForm({ ...budgetForm, data_fim: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>KM Estimado</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={budgetForm.km_estimado}
+                  onChange={(e) => setBudgetForm({ ...budgetForm, km_estimado: e.target.value })}
+                  placeholder="Ex: 120"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor por KM (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={budgetForm.valor_km}
+                  onChange={(e) => setBudgetForm({ ...budgetForm, valor_km: e.target.value })}
+                  placeholder={kmRate > 0 ? `Padrão: ${kmRate}` : '0,00'}
+                />
+              </div>
+            </div>
+
+            {budgetForm.km_estimado && (
+              <div className="p-3 rounded-lg bg-muted/50 text-sm">
+                <p className="font-medium">Custo estimado de deslocamento:</p>
+                <p className="text-primary font-bold">
+                  R$ {((parseFloat(budgetForm.km_estimado) || 0) * (parseFloat(budgetForm.valor_km) || kmRate)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Valor do Contrato *</Label>
               <Input
@@ -549,6 +713,7 @@ export default function Finance() {
                 required
               />
             </div>
+
             <div className="space-y-2">
               <Label>Data de Vencimento</Label>
               <Input
@@ -557,6 +722,7 @@ export default function Finance() {
                 onChange={(e) => setBudgetForm({ ...budgetForm, data_vencimento: e.target.value })}
               />
             </div>
+
             <div className="space-y-2">
               <Label>Descrição</Label>
               <Input
@@ -564,6 +730,7 @@ export default function Finance() {
                 onChange={(e) => setBudgetForm({ ...budgetForm, descricao: e.target.value })}
               />
             </div>
+
             <div className="space-y-2">
               <Label>Forma de Cobrança</Label>
               <Select value={budgetForm.forma_cobranca} onValueChange={(v) => setBudgetForm({ ...budgetForm, forma_cobranca: v })}>
@@ -571,15 +738,13 @@ export default function Finance() {
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="boleto">Boleto</SelectItem>
-                  <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="emissao_nf">Emissão NF</SelectItem>
-                  <SelectItem value="empenho">Empenho</SelectItem>
-                  <SelectItem value="nao_cobrar">Não Cobrar</SelectItem>
-                  <SelectItem value="patrocinio">Patrocínio</SelectItem>
+                  {Object.entries(formaCobrancaLabels).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+
             <Button type="submit" className="w-full btn-touch">Criar Orçamento</Button>
           </form>
         </DialogContent>
@@ -670,7 +835,7 @@ export default function Finance() {
                     .filter((b) => b.status === 'pendente')
                     .map((b) => (
                       <SelectItem key={b.id} value={b.id}>
-                        {b.events?.nome_evento} - R$ {Number(b.valor_contrato).toLocaleString('pt-BR')}
+                        {b.descricao || b.events?.nome_evento || 'Orçamento'} - R$ {Number(b.valor_contrato).toLocaleString('pt-BR')}
                       </SelectItem>
                     ))}
                 </SelectContent>
