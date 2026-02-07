@@ -1,248 +1,29 @@
-import { ReactNode, useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import {
-  Ambulance,
-  Calendar,
-  Users,
-  Truck,
-  LogOut,
-  Menu,
-  X,
-  Shield,
-  ClipboardList,
-  Building2,
-  DollarSign,
-  Wallet,
-  MapPin,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react';
+import { ReactNode } from 'react';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/AppSidebar';
+import { Ambulance } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-interface Base {
-  id: string;
-  nome: string;
-  sigla: string;
-}
-
 export default function Layout({ children }: LayoutProps) {
-  const { profile, signOut, isAdmin } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [bases, setBases] = useState<Base[]>([]);
-  const [expandedBase, setExpandedBase] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isAdmin) {
-      supabase.from('bases').select('id, nome, sigla').order('sigla').then(({ data }) => {
-        setBases(data || []);
-      });
-    }
-  }, [isAdmin]);
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-  };
-
-  const globalAdminLinks = [
-    { href: '/admin/events', label: 'Eventos', icon: Calendar },
-    { href: '/admin/professionals', label: 'Profissionais', icon: Users },
-    { href: '/admin/vehicles', label: 'Viaturas', icon: Truck },
-    { href: '/admin/clients', label: 'Clientes', icon: Building2 },
-    { href: '/admin/finance', label: 'Financeiro', icon: DollarSign },
-    { href: '/admin/payroll', label: 'Pagamentos', icon: Wallet },
-    { href: '/admin/professional-rates', label: 'Valores Prof.', icon: DollarSign },
-    { href: '/admin/operational-rates', label: 'Valores Oper.', icon: DollarSign },
-    { href: '/admin/professional-report', label: 'Relatórios', icon: ClipboardList },
-    { href: '/admin/bases', label: 'Bases', icon: MapPin },
-  ];
-
-  const teamLinks = [
-    { href: '/events', label: 'Meus Eventos', icon: Calendar },
-  ];
-
-  const links = isAdmin ? globalAdminLinks : teamLinks;
-
-  // Base-specific links
-  const getBaseLinks = (baseId: string) => [
-    { href: `/admin/base/${baseId}/events`, label: 'Eventos', icon: Calendar },
-    { href: `/admin/base/${baseId}/professionals`, label: 'Profissionais', icon: Users },
-    { href: `/admin/base/${baseId}/vehicles`, label: 'Viaturas', icon: Truck },
-    { href: `/admin/base/${baseId}/finance`, label: 'Financeiro', icon: DollarSign },
-  ];
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-primary shadow-lg">
-        <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-              <Ambulance className="w-6 h-6 text-primary-foreground" />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Slim top bar with sidebar trigger */}
+          <header className="sticky top-0 z-40 h-12 border-b bg-background/95 backdrop-blur flex items-center px-4 gap-3">
+            <SidebarTrigger />
+            <div className="flex items-center gap-2 md:hidden">
+              <Ambulance className="w-5 h-5 text-primary" />
+              <span className="text-sm font-semibold text-foreground">APH System</span>
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold text-primary-foreground">APH System</h1>
-              <p className="text-xs text-primary-foreground/70">Gestão Pré-Hospitalar</p>
-            </div>
-          </Link>
-
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1 overflow-x-auto">
-            {links.map((link) => (
-              <Link key={link.href} to={link.href}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    'text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-xs',
-                    location.pathname.startsWith(link.href) && 'bg-white/20 text-primary-foreground'
-                  )}
-                >
-                  <link.icon className="w-4 h-4 mr-1" />
-                  {link.label}
-                </Button>
-              </Link>
-            ))}
-            {/* Base dropdowns on desktop */}
-            {isAdmin && bases.map((base) => (
-              <div key={base.id} className="relative group">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    'text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-xs gap-1',
-                    location.pathname.includes(`/base/${base.id}`) && 'bg-white/20 text-primary-foreground'
-                  )}
-                  onClick={() => setExpandedBase(expandedBase === base.id ? null : base.id)}
-                >
-                  <MapPin className="w-3 h-3" />
-                  {base.sigla}
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-                {expandedBase === base.id && (
-                  <div className="absolute top-full left-0 mt-1 bg-card border rounded-lg shadow-lg py-1 min-w-[160px] z-50">
-                    {getBaseLinks(base.id).map((bl) => (
-                      <Link
-                        key={bl.href}
-                        to={bl.href}
-                        onClick={() => setExpandedBase(null)}
-                        className={cn(
-                          'flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted',
-                          location.pathname === bl.href && 'bg-muted font-medium'
-                        )}
-                      >
-                        <bl.icon className="w-4 h-4" />
-                        {bl.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 text-primary-foreground">
-              <div className="text-right">
-                <p className="text-sm font-medium">{profile?.nome}</p>
-                <p className="text-xs text-primary-foreground/70 flex items-center gap-1">
-                  {isAdmin && <Shield className="w-3 h-3" />}
-                  {profile?.especialidade}
-                </p>
-              </div>
-            </div>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSignOut}
-              className="text-primary-foreground hover:bg-white/10"
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden text-primary-foreground hover:bg-white/10"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </Button>
-          </div>
+          </header>
+          <main className="flex-1 p-4 md:p-6">{children}</main>
         </div>
-
-        {/* Mobile Nav */}
-        {mobileMenuOpen && (
-          <nav className="md:hidden border-t border-white/10 bg-primary pb-4 max-h-[70vh] overflow-y-auto">
-            <div className="container space-y-1 pt-2">
-              {links.map((link) => (
-                <Link key={link.href} to={link.href} onClick={() => setMobileMenuOpen(false)}>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      'w-full justify-start text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10',
-                      location.pathname.startsWith(link.href) && 'bg-white/20 text-primary-foreground'
-                    )}
-                  >
-                    <link.icon className="w-5 h-5 mr-3" />
-                    {link.label}
-                  </Button>
-                </Link>
-              ))}
-              {/* Base sections in mobile */}
-              {isAdmin && bases.map((base) => (
-                <div key={base.id} className="pt-1">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10"
-                    onClick={() => setExpandedBase(expandedBase === base.id ? null : base.id)}
-                  >
-                    <MapPin className="w-5 h-5 mr-3" />
-                    {base.sigla} - {base.nome}
-                    {expandedBase === base.id ? <ChevronDown className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto" />}
-                  </Button>
-                  {expandedBase === base.id && (
-                    <div className="pl-8 space-y-1">
-                      {getBaseLinks(base.id).map((bl) => (
-                        <Link key={bl.href} to={bl.href} onClick={() => setMobileMenuOpen(false)}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                              'w-full justify-start text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10',
-                              location.pathname === bl.href && 'bg-white/20 text-primary-foreground'
-                            )}
-                          >
-                            <bl.icon className="w-4 h-4 mr-2" />
-                            {bl.label}
-                          </Button>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-              <div className="pt-2 px-4 border-t border-white/10 mt-2">
-                <p className="text-sm text-primary-foreground">{profile?.nome}</p>
-                <p className="text-xs text-primary-foreground/70">{profile?.especialidade}</p>
-              </div>
-            </div>
-          </nav>
-        )}
-      </header>
-
-      {/* Main Content */}
-      <main className="container py-6">{children}</main>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }
