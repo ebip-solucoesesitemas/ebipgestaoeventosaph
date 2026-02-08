@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle, Fuel, Search, Eye, LogIn, LogOut, Navigation } from 'lucide-react';
+import { localDatetimeToISO, isoToLocalDatetime } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -165,8 +166,8 @@ export default function AdminEvents() {
     setEditingEvent(event);
     setFormData({
       nome_evento: event.nome_evento,
-      data_inicio: event.data_inicio.slice(0, 16),
-      data_fim: event.data_fim.slice(0, 16),
+      data_inicio: isoToLocalDatetime(event.data_inicio),
+      data_fim: isoToLocalDatetime(event.data_fim),
       local: event.local,
       viatura_id: event.viatura_id || '',
       equipe_completa: event.equipe_completa || false,
@@ -183,8 +184,8 @@ export default function AdminEvents() {
 
     const eventData = {
       nome_evento: formData.nome_evento,
-      data_inicio: formData.data_inicio,
-      data_fim: formData.data_fim,
+      data_inicio: localDatetimeToISO(formData.data_inicio),
+      data_fim: localDatetimeToISO(formData.data_fim),
       local: formData.local,
       viatura_id: formData.viatura_id || null,
       equipe_completa: formData.equipe_completa,

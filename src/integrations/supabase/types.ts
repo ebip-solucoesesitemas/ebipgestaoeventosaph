@@ -727,6 +727,14 @@ export type Database = {
         Args: { event_uuid: string }
         Returns: undefined
       }
+      handle_team_checkin: {
+        Args: { p_assignment_id: string; p_km_inicial?: number }
+        Returns: Json
+      }
+      handle_team_checkout: {
+        Args: { p_assignment_id: string; p_km_final?: number }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -736,6 +744,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_to_event: { Args: { event_uuid: string }; Returns: boolean }
+      toggle_user_role: { Args: { p_profile_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "equipe"
