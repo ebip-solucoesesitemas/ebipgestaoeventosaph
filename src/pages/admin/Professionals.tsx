@@ -190,10 +190,9 @@ export default function AdminProfessionals() {
   const toggleCargo = async (profile: Profile) => {
     const newCargo = profile.cargo === 'admin' ? 'equipe' : 'admin';
     
-    const { error } = await supabase
-      .from('profiles')
-      .update({ cargo: newCargo })
-      .eq('id', profile.id);
+    const { error } = await (supabase.rpc as any)('toggle_user_role', {
+      p_profile_id: profile.id,
+    });
 
     if (error) {
       toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
