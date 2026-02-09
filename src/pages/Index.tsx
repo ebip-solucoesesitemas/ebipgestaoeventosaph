@@ -8,7 +8,7 @@ import { Calendar, Users, Truck, ClipboardList, Shield, ArrowRight, Building2, D
 import { Link } from 'react-router-dom';
 
 export default function Index() {
-  const { user, profile, isLoading, isAdmin } = useAuth();
+  const { user, profile, isLoading, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,9 +30,17 @@ export default function Index() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          <p className="text-sm text-muted-foreground">Carregando seu perfil...</p>
+        <div className="flex flex-col items-center gap-4 text-center p-6">
+          <div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center">
+            <Shield className="w-8 h-8 text-warning" />
+          </div>
+          <h2 className="text-xl font-bold">Perfil não encontrado</h2>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Sua conta ainda não possui um perfil vinculado. Entre em contato com o administrador para configurar seu acesso.
+          </p>
+          <Button variant="outline" onClick={() => signOut()}>
+            Sair
+          </Button>
         </div>
       </div>
     );
