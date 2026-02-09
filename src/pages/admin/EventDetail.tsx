@@ -106,28 +106,37 @@ export default function AdminEventDetail() {
     const fetchData = async () => {
       setIsLoading(true);
 
-      const [eventRes, assignmentsRes, attendancesRes, expensesRes] = await Promise.all([
-        supabase.from('events').select('*, vehicles(*)').eq('id', id).single(),
-        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade)').eq('event_id', id),
-        supabase.from('clinical_attendances').select('*, profiles:profissional_id(nome, especialidade)').eq('event_id', id).order('created_at'),
-        supabase.from('event_expenses').select('*').eq('event_id', id).order('data_despesa'),
-      ]);
+      try {
+        const [eventRes, assignmentsRes, attendancesRes, expensesRes] = await Promise.all([
+          supabase.from('events').select('*, vehicles(*)').eq('id', id).single(),
+          supabase.from('event_assignments').select('*, profiles(id, nome, especialidade)').eq('event_id', id),
+          supabase.from('clinical_attendances').select('*, profiles:profissional_id(nome, especialidade)').eq('event_id', id).order('created_at'),
+          supabase.from('event_expenses').select('*').eq('event_id', id).order('data_despesa'),
+        ]);
 
-      if (eventRes.error) {
-        toast({ title: 'Erro ao carregar evento', description: eventRes.error.message, variant: 'destructive' });
+        if (eventRes.error) {
+          console.error('Error loading event:', eventRes.error);
+          toast({ title: 'Erro ao carregar evento', description: eventRes.error.message, variant: 'destructive' });
+          navigate('/admin/events');
+          return;
+        }
+
+        setEvent(eventRes.data);
+        setAssignments(assignmentsRes.data || []);
+        setAttendances((attendancesRes.data as Attendance[]) || []);
+        setExpenses(expensesRes.data || []);
+      } catch (error) {
+        console.error('Unexpected error loading event:', error);
+        toast({ title: 'Erro inesperado', description: 'Não foi possível carregar o evento', variant: 'destructive' });
         navigate('/admin/events');
-        return;
+      } finally {
+        setIsLoading(false);
       }
-
-      setEvent(eventRes.data);
-      setAssignments(assignmentsRes.data || []);
-      setAttendances(attendancesRes.data || []);
-      setExpenses(expensesRes.data || []);
-      setIsLoading(false);
     };
 
     fetchData();
-  }, [id, navigate, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleViewAttendance = async (attendance: Attendance) => {
     setSelectedAttendance(attendance);
