@@ -14,7 +14,7 @@ export interface SignaturePadRef {
   getDataUrl: () => string;
 }
 
-const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label }, ref) => {
+const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label, onSave }, ref) => {
   const sigCanvas = useRef<SignatureCanvas>(null);
 
   useImperativeHandle(ref, () => ({
@@ -22,6 +22,12 @@ const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label }, 
     isEmpty: () => sigCanvas.current?.isEmpty() ?? true,
     getDataUrl: () => sigCanvas.current?.toDataURL('image/png') ?? '',
   }));
+
+  const handleEnd = () => {
+    if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+      onSave?.(sigCanvas.current.toDataURL('image/png'));
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -42,6 +48,7 @@ const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label }, 
         <SignatureCanvas
           ref={sigCanvas}
           penColor="#1e40af"
+          onEnd={handleEnd}
           canvasProps={{
             className: 'w-full h-32 touch-none',
             style: { width: '100%', height: '128px' }

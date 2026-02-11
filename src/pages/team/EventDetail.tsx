@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine, Gauge, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine, Gauge, Save, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import APHForm from '@/components/APHForm';
@@ -21,6 +21,7 @@ interface Event {
   data_inicio: string;
   data_fim: string;
   local: string;
+  status: string;
   valor_litro_combustivel: number | null;
   consumo_medio_km_litro: number | null;
   km_inicial: number | null;
@@ -343,8 +344,42 @@ export default function EventDetail() {
         )}
       </div>
 
+      {/* Finalize Event Button */}
+      {event.status !== 'finalizado' && (
+        <Button
+          className="w-full gap-2"
+          variant="outline"
+          onClick={async () => {
+            const { error } = await supabase
+              .from('events')
+              .update({ status: 'finalizado' } as any)
+              .eq('id', event.id);
+            if (error) {
+              toast({ title: 'Erro ao finalizar evento', description: error.message, variant: 'destructive' });
+            } else {
+              toast({ title: 'Evento finalizado com sucesso!' });
+              fetchData();
+            }
+          }}
+        >
+          <CheckCircle2 className="w-5 h-5" />
+          Finalizar Evento
+        </Button>
+      )}
+
+      {event.status === 'finalizado' && (
+        <Card className="border-muted bg-muted/30">
+          <CardContent className="py-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="font-medium">Evento Finalizado</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* New Attendance Button */}
-      <Button className="w-full btn-touch gap-2" onClick={() => setShowForm(true)}>
+      <Button className="w-full btn-touch gap-2" onClick={() => setShowForm(true)} disabled={event.status === 'finalizado'}>
         <Plus className="w-5 h-5" />
         Novo Atendimento
       </Button>
