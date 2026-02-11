@@ -51,49 +51,58 @@ export default function BaseProfessionals() {
 
       if (baseData) setBase(baseData);
 
-      // Fetch events for this base
-      const { data: baseEvents } = await supabase
-        .from('events')
-        .select('id')
+      const profMap = new Map<string, ProfessionalSummary>();
+
+      // 1. Fetch professionals linked to this base via base_id
+      const { data: linkedProfiles } = await supabase
+        .from('profiles')
+        .select('id, nome, especialidade, cargo')
         .eq('base_id', baseId);
 
-      if (!baseEvents || baseEvents.length === 0) {
-        setProfessionals([]);
-        setIsLoading(false);
-        return;
-      }
-
-      const eventIds = baseEvents.map(e => e.id);
-
-      // Fetch assignments for these events with profile info
-      const { data: assignmentsData } = await supabase
-        .from('event_assignments')
-        .select('profile_id, profiles(id, nome, especialidade, cargo)')
-        .in('event_id', eventIds);
-
-      if (!assignmentsData) {
-        setProfessionals([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Group by professional and count events
-      const profMap = new Map<string, ProfessionalSummary>();
-      assignmentsData.forEach((a: any) => {
-        if (!a.profiles) return;
-        const p = a.profiles;
-        if (profMap.has(p.id)) {
-          profMap.get(p.id)!.event_count++;
-        } else {
+      if (linkedProfiles) {
+        linkedProfiles.forEach((p: any) => {
           profMap.set(p.id, {
             id: p.id,
             nome: p.nome,
             especialidade: p.especialidade,
             cargo: p.cargo,
-            event_count: 1,
+            event_count: 0,
+          });
+        });
+      }
+
+      // 2. Fetch events for this base
+      const { data: baseEvents } = await supabase
+        .from('events')
+        .select('id')
+        .eq('base_id', baseId);
+
+      if (baseEvents && baseEvents.length > 0) {
+        const eventIds = baseEvents.map(e => e.id);
+
+        const { data: assignmentsData } = await supabase
+          .from('event_assignments')
+          .select('profile_id, profiles(id, nome, especialidade, cargo)')
+          .in('event_id', eventIds);
+
+        if (assignmentsData) {
+          assignmentsData.forEach((a: any) => {
+            if (!a.profiles) return;
+            const p = a.profiles;
+            if (profMap.has(p.id)) {
+              profMap.get(p.id)!.event_count++;
+            } else {
+              profMap.set(p.id, {
+                id: p.id,
+                nome: p.nome,
+                especialidade: p.especialidade,
+                cargo: p.cargo,
+                event_count: 1,
+              });
+            }
           });
         }
-      });
+      }
 
       setProfessionals(
         Array.from(profMap.values()).sort((a, b) => b.event_count - a.event_count)
@@ -122,7 +131,7 @@ export default function BaseProfessionals() {
           <h1 className="text-2xl font-bold text-foreground">
             Profissionais — {base?.sigla} {base?.nome}
           </h1>
-          <p className="text-muted-foreground">Profissionais que já atuaram nesta base</p>
+          <p className="text-muted-foreground">Profissionais vinculados ou que já atuaram nesta base</p>
         </div>
       </div>
 
