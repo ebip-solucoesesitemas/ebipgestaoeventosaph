@@ -29,6 +29,13 @@ interface Profile {
   nome: string;
   especialidade: string;
   registro_profissional: string;
+  user_id: string | null;
+}
+
+interface UserAccount {
+  id: string;
+  nome: string;
+  user_id: string;
 }
 
 interface Event {
@@ -71,6 +78,7 @@ export default function AdminEvents() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [assignments, setAssignments] = useState<Record<string, EventAssignment[]>>({});
+  const [userAccounts, setUserAccounts] = useState<UserAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -83,6 +91,7 @@ export default function AdminEvents() {
     data_fim: '',
     local: '',
     viatura_id: '',
+    user_id: '',
     equipe_completa: false,
     equipe_minima: 2,
     valor_litro_combustivel: '',
@@ -125,6 +134,15 @@ export default function AdminEvents() {
     if (availableVehiclesRes.data) setVehicles(availableVehiclesRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
     if (clientsRes.data) setClients(clientsRes.data);
+
+    // Fetch user accounts (profiles with user_id and cargo = equipe)
+    const { data: accountsData } = await supabase
+      .from('profiles')
+      .select('id, nome, user_id')
+      .not('user_id', 'is', null)
+      .eq('cargo', 'equipe')
+      .order('nome');
+    if (accountsData) setUserAccounts(accountsData as UserAccount[]);
     
     setIsLoading(false);
   };
@@ -162,6 +180,7 @@ export default function AdminEvents() {
       data_fim: '',
       local: '',
       viatura_id: '',
+      user_id: '',
       equipe_completa: false,
       equipe_minima: 2,
       valor_litro_combustivel: '',
@@ -173,30 +192,37 @@ export default function AdminEvents() {
 
   const openEditDialog = (event: Event) => {
     setEditingEvent(event);
-    setFormData({
-      nome_evento: event.nome_evento,
-      data_inicio: isoToLocalDatetime(event.data_inicio),
-      data_fim: isoToLocalDatetime(event.data_fim),
-      local: event.local,
-      viatura_id: event.viatura_id || '',
-      equipe_completa: event.equipe_completa || false,
-      equipe_minima: event.equipe_minima || 2,
-      valor_litro_combustivel: event.valor_litro_combustivel?.toString() || '',
-      consumo_medio_km_litro: event.consumo_medio_km_litro?.toString() || '10',
-      selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
-    });
+    // Need to fetch user_id for this event
+    const fetchEventUserId = async () => {
+      const { data } = await supabase.from('events').select('user_id').eq('id', event.id).single();
+      setFormData({
+        nome_evento: event.nome_evento,
+        data_inicio: isoToLocalDatetime(event.data_inicio),
+        data_fim: isoToLocalDatetime(event.data_fim),
+        local: event.local,
+        viatura_id: event.viatura_id || '',
+        user_id: (data as any)?.user_id || '',
+        equipe_completa: event.equipe_completa || false,
+        equipe_minima: event.equipe_minima || 2,
+        valor_litro_combustivel: event.valor_litro_combustivel?.toString() || '',
+        consumo_medio_km_litro: event.consumo_medio_km_litro?.toString() || '10',
+        selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
+      });
+    };
+    fetchEventUserId();
     setDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const eventData = {
+    const eventData: Record<string, any> = {
       nome_evento: formData.nome_evento,
       data_inicio: localDatetimeToISO(formData.data_inicio),
       data_fim: localDatetimeToISO(formData.data_fim),
       local: formData.local,
       viatura_id: formData.viatura_id || null,
+      user_id: formData.user_id || null,
       equipe_completa: formData.equipe_completa,
       equipe_minima: formData.equipe_minima,
       valor_litro_combustivel: formData.valor_litro_combustivel ? parseFloat(formData.valor_litro_combustivel) : null,
@@ -228,7 +254,7 @@ export default function AdminEvents() {
     } else {
       const { data, error } = await supabase
         .from('events')
-        .insert(eventData)
+        .insert(eventData as any)
         .select()
         .single();
 
@@ -428,6 +454,25 @@ export default function AdminEvents() {
                   className="input-touch"
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Conta Responsável</Label>
+                <Select
+                  value={formData.user_id}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, user_id: v }))}
+                >
+                  <SelectTrigger className="input-touch">
+                    <SelectValue placeholder="Selecione a conta responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userAccounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.user_id}>
+                        {acc.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

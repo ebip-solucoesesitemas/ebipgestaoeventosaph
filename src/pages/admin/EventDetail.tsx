@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   ArrowLeft, Calendar, MapPin, Truck, Users, Clock, 
   CheckCircle2, AlertCircle, Fuel, FileText, DollarSign,
-  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer
+  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,6 +22,7 @@ interface Event {
   data_fim: string;
   local: string;
   viatura_id: string | null;
+  user_id: string | null;
   equipe_minima: number;
   valor_litro_combustivel: number | null;
   consumo_medio_km_litro: number | null;
@@ -31,6 +32,9 @@ interface Event {
     placa: string;
     prefixo: string;
   };
+  responsible_profile?: {
+    nome: string;
+  } | null;
 }
 
 interface Assignment {
@@ -108,7 +112,7 @@ export default function AdminEventDetail() {
 
       try {
         const [eventRes, assignmentsRes, attendancesRes, expensesRes] = await Promise.all([
-          supabase.from('events').select('*, vehicles(*)').eq('id', id).single(),
+          supabase.from('events').select('*, vehicles(*)').eq('id', id).single() as any,
           supabase.from('event_assignments').select('*, profiles(id, nome, especialidade)').eq('event_id', id),
           supabase.from('clinical_attendances').select('*, profiles:profissional_id(nome, especialidade)').eq('event_id', id).order('created_at'),
           supabase.from('event_expenses').select('*').eq('event_id', id).order('data_despesa'),
@@ -121,7 +125,18 @@ export default function AdminEventDetail() {
           return;
         }
 
-        setEvent(eventRes.data);
+        // Fetch responsible profile name if user_id exists
+        let eventData = eventRes.data;
+        if (eventData?.user_id) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('nome')
+            .eq('user_id', eventData.user_id)
+            .single();
+          eventData = { ...eventData, responsible_profile: profileData };
+        }
+
+        setEvent(eventData);
         setAssignments(assignmentsRes.data || []);
         setAttendances((attendancesRes.data as Attendance[]) || []);
         setExpenses(expensesRes.data || []);
@@ -216,6 +231,12 @@ export default function AdminEventDetail() {
               <span className="flex items-center gap-1">
                 <Truck className="w-4 h-4" />
                 {event.vehicles.prefixo} - {event.vehicles.modelo}
+              </span>
+            )}
+            {event.responsible_profile && (
+              <span className="flex items-center gap-1">
+                <User className="w-4 h-4" />
+                Conta: {event.responsible_profile.nome}
               </span>
             )}
           </div>

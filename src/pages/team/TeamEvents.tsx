@@ -43,7 +43,14 @@ export default function TeamEvents() {
 
       setIsLoading(true);
 
-      // Get events where user is assigned
+      // Get current user's auth uid
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Get events where user is assigned via event_assignments
       const { data: myAssignments, error: assignError } = await supabase
         .from('event_assignments')
         .select('event_id')
@@ -55,35 +62,36 @@ export default function TeamEvents() {
         return;
       }
 
-      const eventIds = myAssignments?.map(a => a.event_id) || [];
+      const assignedEventIds = myAssignments?.map(a => a.event_id) || [];
 
-      if (eventIds.length === 0) {
-        setEvents([]);
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: eventsData } = await supabase
+      // Get events where user_id = auth.uid() OR assigned via event_assignments
+      // Use a single query with the RLS policy (which now includes user_id check)
+      let query = supabase
         .from('events')
         .select('*, vehicles(prefixo, modelo)')
-        .in('id', eventIds)
         .order('data_inicio', { ascending: true });
+
+      // We rely on RLS to filter - just fetch all events the user can see
+      const { data: eventsData } = await query;
 
       if (eventsData) {
         setEvents(eventsData);
 
-        // Get team for each event
-        const { data: teamData } = await supabase
-          .from('event_assignments')
-          .select('event_id, profiles(nome, especialidade)')
-          .in('event_id', eventIds);
+        const eventIds = eventsData.map(e => e.id);
+        if (eventIds.length > 0) {
+          // Get team for each event
+          const { data: teamData } = await supabase
+            .from('event_assignments')
+            .select('event_id, profiles(nome, especialidade)')
+            .in('event_id', eventIds);
 
-        const grouped: Record<string, EventAssignment[]> = {};
-        teamData?.forEach((t) => {
-          if (!grouped[t.event_id]) grouped[t.event_id] = [];
-          grouped[t.event_id].push(t as EventAssignment);
-        });
-        setAssignments(grouped);
+          const grouped: Record<string, EventAssignment[]> = {};
+          teamData?.forEach((t) => {
+            if (!grouped[t.event_id]) grouped[t.event_id] = [];
+            grouped[t.event_id].push(t as EventAssignment);
+          });
+          setAssignments(grouped);
+        }
       }
 
       setIsLoading(false);
