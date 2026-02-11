@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import APHForm from '@/components/APHForm';
 import TeamMemberCheckin from '@/components/TeamMemberCheckin';
+import EventSignature from '@/components/EventSignature';
 
 interface Event {
   id: string;
@@ -239,6 +240,26 @@ export default function EventDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Event Signatures - Arrival & Departure */}
+      <div className="space-y-3">
+        <h2 className="section-header">
+          <PenLine className="w-5 h-5" />
+          Assinaturas do Responsável
+        </h2>
+        <EventSignature eventId={event.id} tipo="chegada" label="Chegada" />
+        <EventSignature
+          eventId={event.id}
+          tipo="saida"
+          label="Saída"
+          disabled={checkoutCount < team.length}
+        />
+        {checkoutCount < team.length && (
+          <p className="text-xs text-muted-foreground text-center">
+            A assinatura de saída ficará disponível quando toda a equipe fizer checkout.
+          </p>
+        )}
+      </div>
 
       {/* New Attendance Button */}
       <Button className="w-full btn-touch gap-2" onClick={() => setShowForm(true)}>
