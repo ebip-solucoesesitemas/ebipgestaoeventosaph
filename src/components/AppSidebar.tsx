@@ -42,7 +42,6 @@ interface Base {
 }
 
 const operationalLinks = [
-  { href: '/admin/events', label: 'Eventos', icon: Calendar },
   { href: '/admin/professionals', label: 'Profissionais', icon: Users },
   { href: '/admin/vehicles', label: 'Viaturas', icon: Truck },
 ];
