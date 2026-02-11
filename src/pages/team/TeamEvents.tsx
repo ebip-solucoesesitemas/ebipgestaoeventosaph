@@ -16,6 +16,7 @@ interface Event {
   data_inicio: string;
   data_fim: string;
   local: string;
+  status: string;
   viatura_id: string | null;
   vehicles?: {
     prefixo: string;
@@ -75,13 +76,11 @@ export default function TeamEvents() {
     fetchEvents();
   }, [profile]);
 
-  const isEventActive = (event: Event) => {
+  const getEventStatus = (event: Event) => {
+    if (event.status === 'finalizado') return 'finalizado';
     const now = new Date();
-    return new Date(event.data_inicio) <= now && new Date(event.data_fim) >= now;
-  };
-
-  const isEventUpcoming = (event: Event) => {
-    return new Date(event.data_inicio) > new Date();
+    if (new Date(event.data_inicio) > now) return 'proximo';
+    return 'em_andamento';
   };
 
   if (isLoading) {
@@ -109,23 +108,25 @@ export default function TeamEvents() {
           </Card>
         ) : (
           events.map((event) => {
-            const active = isEventActive(event);
-            const upcoming = isEventUpcoming(event);
+            const status = getEventStatus(event);
 
             return (
               <Link key={event.id} to={`/events/${event.id}`}>
-                <Card className={`transition-all hover:shadow-md ${active ? 'ring-2 ring-stable' : ''}`}>
+                <Card className={`transition-all hover:shadow-md ${status === 'em_andamento' ? 'ring-2 ring-stable' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          {active && (
+                          {status === 'em_andamento' && (
                             <Badge className="bg-stable text-stable-foreground animate-pulse-soft">
                               Em Andamento
                             </Badge>
                           )}
-                          {upcoming && (
+                          {status === 'proximo' && (
                             <Badge variant="secondary">Próximo</Badge>
+                          )}
+                          {status === 'finalizado' && (
+                            <Badge className="bg-muted text-muted-foreground">Finalizado</Badge>
                           )}
                         </div>
                         <CardTitle className="text-lg">{event.nome_evento}</CardTitle>
