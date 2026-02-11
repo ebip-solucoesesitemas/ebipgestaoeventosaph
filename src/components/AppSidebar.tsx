@@ -41,10 +41,6 @@ interface Base {
   sigla: string;
 }
 
-const operationalLinks = [
-  { href: '/admin/professionals', label: 'Profissionais', icon: Users },
-  { href: '/admin/vehicles', label: 'Viaturas', icon: Truck },
-];
 
 const commercialLinks = [
   { href: '/admin/clients', label: 'Clientes', icon: Building2 },
@@ -83,7 +79,7 @@ export function AppSidebar() {
     }
   }, [isAdmin]);
 
-  const renderMenuItems = (links: typeof operationalLinks) => (
+  const renderMenuItems = (links: Array<{ href: string; label: string; icon: React.ComponentType<{ className?: string }> }>) => (
     <SidebarMenu>
       {links.map((link) => (
         <SidebarMenuItem key={link.href}>
@@ -121,16 +117,6 @@ export function AppSidebar() {
       <SidebarContent>
         {isAdmin ? (
           <>
-            {/* Operacional */}
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-wider font-semibold">
-                Operacional
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                {renderMenuItems(operationalLinks)}
-              </SidebarGroupContent>
-            </SidebarGroup>
-
             {/* Comercial */}
             <SidebarGroup>
               <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-wider font-semibold">
