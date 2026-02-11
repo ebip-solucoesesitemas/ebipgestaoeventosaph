@@ -151,12 +151,58 @@ export default function BaseEvents() {
     setDialogOpen(true);
   };
 
+  const checkVehicleConflict = async (viaturaId: string, dataInicio: string, dataFim: string, editingEventId?: string) => {
+    let query = supabase
+      .from('events')
+      .select('id, nome_evento, data_inicio, data_fim')
+      .eq('viatura_id', viaturaId)
+      .neq('status', 'finalizado');
+
+    if (editingEventId) {
+      query = query.neq('id', editingEventId);
+    }
+
+    const { data } = await query;
+    if (!data) return [];
+
+    const novoInicio = new Date(dataInicio);
+    const novoFim = new Date(dataFim);
+
+    return data.filter(ev => {
+      const evInicio = new Date(ev.data_inicio);
+      const evFim = new Date(ev.data_fim);
+      return novoInicio < evFim && novoFim > evInicio;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const dataInicioISO = localDatetimeToISO(formData.data_inicio);
+    const dataFimISO = localDatetimeToISO(formData.data_fim);
+
+    // Validar conflito de viatura
+    if (formData.viatura_id) {
+      const conflitos = await checkVehicleConflict(
+        formData.viatura_id,
+        dataInicioISO,
+        dataFimISO,
+        editingEvent?.id
+      );
+      if (conflitos.length > 0) {
+        toast({
+          title: 'Viatura indisponível neste horário',
+          description: `A viatura já está empenhada no evento "${conflitos[0].nome_evento}" neste período.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     const eventData = {
       nome_evento: formData.nome_evento,
-      data_inicio: localDatetimeToISO(formData.data_inicio),
-      data_fim: localDatetimeToISO(formData.data_fim),
+      data_inicio: dataInicioISO,
+      data_fim: dataFimISO,
       local: formData.local,
       viatura_id: formData.viatura_id || null,
       equipe_completa: formData.equipe_completa,
