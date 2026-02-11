@@ -261,6 +261,13 @@ export default function AdminEventDetail() {
             if (error) {
               toast({ title: 'Erro ao finalizar evento', description: error.message, variant: 'destructive' });
             } else {
+              // Release vehicle back to available
+              if (event.viatura_id) {
+                await supabase
+                  .from('vehicles')
+                  .update({ status: 'disponivel' } as any)
+                  .eq('id', event.viatura_id);
+              }
               toast({ title: 'Evento finalizado com sucesso!' });
               fetchData();
             }
