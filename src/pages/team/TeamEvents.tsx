@@ -43,36 +43,11 @@ export default function TeamEvents() {
 
       setIsLoading(true);
 
-      // Get current user's auth uid
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-
-      // Get events where user is assigned via event_assignments
-      const { data: myAssignments, error: assignError } = await supabase
-        .from('event_assignments')
-        .select('event_id')
-        .eq('profile_id', profile.id);
-
-      if (assignError) {
-        toast({ title: 'Erro ao carregar eventos', variant: 'destructive' });
-        setIsLoading(false);
-        return;
-      }
-
-      const assignedEventIds = myAssignments?.map(a => a.event_id) || [];
-
-      // Get events where user_id = auth.uid() OR assigned via event_assignments
-      // Use a single query with the RLS policy (which now includes user_id check)
-      let query = supabase
+      // Rely entirely on RLS - fetch all events the user can see
+      const { data: eventsData } = await supabase
         .from('events')
         .select('*, vehicles(prefixo, modelo)')
         .order('data_inicio', { ascending: true });
-
-      // We rely on RLS to filter - just fetch all events the user can see
-      const { data: eventsData } = await query;
 
       if (eventsData) {
         setEvents(eventsData);
