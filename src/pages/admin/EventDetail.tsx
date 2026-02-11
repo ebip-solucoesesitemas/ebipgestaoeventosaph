@@ -21,6 +21,7 @@ interface Event {
   data_inicio: string;
   data_fim: string;
   local: string;
+  status: string;
   viatura_id: string | null;
   user_id: string | null;
   equipe_minima: number;
@@ -104,51 +105,50 @@ export default function AdminEventDetail() {
   const [attendanceVitals, setAttendanceVitals] = useState<VitalSign[]>([]);
   const [loadingVitals, setLoadingVitals] = useState(false);
 
-  useEffect(() => {
+  const fetchData = async () => {
     if (!id) return;
+    setIsLoading(true);
 
-    const fetchData = async () => {
-      setIsLoading(true);
+    try {
+      const [eventRes, assignmentsRes, attendancesRes, expensesRes] = await Promise.all([
+        supabase.from('events').select('*, vehicles(*)').eq('id', id).single() as any,
+        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade)').eq('event_id', id),
+        supabase.from('clinical_attendances').select('*, profiles:profissional_id(nome, especialidade)').eq('event_id', id).order('created_at'),
+        supabase.from('event_expenses').select('*').eq('event_id', id).order('data_despesa'),
+      ]);
 
-      try {
-        const [eventRes, assignmentsRes, attendancesRes, expensesRes] = await Promise.all([
-          supabase.from('events').select('*, vehicles(*)').eq('id', id).single() as any,
-          supabase.from('event_assignments').select('*, profiles(id, nome, especialidade)').eq('event_id', id),
-          supabase.from('clinical_attendances').select('*, profiles:profissional_id(nome, especialidade)').eq('event_id', id).order('created_at'),
-          supabase.from('event_expenses').select('*').eq('event_id', id).order('data_despesa'),
-        ]);
-
-        if (eventRes.error) {
-          console.error('Error loading event:', eventRes.error);
-          toast({ title: 'Erro ao carregar evento', description: eventRes.error.message, variant: 'destructive' });
-          navigate('/admin/events');
-          return;
-        }
-
-        // Fetch responsible profile name if user_id exists
-        let eventData = eventRes.data;
-        if (eventData?.user_id) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('nome')
-            .eq('user_id', eventData.user_id)
-            .single();
-          eventData = { ...eventData, responsible_profile: profileData };
-        }
-
-        setEvent(eventData);
-        setAssignments(assignmentsRes.data || []);
-        setAttendances((attendancesRes.data as Attendance[]) || []);
-        setExpenses(expensesRes.data || []);
-      } catch (error) {
-        console.error('Unexpected error loading event:', error);
-        toast({ title: 'Erro inesperado', description: 'Não foi possível carregar o evento', variant: 'destructive' });
+      if (eventRes.error) {
+        console.error('Error loading event:', eventRes.error);
+        toast({ title: 'Erro ao carregar evento', description: eventRes.error.message, variant: 'destructive' });
         navigate('/admin/events');
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
 
+      // Fetch responsible profile name if user_id exists
+      let eventData = eventRes.data;
+      if (eventData?.user_id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('nome')
+          .eq('user_id', eventData.user_id)
+          .single();
+        eventData = { ...eventData, responsible_profile: profileData };
+      }
+
+      setEvent(eventData);
+      setAssignments(assignmentsRes.data || []);
+      setAttendances((attendancesRes.data as Attendance[]) || []);
+      setExpenses(expensesRes.data || []);
+    } catch (error) {
+      console.error('Unexpected error loading event:', error);
+      toast({ title: 'Erro inesperado', description: 'Não foi possível carregar o evento', variant: 'destructive' });
+      navigate('/admin/events');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -217,7 +217,12 @@ export default function AdminEventDetail() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{event.nome_evento}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">{event.nome_evento}</h1>
+            {event.status === 'finalizado' && (
+              <Badge className="bg-muted text-muted-foreground">Finalizado</Badge>
+            )}
+          </div>
           <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
@@ -242,6 +247,29 @@ export default function AdminEventDetail() {
           </div>
         </div>
       </div>
+
+      {/* Finalize Event Button (Admin) */}
+      {event.status !== 'finalizado' && (
+        <Button
+          className="w-full gap-2"
+          variant="outline"
+          onClick={async () => {
+            const { error } = await supabase
+              .from('events')
+              .update({ status: 'finalizado' } as any)
+              .eq('id', event.id);
+            if (error) {
+              toast({ title: 'Erro ao finalizar evento', description: error.message, variant: 'destructive' });
+            } else {
+              toast({ title: 'Evento finalizado com sucesso!' });
+              fetchData();
+            }
+          }}
+        >
+          <CheckCircle2 className="w-5 h-5" />
+          Finalizar Evento
+        </Button>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
