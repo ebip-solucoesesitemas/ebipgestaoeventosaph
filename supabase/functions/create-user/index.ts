@@ -85,13 +85,17 @@ Deno.serve(async (req) => {
     const userId = authData.user.id;
 
     // 2. Create the profile
-    const { error: profileError } = await supabaseAdmin.from("profiles").insert({
+    const profileInsert: Record<string, unknown> = {
       user_id: userId,
       nome: profileData.nome,
       especialidade: profileData.especialidade,
       registro_profissional: profileData.registro_profissional,
       cargo: profileData.cargo || "equipe",
-    });
+    };
+    if (profileData.base_id) {
+      profileInsert.base_id = profileData.base_id;
+    }
+    const { error: profileError } = await supabaseAdmin.from("profiles").insert(profileInsert);
 
     if (profileError) {
       // Rollback: delete the auth user if profile creation fails

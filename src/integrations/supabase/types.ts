@@ -590,6 +590,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          base_id: string | null
           cargo: Database["public"]["Enums"]["cargo_tipo"]
           created_at: string | null
           especialidade: Database["public"]["Enums"]["especialidade_tipo"]
@@ -600,6 +601,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          base_id?: string | null
           cargo?: Database["public"]["Enums"]["cargo_tipo"]
           created_at?: string | null
           especialidade: Database["public"]["Enums"]["especialidade_tipo"]
@@ -610,6 +612,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          base_id?: string | null
           cargo?: Database["public"]["Enums"]["cargo_tipo"]
           created_at?: string | null
           especialidade?: Database["public"]["Enums"]["especialidade_tipo"]
@@ -619,7 +622,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       signatures: {
         Row: {
