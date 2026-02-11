@@ -48,6 +48,7 @@ export default function TeamEvents() {
       const { data: eventsData } = await supabase
         .from('events')
         .select('*, vehicles(prefixo, modelo)')
+        .neq('status', 'finalizado')
         .order('data_inicio', { ascending: true });
 
       if (eventsData) {
