@@ -1,60 +1,66 @@
 
 
-# Plano: Remover usuarios extras e manter apenas baseviatura66 como equipe
+# Plano: Tela de Cadastro de Usuarios
 
-## Problema
+## Resumo
 
-Atualmente existem 4 usuarios no sistema de autenticacao:
-- `evandrojosedfreitas@gmail.com` (admin) - OK
-- `baseviatura66@gmail.com` (equipe) - OK
-- `medico.demo@example.com` - NAO DEVERIA EXISTIR como usuario
-- `enfermeiro.demo@example.com` - NAO DEVERIA EXISTIR como usuario
-
-O modelo correto: o administrador cria o evento, escala `baseviatura66` como responsavel, e adiciona os demais profissionais (medico, enfermeiro) como membros da equipe. Esses profissionais sao apenas perfis no sistema, sem conta de login propria.
+Criar uma tela dedicada para o admin cadastrar usuarios do sistema. Ao cadastrar, o sistema criara automaticamente o usuario de autenticacao, o perfil e a role (user_role) usando a edge function `create-user` ja existente.
 
 ## O que sera feito
 
-### 1. Remover usuarios extras da autenticacao
+### 1. Nova pagina `src/pages/admin/Users.tsx`
 
-- Deletar `medico.demo@example.com` e `enfermeiro.demo@example.com` do sistema de autenticacao (auth.users)
-- Remover seus registros em `user_roles`
-- Manter seus perfis na tabela `profiles`, mas com `user_id = NULL` (para continuarem aparecendo como membros de equipe disponiveis)
+Tela com:
+- Lista de usuarios cadastrados (mostrando nome, email, cargo/role)
+- Botao "Novo Usuario" que abre um dialog com formulario:
+  - Nome completo
+  - Email de login
+  - Senha
+  - Cargo (admin ou equipe)
+- Botoes de editar e excluir em cada usuario
+- Badge indicando o tipo de acesso (Admin / Equipe)
 
-### 2. Atualizar a edge function seed-demo
+O formulario chamara a edge function `create-user` que ja faz tudo:
+1. Cria o usuario em auth.users
+2. Cria o perfil em profiles
+3. Insere a role em user_roles
 
-Modificar `supabase/functions/seed-demo/index.ts` para:
-- Criar apenas 2 usuarios de autenticacao: admin e baseviatura66
-- Criar perfis do medico e enfermeiro SEM vincular a contas de autenticacao (`user_id = NULL`)
-- Continuar escalando todos (socorrista, medico, enfermeiro) no evento
-- Manter as taxas de pagamento para cada perfil
+### 2. Atualizar o sidebar (`AppSidebar.tsx`)
 
-### 3. Nenhuma alteracao de codigo no frontend
+Adicionar link "Usuarios" na secao de Configuracoes do admin, com o icone `Users`.
 
-O sistema ja funciona corretamente para este modelo:
-- `TeamEvents` lista eventos do usuario logado (baseviatura66)
-- `EventDetail` mostra TODA a equipe do evento (incluindo perfis sem login)
-- `TeamMemberCheckin` permite que qualquer membro escalado faca check-in/out de colegas (via `handle_team_checkin` com `SECURITY DEFINER`)
-- `EventSignature` captura assinatura do representante do cliente
-- `APHForm` registra atendimentos
+### 3. Adicionar rota no `App.tsx`
+
+Registrar a rota `/admin/users` apontando para a nova pagina.
 
 ## Detalhes Tecnicos
 
-### Limpeza de dados (via edge function atualizada)
+### Formulario de cadastro
 
-```text
-1. Deletar auth users: medico.demo@example.com, enfermeiro.demo@example.com
-2. Limpar user_roles dessas contas
-3. Atualizar profiles: SET user_id = NULL para medico e enfermeiro
-4. Recriar evento de demo com os 3 profissionais escalados
-```
+Campos:
+- `nome` (text, obrigatorio)
+- `email` (email, obrigatorio)
+- `password` (password, minimo 6 caracteres, obrigatorio)
+- `cargo` (select: "equipe" ou "admin")
+- `especialidade` (select: Medico, Enfermeiro, Tecnico, Socorrista - obrigatorio pois a tabela profiles exige)
+- `registro_profissional` (text, obrigatorio pois a tabela profiles exige)
 
-### Fluxo final esperado
+### Edge function `create-user` (ja existente, sem alteracao)
 
-1. Admin (`evandrojosedfreitas@gmail.com`) cria evento e escala equipe (incluindo perfis sem login)
-2. `baseviatura66@gmail.com` faz login e ve o evento atribuido
-3. Dentro do evento, ve toda a equipe (3 membros) e pode:
-   - Fazer check-in/checkout de TODOS os membros
-   - Registrar assinatura de chegada/saida do responsavel do evento
-   - Criar atendimentos clinicos (APH)
-4. Checkout gera pagamento automatico baseado nas taxas configuradas
+Fluxo atual:
+1. Valida que o chamador e admin
+2. Cria auth user com `email_confirm: true`
+3. Insere profile com nome, especialidade, registro_profissional, cargo
+4. Insere user_role ("equipe" ou "admin")
+5. Se admin, tambem insere role "equipe"
+
+### Diferenca da pagina Profissionais
+
+A pagina de Profissionais (`Professionals.tsx`) gerencia perfis profissionais que podem ou nao ter login. A nova pagina de Usuarios foca exclusivamente em contas com acesso ao sistema (usuarios com login).
+
+### Arquivos a criar/modificar
+
+1. **Criar**: `src/pages/admin/Users.tsx` - nova pagina de gestao de usuarios
+2. **Modificar**: `src/App.tsx` - adicionar rota `/admin/users`
+3. **Modificar**: `src/components/AppSidebar.tsx` - adicionar link no menu admin
 
