@@ -1,53 +1,48 @@
 
-# Plano: Mover Quilometragem do Socorrista para o Usuario Responsavel
 
-## Resumo
+# Plano: Corrigir 3 Problemas
 
-Atualmente, o campo de KM inicial/final aparece para profissionais com especialidade "Socorrista" no check-in/checkout. A mudanca e remover isso dos profissionais e colocar os campos de KM diretamente na tela do evento, controlados pelo usuario responsavel (conta da viatura).
+## Problema 1: Quilometragem nao salva
 
-## O que sera feito
+**Causa**: A tabela `events` so tem politica de UPDATE para admins (`is_admin()`). Quando o usuario da viatura (ex: basevtr66@gmail.com) tenta salvar o KM, a operacao e bloqueada silenciosamente pela seguranca do banco.
 
-### 1. Adicionar colunas de KM na tabela `events`
+**Solucao**: Criar uma politica de UPDATE na tabela `events` para permitir que o dono do evento (`user_id = auth.uid()`) atualize os campos de KM.
 
-Adicionar `km_inicial` e `km_final` diretamente na tabela `events`, ja que a quilometragem e da viatura (do evento), nao do profissional individual.
+## Problema 2: Calculo de horas mostra 0,3h em vez de minutos
 
-```text
-events
-  + km_inicial (numeric, nullable)
-  + km_final (numeric, nullable)
-```
+**Causa**: A funcao `handle_team_checkout` calcula as horas como decimal (18 min = 0.3h). Isso e matematicamente correto, mas confuso para o usuario.
 
-### 2. Atualizar tela do evento da equipe (`team/EventDetail.tsx`)
+**Solucao**: 
+- Alterar a funcao para retornar tambem os minutos exatos
+- No frontend (`TeamMemberCheckin`), exibir o tempo em formato "Xh Ymin" (ex: "0h 18min" ou simplesmente "18min")
+- Na descricao do pagamento, usar o mesmo formato legivel
 
-- Adicionar uma secao "Quilometragem da Viatura" visivel para o usuario responsavel
-- Campos de KM Inicial (editavel antes do primeiro check-in ou a qualquer momento)
-- Campo de KM Final (editavel ao final do evento)
-- Botao para salvar a quilometragem
-- Resumo de combustivel passara a usar os dados do evento em vez dos assignments
+## Problema 3: Evento nao aparece sem atribuir profile
 
-### 3. Remover KM do componente `TeamMemberCheckin`
+**Causa**: A pagina `TeamEvents.tsx` busca eventos via RLS, e a funcao `is_assigned_to_event` ja inclui o check de `user_id = auth.uid()`. Porem, a pagina tambem busca `event_assignments` filtrado por `profile_id` do usuario. Se o usuario da viatura nao tem um assignment, os dados de equipe nao carregam corretamente, e a logica anterior de filtro pode estar interferindo.
 
-- Remover a logica `isSocorrista` que exige KM
-- Remover os campos de input de KM inicial/final do componente
-- Remover validacao de KM no check-in e checkout
-- Check-in e checkout dos profissionais passam a ser apenas registro de horario
-
-### 4. Atualizar calculo de combustivel
-
-- O calculo de KM total e custo de combustivel no `EventDetail.tsx` passara a usar `event.km_inicial` e `event.km_final` em vez de somar KM dos assignments
+**Solucao**: Simplificar `TeamEvents.tsx` para confiar totalmente no RLS — remover a busca intermediaria de `event_assignments` por `profile_id` e buscar todos os eventos que o usuario pode ver diretamente.
 
 ## Detalhes Tecnicos
 
 ### Migracao SQL
 
 ```text
-ALTER TABLE public.events 
-  ADD COLUMN km_inicial numeric,
-  ADD COLUMN km_final numeric;
+-- 1. Permitir que o dono do evento atualize seus eventos
+CREATE POLICY "Event owner can update their events"
+ON public.events FOR UPDATE
+TO authenticated
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
+
+-- 2. Atualizar funcao de checkout para retornar minutos
+-- Adicionar v_minutes ao retorno do handle_team_checkout
 ```
 
 ### Arquivos a modificar
 
-1. **Migracao SQL** - adicionar colunas `km_inicial` e `km_final` na tabela `events`
-2. **`src/pages/team/EventDetail.tsx`** - adicionar secao de KM da viatura e atualizar calculo de combustivel
-3. **`src/components/TeamMemberCheckin.tsx`** - remover toda logica e campos de KM, simplificar para apenas check-in/checkout de horario
+1. **Migracao SQL** — politica de UPDATE para o dono do evento + atualizar funcao checkout para retornar minutos
+2. **`src/components/TeamMemberCheckin.tsx`** — exibir horas no formato "Xh Ymin" no toast de checkout
+3. **`src/pages/team/TeamEvents.tsx`** — remover busca intermediaria de assignments por profile_id, confiar no RLS
+4. **`src/pages/team/EventDetail.tsx`** — adicionar tratamento de erro visivel no save de KM (caso ainda falhe)
+
