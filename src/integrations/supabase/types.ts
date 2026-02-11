@@ -779,6 +779,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_to_event: { Args: { event_uuid: string }; Returns: boolean }
+      is_event_teammate: { Args: { p_profile_id: string }; Returns: boolean }
       toggle_user_role: { Args: { p_profile_id: string }; Returns: undefined }
     }
     Enums: {
