@@ -407,6 +407,8 @@ export type Database = {
           equipe_completa: boolean | null
           equipe_minima: number | null
           id: string
+          km_final: number | null
+          km_inicial: number | null
           local: string
           nome_evento: string
           updated_at: string | null
@@ -423,6 +425,8 @@ export type Database = {
           equipe_completa?: boolean | null
           equipe_minima?: number | null
           id?: string
+          km_final?: number | null
+          km_inicial?: number | null
           local: string
           nome_evento: string
           updated_at?: string | null
@@ -439,6 +443,8 @@ export type Database = {
           equipe_completa?: boolean | null
           equipe_minima?: number | null
           id?: string
+          km_final?: number | null
+          km_inicial?: number | null
           local?: string
           nome_evento?: string
           updated_at?: string | null

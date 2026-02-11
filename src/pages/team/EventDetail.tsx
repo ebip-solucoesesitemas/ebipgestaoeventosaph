@@ -5,8 +5,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine, Gauge, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import APHForm from '@/components/APHForm';
@@ -21,6 +23,8 @@ interface Event {
   local: string;
   valor_litro_combustivel: number | null;
   consumo_medio_km_litro: number | null;
+  km_inicial: number | null;
+  km_final: number | null;
   vehicles?: { prefixo: string; modelo: string };
 }
 
@@ -38,8 +42,6 @@ interface TeamMember {
   profile_id: string;
   checkin_at: string | null;
   checkout_at: string | null;
-  km_inicial: number | null;
-  km_final: number | null;
   profiles: { id: string; nome: string; especialidade: string };
 }
 
@@ -56,6 +58,11 @@ export default function EventDetail() {
   const [showForm, setShowForm] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
 
+  // KM state
+  const [kmInicial, setKmInicial] = useState('');
+  const [kmFinal, setKmFinal] = useState('');
+  const [isSavingKm, setIsSavingKm] = useState(false);
+
   const fetchData = async () => {
     if (!id) return;
 
@@ -64,7 +71,7 @@ export default function EventDetail() {
     const [eventRes, attendancesRes, teamRes] = await Promise.all([
       supabase.from('events').select('*, vehicles(prefixo, modelo)').eq('id', id).single(),
       supabase.from('clinical_attendances').select('*, profiles(nome)').eq('event_id', id).order('created_at', { ascending: false }),
-      supabase.from('event_assignments').select('id, profile_id, checkin_at, checkout_at, km_inicial, km_final, profiles(id, nome, especialidade)').eq('event_id', id),
+      supabase.from('event_assignments').select('id, profile_id, checkin_at, checkout_at, profiles(id, nome, especialidade)').eq('event_id', id),
     ]);
 
     if (eventRes.error) {
@@ -73,7 +80,9 @@ export default function EventDetail() {
       return;
     }
 
-    setEvent(eventRes.data);
+    setEvent(eventRes.data as unknown as Event);
+    setKmInicial(eventRes.data.km_inicial?.toString() || '');
+    setKmFinal(eventRes.data.km_final?.toString() || '');
     setAttendances(attendancesRes.data || []);
     setTeam(teamRes.data as TeamMember[] || []);
     setIsLoading(false);
@@ -89,12 +98,38 @@ export default function EventDetail() {
     fetchData();
   };
 
-  // Calculate fuel cost summary
+  const handleSaveKm = async () => {
+    if (!event) return;
+    setIsSavingKm(true);
+
+    const kmInicialNum = kmInicial ? parseFloat(kmInicial) : null;
+    const kmFinalNum = kmFinal ? parseFloat(kmFinal) : null;
+
+    if (kmInicialNum !== null && kmFinalNum !== null && kmFinalNum < kmInicialNum) {
+      toast({ title: 'KM final deve ser maior que o inicial', variant: 'destructive' });
+      setIsSavingKm(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from('events')
+      .update({ km_inicial: kmInicialNum, km_final: kmFinalNum } as any)
+      .eq('id', event.id);
+
+    if (error) {
+      toast({ title: 'Erro ao salvar quilometragem', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Quilometragem salva!' });
+      fetchData();
+    }
+    setIsSavingKm(false);
+  };
+
+  // Calculate fuel cost summary from event KM
   const calculateFuelSummary = () => {
-    const completedAssignments = team.filter(t => t.km_inicial && t.km_final);
-    const totalKm = completedAssignments.reduce((acc, t) => {
-      return acc + ((t.km_final || 0) - (t.km_inicial || 0));
-    }, 0);
+    const kmIni = event?.km_inicial || 0;
+    const kmFin = event?.km_final || 0;
+    const totalKm = kmFin > kmIni ? kmFin - kmIni : 0;
 
     const valorLitro = event?.valor_litro_combustivel || 0;
     const consumoMedio = event?.consumo_medio_km_litro || 10;
@@ -179,6 +214,53 @@ export default function EventDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Vehicle Mileage Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Gauge className="w-4 h-4" />
+            Quilometragem da Viatura
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1">
+                <Gauge className="w-3 h-3" />
+                KM Inicial
+              </Label>
+              <Input
+                type="number"
+                value={kmInicial}
+                onChange={(e) => setKmInicial(e.target.value)}
+                placeholder="Ex: 45230"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1">
+                <Gauge className="w-3 h-3" />
+                KM Final
+              </Label>
+              <Input
+                type="number"
+                value={kmFinal}
+                onChange={(e) => setKmFinal(e.target.value)}
+                placeholder="Ex: 45350"
+              />
+            </div>
+          </div>
+          <Button
+            onClick={handleSaveKm}
+            disabled={isSavingKm}
+            size="sm"
+            className="w-full"
+          >
+            <Save className="w-4 h-4 mr-1" />
+            {isSavingKm ? 'Salvando...' : 'Salvar Quilometragem'}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Fuel/Mileage Summary Card */}
       {fuelSummary.totalKm > 0 && (

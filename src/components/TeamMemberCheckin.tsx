@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, LogOut, CheckCircle2, Gauge, Clock, DollarSign } from 'lucide-react';
+import { LogIn, LogOut, CheckCircle2, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -14,8 +12,6 @@ interface TeamMember {
   profile_id: string;
   checkin_at: string | null;
   checkout_at: string | null;
-  km_inicial: number | null;
-  km_final: number | null;
   profiles: {
     id: string;
     nome: string;
@@ -32,21 +28,11 @@ interface TeamMemberCheckinProps {
 export default function TeamMemberCheckin({ member, eventName, onUpdate }: TeamMemberCheckinProps) {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [kmInicial, setKmInicial] = useState(member.km_inicial?.toString() || '');
-  const [kmFinal, setKmFinal] = useState(member.km_final?.toString() || '');
-
-  const isSocorrista = member.profiles.especialidade === 'Socorrista';
 
   const handleCheckin = async () => {
-    if (isSocorrista && (!kmInicial || isNaN(parseFloat(kmInicial)))) {
-      toast({ title: 'Informe a quilometragem inicial', variant: 'destructive' });
-      return;
-    }
-
     setIsProcessing(true);
     const { data, error } = await (supabase.rpc as any)('handle_team_checkin', {
       p_assignment_id: member.id,
-      p_km_inicial: isSocorrista && kmInicial ? parseFloat(kmInicial) : null,
     });
 
     if (error) {
@@ -61,21 +47,9 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate }: TeamM
   };
 
   const handleCheckout = async () => {
-    if (isSocorrista) {
-      if (!kmFinal || isNaN(parseFloat(kmFinal))) {
-        toast({ title: 'Informe a quilometragem final', variant: 'destructive' });
-        return;
-      }
-      if (parseFloat(kmFinal) < (member.km_inicial || 0)) {
-        toast({ title: 'KM final deve ser maior que o inicial', variant: 'destructive' });
-        return;
-      }
-    }
-
     setIsProcessing(true);
     const { data, error } = await (supabase.rpc as any)('handle_team_checkout', {
       p_assignment_id: member.id,
-      p_km_final: isSocorrista && kmFinal ? parseFloat(kmFinal) : null,
     });
 
     if (error) {
@@ -146,49 +120,6 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate }: TeamM
               <span>Checkout: {format(new Date(member.checkout_at), "HH:mm", { locale: ptBR })}</span>
             </div>
           )}
-        </div>
-      )}
-
-      {/* KM section for Socorrista */}
-      {isSocorrista && !member.checkout_at && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label className="text-xs flex items-center gap-1">
-              <Gauge className="w-3 h-3" />
-              KM Inicial
-            </Label>
-            <Input
-              type="number"
-              value={kmInicial}
-              onChange={(e) => setKmInicial(e.target.value)}
-              placeholder="Ex: 45230"
-              disabled={!!member.checkin_at}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs flex items-center gap-1">
-              <Gauge className="w-3 h-3" />
-              KM Final
-            </Label>
-            <Input
-              type="number"
-              value={kmFinal}
-              onChange={(e) => setKmFinal(e.target.value)}
-              placeholder="Ex: 45350"
-              disabled={!member.checkin_at}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* KM summary after checkout */}
-      {isSocorrista && member.checkout_at && member.km_inicial && member.km_final && (
-        <div className="flex items-center gap-3 text-sm bg-muted/50 rounded-lg p-2">
-          <Gauge className="w-4 h-4 text-muted-foreground" />
-          <span>KM: {member.km_inicial.toLocaleString('pt-BR')} → {member.km_final.toLocaleString('pt-BR')}</span>
-          <Badge variant="outline">
-            {((member.km_final || 0) - (member.km_inicial || 0)).toLocaleString('pt-BR')} km
-          </Badge>
         </div>
       )}
 
