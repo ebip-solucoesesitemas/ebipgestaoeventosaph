@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Helper to create user + profile + role
+    // Helper to create auth user + profile + role
     async function ensureUser(email: string, password: string, nome: string, especialidade: string, registro: string, cargo: "admin" | "equipe") {
       log(`Creating user: ${email}`);
       const { data: existingUsers } = await supabase.auth.admin.listUsers();
@@ -30,7 +30,6 @@ Deno.serve(async (req) => {
       if (existing) {
         userId = existing.id;
         log(`User already exists: ${userId}`);
-        // Update password
         await supabase.auth.admin.updateUserById(userId, { password });
       } else {
         const { data, error } = await supabase.auth.admin.createUser({
@@ -68,21 +67,60 @@ Deno.serve(async (req) => {
       return { userId, profileId };
     }
 
-    // 1. Create users
+    // Helper to create profile WITHOUT auth account
+    async function ensureProfileOnly(nome: string, especialidade: string, registro: string) {
+      log(`Creating profile-only: ${nome}`);
+      const { data: existing } = await supabase
+        .from("profiles").select("id").eq("registro_profissional", registro).maybeSingle();
+      
+      if (existing) {
+        // Make sure user_id is NULL (no auth account)
+        await supabase.from("profiles").update({ nome, especialidade, user_id: null, cargo: "equipe" }).eq("id", existing.id);
+        log(`Updated profile-only: ${existing.id}`);
+        return existing.id;
+      }
+
+      const { data: prof, error } = await supabase
+        .from("profiles").insert({ user_id: null, nome, especialidade, registro_profissional: registro, cargo: "equipe" }).select("id").single();
+      if (error) throw new Error(`Profile-only error: ${error.message}`);
+      log(`Created profile-only: ${prof.id}`);
+      return prof.id;
+    }
+
+    // --- Step 0: Clean up extra auth users that should NOT exist ---
+    log("Cleaning up extra auth users...");
+    const { data: allUsers } = await supabase.auth.admin.listUsers();
+    const extraEmails = ["medico.demo@example.com", "enfermeiro.demo@example.com"];
+    for (const email of extraEmails) {
+      const user = allUsers?.users?.find(u => u.email === email);
+      if (user) {
+        // Remove user_roles
+        await supabase.from("user_roles").delete().eq("user_id", user.id);
+        // Set profile user_id to NULL (keep profile)
+        await supabase.from("profiles").update({ user_id: null }).eq("user_id", user.id);
+        // Delete auth user
+        await supabase.auth.admin.deleteUser(user.id);
+        log(`Deleted auth user: ${email} (${user.id})`);
+      }
+    }
+
+    // --- Step 1: Create only 2 auth users ---
     const admin = await ensureUser("evandrojosedfreitas@gmail.com", "admin123", "Evandro José de Freitas", "Médico", "CRM-12345", "admin");
     const socorrista = await ensureUser("baseviatura66@gmail.com", "exemplo", "Carlos Silva - Socorrista", "Socorrista", "SOC-001", "equipe");
-    const medico = await ensureUser("medico.demo@example.com", "exemplo", "Dr. Ana Souza", "Médico", "CRM-54321", "equipe");
-    const enfermeiro = await ensureUser("enfermeiro.demo@example.com", "exemplo", "João Oliveira - Enfermeiro", "Enfermeiro", "COREN-9876", "equipe");
 
-    log("All users created!");
+    // --- Step 2: Create profile-only members (NO auth account) ---
+    const medicoProfileId = await ensureProfileOnly("Dr. Ana Souza", "Médico", "CRM-54321");
+    const enfermeiroProfileId = await ensureProfileOnly("João Oliveira - Enfermeiro", "Enfermeiro", "COREN-9876");
 
-    // 2. Create base
+    log("All users/profiles created!");
+
+    // --- Step 3: Create base ---
     const { data: base, error: baseErr } = await supabase
       .from("bases").upsert({ sigla: "BSP", nome: "Base São Paulo", endereco: "Av. Paulista, 1000 - São Paulo/SP" }, { onConflict: "sigla" }).select("id").single();
     if (baseErr) throw new Error(`Base error: ${baseErr.message}`);
     log(`Base: ${base.id}`);
 
-    // 3. Create vehicle
+    // --- Step 4: Create vehicle ---
     const { data: existingVehicle } = await supabase.from("vehicles").select("id").eq("placa", "ABC-1234").maybeSingle();
     let vehicleId: string;
     if (existingVehicle) {
@@ -96,7 +134,7 @@ Deno.serve(async (req) => {
     }
     log(`Vehicle: ${vehicleId}`);
 
-    // 4. Create client
+    // --- Step 5: Create client ---
     const { data: existingClient } = await supabase.from("clients").select("id").eq("documento", "12.345.678/0001-90").maybeSingle();
     let clientId: string;
     if (existingClient) {
@@ -116,12 +154,12 @@ Deno.serve(async (req) => {
     }
     log(`Client: ${clientId}`);
 
-    // 5. Create event (active now)
+    // --- Step 6: Create active event ---
     const now = new Date();
-    const startDate = new Date(now.getTime() - 2 * 60 * 60 * 1000); // 2 hours ago
-    const endDate = new Date(now.getTime() + 22 * 60 * 60 * 1000); // 22 hours from now
+    const startDate = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    const endDate = new Date(now.getTime() + 22 * 60 * 60 * 1000);
 
-    // Delete old demo events
+    // Delete old demo data
     await supabase.from("event_assignments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("event_signatures").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
@@ -141,8 +179,8 @@ Deno.serve(async (req) => {
     if (eventErr) throw new Error(`Event error: ${eventErr.message}`);
     log(`Event: ${event.id}`);
 
-    // 6. Create assignments
-    const profiles = [socorrista.profileId, medico.profileId, enfermeiro.profileId];
+    // --- Step 7: Create assignments (all 3 profiles) ---
+    const profiles = [socorrista.profileId, medicoProfileId, enfermeiroProfileId];
     for (const pid of profiles) {
       const { error: aErr } = await supabase
         .from("event_assignments").insert({ event_id: event.id, profile_id: pid });
@@ -150,11 +188,11 @@ Deno.serve(async (req) => {
     }
     log("Assignments created!");
 
-    // 7. Create professional rates
+    // --- Step 8: Create professional rates ---
     const rates = [
       { profile_id: socorrista.profileId, valor_hora: 35, valor_evento: 0 },
-      { profile_id: medico.profileId, valor_hora: 80, valor_evento: 0 },
-      { profile_id: enfermeiro.profileId, valor_hora: 50, valor_evento: 0 },
+      { profile_id: medicoProfileId, valor_hora: 80, valor_evento: 0 },
+      { profile_id: enfermeiroProfileId, valor_hora: 50, valor_evento: 0 },
     ];
     for (const r of rates) {
       await supabase.from("professional_rates").upsert(r, { onConflict: "profile_id" });
