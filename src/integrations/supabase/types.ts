@@ -410,6 +410,7 @@ export type Database = {
           local: string
           nome_evento: string
           updated_at: string | null
+          user_id: string | null
           valor_litro_combustivel: number | null
           viatura_id: string | null
         }
@@ -425,6 +426,7 @@ export type Database = {
           local: string
           nome_evento: string
           updated_at?: string | null
+          user_id?: string | null
           valor_litro_combustivel?: number | null
           viatura_id?: string | null
         }
@@ -440,6 +442,7 @@ export type Database = {
           local?: string
           nome_evento?: string
           updated_at?: string | null
+          user_id?: string | null
           valor_litro_combustivel?: number | null
           viatura_id?: string | null
         }
