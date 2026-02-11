@@ -1,80 +1,83 @@
 
 
-# Plano: Criar Telas Filtradas por Base
+# Plano: Configurar Exemplo Completo de Evento para Usuario Equipe
 
-## Contexto
+## Resumo
 
-A sidebar ja possui os links para `/admin/base/:baseId/events`, `/admin/base/:baseId/professionals`, `/admin/base/:baseId/vehicles` e `/admin/base/:baseId/finance`, mas as paginas nao existem. Ao clicar nesses links, o usuario ve uma pagina 404.
+Criar do zero toda a estrutura necessaria para que o usuario `baseviatura66@gmail.com` (equipe) tenha um evento atribuido com o fluxo completo funcionando: equipe com check-in/check-out, formulario de atendimento, assinaturas de chegada e saida, e pagamento automatico baseado no check-in/check-out.
 
-## Abordagem
+## O que sera feito
 
-Criar 4 paginas dedicadas que filtram os dados pela base selecionada. A tabela `events` ja possui `base_id`, e `event_budgets` tambem. Para profissionais e viaturas, a filtragem sera feita atraves dos eventos associados a base.
+### 1. Criar usuarios no sistema
 
-Alem disso, sera necessario adicionar uma coluna `base_id` na tabela `vehicles` para permitir que viaturas sejam vinculadas diretamente a uma base (uma ambulancia normalmente fica estacionada em uma base especifica).
+Usando a edge function `create-user` e inserts diretos via service role:
 
-## Paginas a Criar
+- **Admin**: `evandrojosedfreitas@gmail.com` (se ainda nao existe) - cargo admin
+- **Equipe**: `baseviatura66@gmail.com` com senha `exemplo` - cargo equipe, especialidade Socorrista
 
-### 1. Eventos da Base (`src/pages/admin/base/BaseEvents.tsx`)
-- Extrai `baseId` da URL via `useParams`
-- Busca o nome da base para exibir no titulo
-- Lista eventos filtrados por `base_id`
-- Permite criar novos eventos ja vinculados a base
-- Permite editar e excluir eventos
-- Link para detalhes do evento
+Tambem serao criados mais 1-2 profissionais de exemplo para compor a equipe completa do evento (ex: um Medico e um Enfermeiro).
 
-### 2. Profissionais da Base (`src/pages/admin/base/BaseProfessionals.tsx`)
-- Lista profissionais que ja foram escalados para eventos dessa base
-- Busca via join: `event_assignments` -> `events` (filtrado por `base_id`) -> `profiles`
-- Exibe cards com nome, especialidade, cargo e quantidade de eventos na base
-- Visualizacao somente (o cadastro de profissionais continua na tela global)
+### 2. Criar estrutura base
 
-### 3. Viaturas da Base (`src/pages/admin/base/BaseVehicles.tsx`)
-- Lista viaturas vinculadas a base (via nova coluna `base_id` na tabela `vehicles`)
-- Permite vincular/desvincular viaturas da base
-- Exibe status atual de cada viatura
-- Mostra evento atual se a viatura estiver empenhada
+- **Base**: Criar uma base de operacao (ex: "Base SP")
+- **Viatura**: Criar uma viatura vinculada a base
+- **Cliente**: Criar um cliente com endereco
 
-### 4. Financeiro da Base (`src/pages/admin/base/BaseFinance.tsx`)
-- Lista orcamentos filtrados por `base_id`
-- Resumo financeiro (receitas, despesas, saldo) apenas dos eventos da base
-- Mesma estrutura da tela financeira global, porem filtrada
+### 3. Criar evento de exemplo
 
-## Migracao SQL
+- Evento vinculado a base, com viatura e local (endereco do cliente)
+- Data de inicio/fim abrangendo o periodo atual (para aparecer como "Em Andamento")
 
-Adicionar coluna `base_id` na tabela `vehicles` com foreign key para `bases`:
+### 4. Escalar equipe no evento
 
-```text
-ALTER TABLE vehicles ADD COLUMN base_id UUID REFERENCES bases(id);
-```
+- Criar `event_assignments` para cada profissional no evento
+- Incluir `baseviatura66@gmail.com` como um dos membros
 
-Isso permite vincular viaturas diretamente a uma base.
+### 5. Configurar taxas de pagamento
 
-## Rotas a Adicionar em `App.tsx`
+- Inserir registros em `professional_rates` para que o checkout gere pagamento automatico
 
-```text
-/admin/base/:baseId/events       -> BaseEvents
-/admin/base/:baseId/professionals -> BaseProfessionals
-/admin/base/:baseId/vehicles     -> BaseVehicles
-/admin/base/:baseId/finance      -> BaseFinance
-```
+## Fluxo esperado para o usuario `baseviatura66@gmail.com`
 
-## Arquivos
-
-| Arquivo | Acao |
-|---------|------|
-| `src/pages/admin/base/BaseEvents.tsx` | NOVO - Eventos filtrados por base |
-| `src/pages/admin/base/BaseProfessionals.tsx` | NOVO - Profissionais da base |
-| `src/pages/admin/base/BaseVehicles.tsx` | NOVO - Viaturas da base |
-| `src/pages/admin/base/BaseFinance.tsx` | NOVO - Financeiro da base |
-| `src/App.tsx` | Adicionar 4 novas rotas |
-| `supabase/migrations/...` | Adicionar `base_id` a tabela `vehicles` |
+1. Login com email/senha
+2. Tela inicial mostra "Meus Eventos" com o evento atribuido
+3. Ao entrar no evento, ve:
+   - Dados do evento (nome, local, viatura)
+   - Equipe completa com botoes de check-in/check-out
+   - Assinatura de chegada (representante do cliente)
+   - Botao "Novo Atendimento" (formulario APH)
+   - Assinatura de saida (habilitada apos todos fazerem checkout)
+4. Check-out gera pagamento automatico via funcao `handle_team_checkout`
 
 ## Detalhes Tecnicos
 
-- Cada pagina usa `useParams<{ baseId: string }>()` para obter o ID da base
-- Todas as paginas fazem fetch do nome/sigla da base para exibir no header (ex: "Eventos - FLN Florianopolis")
-- Botao de voltar navega para `/admin/events` ou a pagina global correspondente
-- Reutiliza os mesmos componentes UI (Card, Badge, Dialog, etc.) para manter consistencia visual
-- A tela de Profissionais da Base e somente leitura (lista quem ja trabalhou nessa base)
-- A tela de Viaturas permite atribuir uma viatura a base via select
+### Edge Function para criar usuarios
+
+Sera utilizada a edge function `create-user` ja existente para criar o usuario `baseviatura66@gmail.com` com perfil de equipe. O admin sera criado via `bootstrap-admin` ou insert direto.
+
+### Dados a inserir (SQL via service role)
+
+```text
+1. auth.users -> 2 ou 3 usuarios (admin + equipe)
+2. profiles -> perfis vinculados
+3. user_roles -> roles (admin, equipe)
+4. bases -> 1 base
+5. vehicles -> 1 viatura
+6. clients -> 1 cliente com endereco
+7. events -> 1 evento ativo
+8. event_assignments -> 2-3 assignments
+9. professional_rates -> taxas por hora ou por evento
+```
+
+### Nenhuma alteracao de codigo necessaria
+
+O sistema ja tem todas as telas implementadas:
+- `TeamEvents` lista eventos do usuario
+- `team/EventDetail` mostra equipe, check-in/out, assinaturas, atendimentos
+- `TeamMemberCheckin` faz check-in/out com KM para Socorrista
+- `EventSignature` captura assinatura do responsavel
+- `APHForm` formulario de atendimento clinico
+- `handle_team_checkout` RPC gera pagamento automatico
+
+A tarefa e puramente de **dados**: criar os registros necessarios para o fluxo funcionar.
 
