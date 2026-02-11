@@ -86,7 +86,7 @@ export default function EventDetail() {
     setKmInicial(eventRes.data.km_inicial?.toString() || '');
     setKmFinal(eventRes.data.km_final?.toString() || '');
     setAttendances(attendancesRes.data || []);
-    setTeam(teamRes.data as TeamMember[] || []);
+    setTeam((teamRes.data || []).filter((m: any) => m.profiles) as TeamMember[]);
     setIsLoading(false);
   };
 
