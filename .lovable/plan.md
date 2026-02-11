@@ -1,48 +1,66 @@
 
-# Plano: Validacao de Viatura por Horario + Ocultar Eventos Finalizados para Equipe
+# Plano: Formato de horario e barra de progresso temporal nos eventos
 
-## 1. Validacao de disponibilidade da viatura por horario
+## 1. Formato de data/horario
 
-Ao criar ou editar um evento, antes de salvar, o sistema verificara se a viatura selecionada ja esta vinculada a outro evento com horarios que se sobreponham. Se houver conflito de horario, o cadastro sera bloqueado com uma mensagem de erro. Se o novo evento for antes ou depois do evento existente (sem sobreposicao), o cadastro sera permitido normalmente.
+Alterar a exibicao da data do evento na lista de eventos (`src/pages/admin/Events.tsx`) de:
 
-**Logica de sobreposicao**: Dois eventos se sobrepoem quando `novo_inicio < existente_fim AND novo_fim > existente_inicio`.
+```
+dd/MM/yyyy as HH:mm
+```
 
-A validacao sera feita no frontend em dois pontos:
-- `src/pages/admin/Events.tsx` (tela principal de eventos)
-- `src/pages/admin/base/BaseEvents.tsx` (tela de eventos por base)
+Para o formato solicitado:
 
-Antes do `insert` ou `update`, uma consulta verificara se existem outros eventos (excluindo o evento sendo editado e eventos finalizados) com a mesma `viatura_id` cujo periodo se sobreponha. Se encontrar, exibe um toast de erro e impede o salvamento.
+```
+dd/MM/yyyy das HH:mm as HH:mm
+```
 
-## 2. Ocultar eventos finalizados para profissionais
+Exemplo: `15/02/2026 das 08:00 as 18:00`
 
-Na pagina de eventos da equipe (`src/pages/team/TeamEvents.tsx`), adicionar um filtro para excluir eventos com `status = 'finalizado'`. Assim, profissionais verao apenas eventos em andamento ou agendados. Administradores continuam vendo todos os eventos normalmente.
+Isso sera feito combinando `data_inicio` e `data_fim` na mesma linha.
+
+## 2. Barra de progresso baseada no horario do evento
+
+A barra de progresso atual (`Progress`) mostra check-ins da equipe. Sera substituida (ou complementada) por uma barra de progresso temporal que indica quanto tempo do evento ja se passou.
+
+**Logica do calculo:**
+
+```text
+progresso = ((agora - data_inicio) / (data_fim - data_inicio)) * 100
+```
+
+- Se `agora < data_inicio`: progresso = 0% (evento nao iniciou)
+- Se `agora > data_fim`: progresso = 100% (evento encerrado)
+- Se evento finalizado: progresso = 100%
+
+A barra sera atualizada em tempo real usando `setInterval` a cada minuto para refletir o tempo decorrido.
 
 ## Detalhes Tecnicos
 
-### Arquivos a modificar
+### Arquivo a modificar
 
-1. **`src/pages/admin/Events.tsx`** — Adicionar funcao de validacao de conflito de horario da viatura antes do submit
-2. **`src/pages/admin/base/BaseEvents.tsx`** — Mesma validacao de conflito de horario
-3. **`src/pages/team/TeamEvents.tsx`** — Filtrar eventos com `status != 'finalizado'` na query (`.neq('status', 'finalizado')`)
+**`src/pages/admin/Events.tsx`**:
 
-### Validacao de conflito (pseudo-codigo)
+1. Na linha 700-708, alterar o formato de exibicao da data para incluir inicio e fim no formato `dd/MM/yyyy das HH:mm as HH:mm`
+2. Na linha 750, substituir a barra de progresso de check-in por uma barra de progresso temporal
+3. Adicionar um `useEffect` com `setInterval` de 60 segundos para atualizar um estado `now` e recalcular o progresso dos eventos em andamento
+4. Manter os indicadores de check-in/checkout como texto, apenas mudar a barra
+
+### Calculo do progresso temporal
 
 ```text
-async function checkVehicleConflict(viaturaId, dataInicio, dataFim, editingEventId?) {
-  // Buscar eventos que usam a mesma viatura e nao estao finalizados
-  query = supabase.from('events')
-    .select('id, nome_evento, data_inicio, data_fim')
-    .eq('viatura_id', viaturaId)
-    .neq('status', 'finalizado')
-
-  // Se editando, excluir o evento atual
-  if (editingEventId) query = query.neq('id', editingEventId)
-
-  // Verificar sobreposicao no frontend
-  // Conflito: novo_inicio < existente_fim AND novo_fim > existente_inicio
-  return eventos_conflitantes
-}
+function getEventTimeProgress(event):
+  now = Date.now()
+  inicio = Date(event.data_inicio)
+  fim = Date(event.data_fim)
+  
+  if event.status == 'finalizado': return 100
+  if now < inicio: return 0
+  if now > fim: return 100
+  
+  return ((now - inicio) / (fim - inicio)) * 100
 ```
 
-### Nenhuma alteracao no banco de dados necessaria
-Todas as mudancas sao exclusivamente no frontend.
+### Atualizacao em tempo real
+
+Um `useState` com a hora atual e um `useEffect` com `setInterval` de 60 segundos garantem que a barra se atualize automaticamente enquanto o administrador visualiza a pagina.
