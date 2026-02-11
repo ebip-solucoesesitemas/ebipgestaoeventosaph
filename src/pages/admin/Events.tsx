@@ -55,6 +55,12 @@ interface EventAssignment {
   profiles?: Profile;
 }
 
+interface Client {
+  id: string;
+  nome: string;
+  endereco: string | null;
+}
+
 export default function AdminEvents() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -63,6 +69,7 @@ export default function AdminEvents() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [assignments, setAssignments] = useState<Record<string, EventAssignment[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -86,11 +93,12 @@ export default function AdminEvents() {
   const fetchData = async () => {
     setIsLoading(true);
     
-    const [eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes] = await Promise.all([
+    const [eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes, clientsRes] = await Promise.all([
       supabase.from('events').select('*, vehicles(*)').order('data_inicio', { ascending: false }),
       supabase.from('vehicles').select('*').order('prefixo'),
       supabase.from('vehicles').select('*').eq('status', 'disponivel'),
       supabase.from('profiles').select('*').order('nome'),
+      supabase.from('clients').select('id, nome, endereco').order('nome'),
     ]);
 
     if (eventsRes.data) {
@@ -116,6 +124,7 @@ export default function AdminEvents() {
     if (allVehiclesRes.data) setAllVehicles(allVehiclesRes.data);
     if (availableVehiclesRes.data) setVehicles(availableVehiclesRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
+    if (clientsRes.data) setClients(clientsRes.data);
     
     setIsLoading(false);
   };
@@ -387,6 +396,27 @@ export default function AdminEvents() {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <Select
+                  onValueChange={(clientId) => {
+                    const client = clients.find(c => c.id === clientId);
+                    if (client?.endereco) {
+                      setFormData(prev => ({ ...prev, local: client.endereco! }));
+                    }
+                  }}
+                >
+                  <SelectTrigger className="input-touch">
+                    <SelectValue placeholder="Selecione um cliente (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
