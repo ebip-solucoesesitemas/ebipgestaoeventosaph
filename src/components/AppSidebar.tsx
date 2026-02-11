@@ -48,6 +48,7 @@ const commercialLinks = [
 ];
 
 const configLinks = [
+  { href: '/admin/users', label: 'Usuários', icon: Users },
   { href: '/admin/bases', label: 'Bases', icon: MapPin },
   { href: '/admin/professional-rates', label: 'Valores Profissionais', icon: DollarSign },
   { href: '/admin/operational-rates', label: 'Valores Operacionais', icon: Settings },
