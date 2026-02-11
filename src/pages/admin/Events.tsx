@@ -106,7 +106,7 @@ export default function AdminEvents() {
     const [eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes, clientsRes] = await Promise.all([
       supabase.from('events').select('*, vehicles(*)').order('data_inicio', { ascending: false }),
       supabase.from('vehicles').select('*').order('prefixo'),
-      supabase.from('vehicles').select('*').eq('status', 'disponivel'),
+      supabase.from('vehicles').select('*').neq('status', 'manutencao'),
       supabase.from('profiles').select('*').order('nome'),
       supabase.from('clients').select('id, nome, endereco').order('nome'),
     ]);
