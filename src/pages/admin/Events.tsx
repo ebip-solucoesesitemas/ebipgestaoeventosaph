@@ -44,6 +44,7 @@ interface Event {
   data_inicio: string;
   data_fim: string;
   local: string;
+  status: string;
   viatura_id: string | null;
   equipe_completa: boolean;
   equipe_minima: number;
@@ -635,9 +636,11 @@ export default function AdminEvents() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <CardTitle className="text-lg">{event.nome_evento}</CardTitle>
-                        {teamStatus.isComplete ? (
+                        {event.status === 'finalizado' ? (
+                          <Badge className="bg-muted text-muted-foreground">Finalizado</Badge>
+                        ) : teamStatus.isComplete ? (
                           <Badge className="bg-stable/20 text-stable border-stable/30 gap-1">
                             <CheckCircle2 className="w-3 h-3" />
                             Equipe Completa
