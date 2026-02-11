@@ -51,6 +51,8 @@ interface UserProfile {
   registro_profissional: string;
   cargo: CargoTipo;
   user_id: string | null;
+  base_id: string | null;
+  bases: { sigla: string; nome: string } | null;
 }
 
 const especialidades: EspecialidadeTipo[] = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista'];
@@ -67,6 +69,16 @@ export default function AdminUsers() {
     cargo: 'equipe' as CargoTipo,
     especialidade: 'Socorrista' as EspecialidadeTipo,
     registro_profissional: '',
+    base_id: '',
+  });
+
+  const { data: bases = [] } = useQuery({
+    queryKey: ['bases-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('bases').select('id, sigla, nome').order('sigla');
+      if (error) throw error;
+      return data;
+    },
   });
 
   const { data: users = [], isLoading } = useQuery({
@@ -74,7 +86,7 @@ export default function AdminUsers() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, bases(sigla, nome)')
         .not('user_id', 'is', null)
         .order('nome');
       if (error) throw error;
@@ -96,6 +108,7 @@ export default function AdminUsers() {
             especialidade: form.especialidade,
             registro_profissional: form.registro_profissional.trim(),
             cargo: form.cargo,
+            ...(form.base_id ? { base_id: form.base_id } : {}),
           },
         },
       });
@@ -108,7 +121,7 @@ export default function AdminUsers() {
       toast({ title: 'Usuário criado com sucesso' });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setOpen(false);
-      setForm({ nome: '', email: '', password: '', cargo: 'equipe', especialidade: 'Socorrista', registro_profissional: '' });
+      setForm({ nome: '', email: '', password: '', cargo: 'equipe', especialidade: 'Socorrista', registro_profissional: '', base_id: '' });
     },
     onError: (err: Error) => {
       toast({ title: 'Erro ao criar usuário', description: err.message, variant: 'destructive' });
@@ -196,9 +209,20 @@ export default function AdminUsers() {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Registro Profissional *</Label>
-                <Input value={form.registro_profissional} onChange={e => setForm(f => ({ ...f, registro_profissional: e.target.value }))} maxLength={50} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Registro Profissional *</Label>
+                  <Input value={form.registro_profissional} onChange={e => setForm(f => ({ ...f, registro_profissional: e.target.value }))} maxLength={50} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Base</Label>
+                  <Select value={form.base_id} onValueChange={(v) => setForm(f => ({ ...f, base_id: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {bases.map(b => <SelectItem key={b.id} value={b.id}>{b.sigla} - {b.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Button className="w-full" disabled={!isFormValid || createMutation.isPending} onClick={() => createMutation.mutate()}>
                 {createMutation.isPending ? 'Criando...' : 'Cadastrar'}
@@ -218,6 +242,7 @@ export default function AdminUsers() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
+                <TableHead>Base</TableHead>
                 <TableHead>Especialidade</TableHead>
                 <TableHead>Registro</TableHead>
                 <TableHead>Acesso</TableHead>
@@ -228,6 +253,7 @@ export default function AdminUsers() {
               {users.map(u => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.nome}</TableCell>
+                  <TableCell>{u.bases?.sigla || '—'}</TableCell>
                   <TableCell>{u.especialidade}</TableCell>
                   <TableCell>{u.registro_profissional}</TableCell>
                   <TableCell>
