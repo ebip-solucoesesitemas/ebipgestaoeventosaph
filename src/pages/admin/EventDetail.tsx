@@ -7,10 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, Calendar, MapPin, Truck, Users, Clock, 
   CheckCircle2, AlertCircle, Fuel, FileText, DollarSign,
-  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User
+  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,6 +27,8 @@ interface Event {
   viatura_id: string | null;
   user_id: string | null;
   equipe_minima: number;
+  km_inicial: number | null;
+  km_final: number | null;
   valor_litro_combustivel: number | null;
   consumo_medio_km_litro: number | null;
   vehicles?: {
@@ -105,6 +109,11 @@ export default function AdminEventDetail() {
   const [attendanceVitals, setAttendanceVitals] = useState<VitalSign[]>([]);
   const [loadingVitals, setLoadingVitals] = useState(false);
 
+  // KM state
+  const [kmInicial, setKmInicial] = useState('');
+  const [kmFinal, setKmFinal] = useState('');
+  const [isSavingKm, setIsSavingKm] = useState(false);
+
   const fetchData = async () => {
     if (!id) return;
     setIsLoading(true);
@@ -136,6 +145,8 @@ export default function AdminEventDetail() {
       }
 
       setEvent(eventData);
+      setKmInicial(eventData.km_inicial?.toString() || '');
+      setKmFinal(eventData.km_final?.toString() || '');
       setAssignments(assignmentsRes.data || []);
       setAttendances((attendancesRes.data as Attendance[]) || []);
       setExpenses(expensesRes.data || []);
@@ -157,7 +168,6 @@ export default function AdminEventDetail() {
     setSelectedAttendance(attendance);
     setLoadingVitals(true);
     
-    // Fetch vital signs for this attendance
     const { data } = await supabase
       .from('vital_signs')
       .select('*')
@@ -166,6 +176,33 @@ export default function AdminEventDetail() {
     
     setAttendanceVitals(data || []);
     setLoadingVitals(false);
+  };
+
+  const handleSaveKm = async () => {
+    if (!event) return;
+    setIsSavingKm(true);
+
+    const kmInicialNum = kmInicial ? parseFloat(kmInicial) : null;
+    const kmFinalNum = kmFinal ? parseFloat(kmFinal) : null;
+
+    if (kmInicialNum !== null && kmFinalNum !== null && kmFinalNum < kmInicialNum) {
+      toast({ title: 'KM final deve ser maior que o inicial', variant: 'destructive' });
+      setIsSavingKm(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from('events')
+      .update({ km_inicial: kmInicialNum, km_final: kmFinalNum })
+      .eq('id', event.id);
+
+    if (error) {
+      toast({ title: 'Erro ao salvar quilometragem', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Quilometragem salva!' });
+      fetchData();
+    }
+    setIsSavingKm(false);
   };
 
   if (isLoading || !event) {
@@ -179,12 +216,11 @@ export default function AdminEventDetail() {
   // Calculate statistics
   const checkinCount = assignments.filter(a => a.checkin_at).length;
   const checkoutCount = assignments.filter(a => a.checkout_at).length;
-  const totalKm = assignments.reduce((sum, a) => {
-    if (a.km_inicial && a.km_final) {
-      return sum + (a.km_final - a.km_inicial);
-    }
-    return sum;
-  }, 0);
+  
+  // Use event-level KM
+  const eventKmIni = event.km_inicial || 0;
+  const eventKmFin = event.km_final || 0;
+  const totalKm = eventKmFin > eventKmIni ? eventKmFin - eventKmIni : 0;
   
   const fuelCost = event.valor_litro_combustivel && event.consumo_medio_km_litro 
     ? (totalKm / event.consumo_medio_km_litro) * event.valor_litro_combustivel 
@@ -316,7 +352,53 @@ export default function AdminEventDetail() {
         </Card>
       </div>
 
-      {/* Progress Bar */}
+      {/* Vehicle Mileage Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Gauge className="w-4 h-4" />
+            Quilometragem da Viatura
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1">
+                <Gauge className="w-3 h-3" />
+                KM Inicial
+              </Label>
+              <Input
+                type="number"
+                value={kmInicial}
+                onChange={(e) => setKmInicial(e.target.value)}
+                placeholder="Ex: 45230"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1">
+                <Gauge className="w-3 h-3" />
+                KM Final
+              </Label>
+              <Input
+                type="number"
+                value={kmFinal}
+                onChange={(e) => setKmFinal(e.target.value)}
+                placeholder="Ex: 45350"
+              />
+            </div>
+          </div>
+          <Button
+            onClick={handleSaveKm}
+            disabled={isSavingKm}
+            size="sm"
+            className="w-full"
+          >
+            <Save className="w-4 h-4 mr-1" />
+            {isSavingKm ? 'Salvando...' : 'Salvar Quilometragem'}
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between text-sm mb-2">
