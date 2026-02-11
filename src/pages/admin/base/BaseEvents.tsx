@@ -53,6 +53,12 @@ interface Base {
   sigla: string;
 }
 
+interface Client {
+  id: string;
+  nome: string;
+  endereco: string | null;
+}
+
 export default function BaseEvents() {
   const { baseId } = useParams<{ baseId: string }>();
   const navigate = useNavigate();
@@ -61,6 +67,7 @@ export default function BaseEvents() {
   const [events, setEvents] = useState<Event[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [assignments, setAssignments] = useState<Record<string, EventAssignment[]>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -82,12 +89,13 @@ export default function BaseEvents() {
     if (!baseId) return;
     setIsLoading(true);
 
-    const [baseRes, eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes] = await Promise.all([
+    const [baseRes, eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes, clientsRes] = await Promise.all([
       supabase.from('bases').select('id, nome, sigla').eq('id', baseId).single(),
       supabase.from('events').select('*, vehicles(*)').eq('base_id', baseId).order('data_inicio', { ascending: false }),
       supabase.from('vehicles').select('*').order('prefixo'),
       supabase.from('vehicles').select('*').eq('status', 'disponivel'),
       supabase.from('profiles').select('id, nome, especialidade').order('nome'),
+      supabase.from('clients').select('id, nome, endereco').order('nome'),
     ]);
 
     if (baseRes.data) setBase(baseRes.data);
@@ -111,6 +119,7 @@ export default function BaseEvents() {
     if (allVehiclesRes.data) setAllVehicles(allVehiclesRes.data);
     if (availableVehiclesRes.data) setVehicles(availableVehiclesRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
+    if (clientsRes.data) setClients(clientsRes.data);
     setIsLoading(false);
   };
 
@@ -282,6 +291,26 @@ export default function BaseEvents() {
                   <Label>Fim</Label>
                   <Input type="datetime-local" value={formData.data_fim} onChange={(e) => setFormData(prev => ({ ...prev, data_fim: e.target.value }))} className="input-touch" required />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <Select
+                  onValueChange={(clientId) => {
+                    const client = clients.find(c => c.id === clientId);
+                    if (client?.endereco) {
+                      setFormData(prev => ({ ...prev, local: client.endereco! }));
+                    }
+                  }}
+                >
+                  <SelectTrigger className="input-touch">
+                    <SelectValue placeholder="Selecione um cliente (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Local</Label>
