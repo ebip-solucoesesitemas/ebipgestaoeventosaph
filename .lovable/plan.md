@@ -1,61 +1,53 @@
 
-# Plano: Vincular Eventos a Contas de Usuario
+# Plano: Mover Quilometragem do Socorrista para o Usuario Responsavel
 
 ## Resumo
 
-Atualmente, eventos nao tem vinculo direto com uma conta de usuario (login). O plano e adicionar um campo `user_id` na tabela `events` para que cada evento seja atribuido a uma conta de viatura/equipe (ex: basevtr66@gmail.com). Os profissionais da equipe continuam sendo gerenciados separadamente via `event_assignments`.
-
-## Fluxo desejado
-
-1. Admin cria evento e seleciona a **conta de usuario** responsavel (ex: Vtr-66)
-2. Admin seleciona a viatura e os profissionais da equipe
-3. Quando o usuario Vtr-66 faz login, ve os eventos atribuidos a ele
-4. Dentro do evento, os profissionais escalados aparecem para check-in/checkout
+Atualmente, o campo de KM inicial/final aparece para profissionais com especialidade "Socorrista" no check-in/checkout. A mudanca e remover isso dos profissionais e colocar os campos de KM diretamente na tela do evento, controlados pelo usuario responsavel (conta da viatura).
 
 ## O que sera feito
 
-### 1. Migrar banco de dados
+### 1. Adicionar colunas de KM na tabela `events`
 
-- Adicionar coluna `user_id` (uuid, nullable) na tabela `events`, referenciando `auth.users(id)`
-- Atualizar a politica RLS de SELECT para que usuarios vejam eventos onde `events.user_id = auth.uid()` (alem do check existente via `is_assigned_to_event`)
+Adicionar `km_inicial` e `km_final` diretamente na tabela `events`, ja que a quilometragem e da viatura (do evento), nao do profissional individual.
 
-### 2. Atualizar formulario de criacao de evento (`Events.tsx`)
+```text
+events
+  + km_inicial (numeric, nullable)
+  + km_final (numeric, nullable)
+```
 
-- Adicionar campo **"Conta Responsavel"** (select) que lista apenas usuarios com login (perfis com `user_id` nao nulo e cargo = "equipe")
-- Ao salvar o evento, gravar o `user_id` selecionado
-- Na lista de profissionais para escalar, **excluir** o perfil do usuario responsavel (ele nao precisa estar na equipe escalada, pois ja e o "dono" do evento)
+### 2. Atualizar tela do evento da equipe (`team/EventDetail.tsx`)
 
-### 3. Atualizar detalhes do evento
+- Adicionar uma secao "Quilometragem da Viatura" visivel para o usuario responsavel
+- Campos de KM Inicial (editavel antes do primeiro check-in ou a qualquer momento)
+- Campo de KM Final (editavel ao final do evento)
+- Botao para salvar a quilometragem
+- Resumo de combustivel passara a usar os dados do evento em vez dos assignments
 
-- Mostrar qual conta de usuario e responsavel pelo evento
-- Garantir que a conta responsavel consegue ver o evento mesmo sem estar em `event_assignments`
+### 3. Remover KM do componente `TeamMemberCheckin`
 
-### 4. Atualizar pagina da equipe (`TeamEvents.tsx` / `team/EventDetail.tsx`)
+- Remover a logica `isSocorrista` que exige KM
+- Remover os campos de input de KM inicial/final do componente
+- Remover validacao de KM no check-in e checkout
+- Check-in e checkout dos profissionais passam a ser apenas registro de horario
 
-- Atualizar a query para tambem buscar eventos onde `user_id = auth.uid()`, garantindo que o usuario da viatura veja seus eventos
+### 4. Atualizar calculo de combustivel
+
+- O calculo de KM total e custo de combustivel no `EventDetail.tsx` passara a usar `event.km_inicial` e `event.km_final` em vez de somar KM dos assignments
 
 ## Detalhes Tecnicos
 
 ### Migracao SQL
 
-```sql
-ALTER TABLE public.events ADD COLUMN user_id uuid REFERENCES auth.users(id);
-
--- Atualizar RLS para permitir que o usuario atribuido veja o evento
-DROP POLICY IF EXISTS "Users can view assigned events" ON public.events;
-CREATE POLICY "Users can view assigned events" ON public.events
-FOR SELECT USING (
-  is_admin() OR is_assigned_to_event(id) OR user_id = auth.uid()
-);
+```text
+ALTER TABLE public.events 
+  ADD COLUMN km_inicial numeric,
+  ADD COLUMN km_final numeric;
 ```
-
-### Formulario - Campo "Conta Responsavel"
-
-Buscar perfis com `user_id IS NOT NULL` e `cargo = 'equipe'` para popular o select. Gravar o `user_id` do perfil selecionado na coluna `events.user_id`.
 
 ### Arquivos a modificar
 
-1. **Migracao**: Nova migracao SQL para adicionar `user_id` e atualizar RLS
-2. **`src/pages/admin/Events.tsx`**: Adicionar select de conta responsavel no formulario
-3. **`src/pages/team/TeamEvents.tsx`**: Atualizar query para incluir eventos por `user_id`
-4. **`src/pages/admin/EventDetail.tsx`**: Mostrar conta responsavel no cabecalho
+1. **Migracao SQL** - adicionar colunas `km_inicial` e `km_final` na tabela `events`
+2. **`src/pages/team/EventDetail.tsx`** - adicionar secao de KM da viatura e atualizar calculo de combustivel
+3. **`src/components/TeamMemberCheckin.tsx`** - remover toda logica e campos de KM, simplificar para apenas check-in/checkout de horario
