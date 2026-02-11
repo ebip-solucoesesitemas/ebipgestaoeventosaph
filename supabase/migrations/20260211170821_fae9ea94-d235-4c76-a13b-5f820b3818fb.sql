@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN base_id uuid REFERENCES public.bases(id) ON DELETE SET NULL;
