@@ -85,6 +85,13 @@ export default function AdminEvents() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [profileSearch, setProfileSearch] = useState('');
   const [pendingBudgetId, setPendingBudgetId] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  // Update `now` every 60s for temporal progress bar
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [formData, setFormData] = useState({
     nome_evento: '',
@@ -700,7 +707,7 @@ export default function AdminEvents() {
                       <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          {format(new Date(event.data_inicio), "dd/MM/yyyy", { locale: ptBR })} das {format(new Date(event.data_inicio), "HH:mm")} às {format(new Date(event.data_fim), "HH:mm")}
                         </span>
                         <span className="flex items-center gap-1">
                           <MapPin className="w-4 h-4" />
@@ -747,7 +754,14 @@ export default function AdminEvents() {
                           </span>
                         )}
                       </div>
-                      <Progress value={teamStatus.checkinProgress} className="h-1.5" />
+                      <Progress value={(() => {
+                        if (event.status === 'finalizado') return 100;
+                        const inicio = new Date(event.data_inicio).getTime();
+                        const fim = new Date(event.data_fim).getTime();
+                        if (now < inicio) return 0;
+                        if (now > fim) return 100;
+                        return ((now - inicio) / (fim - inicio)) * 100;
+                      })()} className="h-1.5" />
                     </div>
                   )}
                   
