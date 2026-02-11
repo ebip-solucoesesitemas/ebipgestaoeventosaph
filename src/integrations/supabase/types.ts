@@ -411,6 +411,7 @@ export type Database = {
           km_inicial: number | null
           local: string
           nome_evento: string
+          status: string
           updated_at: string | null
           user_id: string | null
           valor_litro_combustivel: number | null
@@ -429,6 +430,7 @@ export type Database = {
           km_inicial?: number | null
           local: string
           nome_evento: string
+          status?: string
           updated_at?: string | null
           user_id?: string | null
           valor_litro_combustivel?: number | null
@@ -447,6 +449,7 @@ export type Database = {
           km_inicial?: number | null
           local?: string
           nome_evento?: string
+          status?: string
           updated_at?: string | null
           user_id?: string | null
           valor_litro_combustivel?: number | null
