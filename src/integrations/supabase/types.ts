@@ -362,6 +362,41 @@ export type Database = {
           },
         ]
       }
+      event_signatures: {
+        Row: {
+          assinatura_url: string | null
+          created_at: string
+          event_id: string
+          id: string
+          nome_responsavel: string
+          tipo: string
+        }
+        Insert: {
+          assinatura_url?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          nome_responsavel: string
+          tipo: string
+        }
+        Update: {
+          assinatura_url?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          nome_responsavel?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_signatures_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           base_id: string | null
