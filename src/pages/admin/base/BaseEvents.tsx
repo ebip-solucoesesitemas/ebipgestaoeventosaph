@@ -38,6 +38,7 @@ interface Event {
   viatura_id: string | null;
   equipe_completa: boolean;
   equipe_minima: number;
+  status: string;
   vehicles?: Vehicle;
 }
 
@@ -235,6 +236,7 @@ export default function BaseEvents() {
   };
 
   const getEventStatus = (event: Event) => {
+    if (event.status === 'finalizado') return { label: 'Finalizado', color: 'bg-stable/20 text-stable' };
     const now = new Date();
     const start = new Date(event.data_inicio);
     const end = new Date(event.data_fim);
