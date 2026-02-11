@@ -1,66 +1,61 @@
 
-
-# Plano: Tela de Cadastro de Usuarios
+# Plano: Vincular Eventos a Contas de Usuario
 
 ## Resumo
 
-Criar uma tela dedicada para o admin cadastrar usuarios do sistema. Ao cadastrar, o sistema criara automaticamente o usuario de autenticacao, o perfil e a role (user_role) usando a edge function `create-user` ja existente.
+Atualmente, eventos nao tem vinculo direto com uma conta de usuario (login). O plano e adicionar um campo `user_id` na tabela `events` para que cada evento seja atribuido a uma conta de viatura/equipe (ex: basevtr66@gmail.com). Os profissionais da equipe continuam sendo gerenciados separadamente via `event_assignments`.
+
+## Fluxo desejado
+
+1. Admin cria evento e seleciona a **conta de usuario** responsavel (ex: Vtr-66)
+2. Admin seleciona a viatura e os profissionais da equipe
+3. Quando o usuario Vtr-66 faz login, ve os eventos atribuidos a ele
+4. Dentro do evento, os profissionais escalados aparecem para check-in/checkout
 
 ## O que sera feito
 
-### 1. Nova pagina `src/pages/admin/Users.tsx`
+### 1. Migrar banco de dados
 
-Tela com:
-- Lista de usuarios cadastrados (mostrando nome, email, cargo/role)
-- Botao "Novo Usuario" que abre um dialog com formulario:
-  - Nome completo
-  - Email de login
-  - Senha
-  - Cargo (admin ou equipe)
-- Botoes de editar e excluir em cada usuario
-- Badge indicando o tipo de acesso (Admin / Equipe)
+- Adicionar coluna `user_id` (uuid, nullable) na tabela `events`, referenciando `auth.users(id)`
+- Atualizar a politica RLS de SELECT para que usuarios vejam eventos onde `events.user_id = auth.uid()` (alem do check existente via `is_assigned_to_event`)
 
-O formulario chamara a edge function `create-user` que ja faz tudo:
-1. Cria o usuario em auth.users
-2. Cria o perfil em profiles
-3. Insere a role em user_roles
+### 2. Atualizar formulario de criacao de evento (`Events.tsx`)
 
-### 2. Atualizar o sidebar (`AppSidebar.tsx`)
+- Adicionar campo **"Conta Responsavel"** (select) que lista apenas usuarios com login (perfis com `user_id` nao nulo e cargo = "equipe")
+- Ao salvar o evento, gravar o `user_id` selecionado
+- Na lista de profissionais para escalar, **excluir** o perfil do usuario responsavel (ele nao precisa estar na equipe escalada, pois ja e o "dono" do evento)
 
-Adicionar link "Usuarios" na secao de Configuracoes do admin, com o icone `Users`.
+### 3. Atualizar detalhes do evento
 
-### 3. Adicionar rota no `App.tsx`
+- Mostrar qual conta de usuario e responsavel pelo evento
+- Garantir que a conta responsavel consegue ver o evento mesmo sem estar em `event_assignments`
 
-Registrar a rota `/admin/users` apontando para a nova pagina.
+### 4. Atualizar pagina da equipe (`TeamEvents.tsx` / `team/EventDetail.tsx`)
+
+- Atualizar a query para tambem buscar eventos onde `user_id = auth.uid()`, garantindo que o usuario da viatura veja seus eventos
 
 ## Detalhes Tecnicos
 
-### Formulario de cadastro
+### Migracao SQL
 
-Campos:
-- `nome` (text, obrigatorio)
-- `email` (email, obrigatorio)
-- `password` (password, minimo 6 caracteres, obrigatorio)
-- `cargo` (select: "equipe" ou "admin")
-- `especialidade` (select: Medico, Enfermeiro, Tecnico, Socorrista - obrigatorio pois a tabela profiles exige)
-- `registro_profissional` (text, obrigatorio pois a tabela profiles exige)
+```sql
+ALTER TABLE public.events ADD COLUMN user_id uuid REFERENCES auth.users(id);
 
-### Edge function `create-user` (ja existente, sem alteracao)
+-- Atualizar RLS para permitir que o usuario atribuido veja o evento
+DROP POLICY IF EXISTS "Users can view assigned events" ON public.events;
+CREATE POLICY "Users can view assigned events" ON public.events
+FOR SELECT USING (
+  is_admin() OR is_assigned_to_event(id) OR user_id = auth.uid()
+);
+```
 
-Fluxo atual:
-1. Valida que o chamador e admin
-2. Cria auth user com `email_confirm: true`
-3. Insere profile com nome, especialidade, registro_profissional, cargo
-4. Insere user_role ("equipe" ou "admin")
-5. Se admin, tambem insere role "equipe"
+### Formulario - Campo "Conta Responsavel"
 
-### Diferenca da pagina Profissionais
+Buscar perfis com `user_id IS NOT NULL` e `cargo = 'equipe'` para popular o select. Gravar o `user_id` do perfil selecionado na coluna `events.user_id`.
 
-A pagina de Profissionais (`Professionals.tsx`) gerencia perfis profissionais que podem ou nao ter login. A nova pagina de Usuarios foca exclusivamente em contas com acesso ao sistema (usuarios com login).
+### Arquivos a modificar
 
-### Arquivos a criar/modificar
-
-1. **Criar**: `src/pages/admin/Users.tsx` - nova pagina de gestao de usuarios
-2. **Modificar**: `src/App.tsx` - adicionar rota `/admin/users`
-3. **Modificar**: `src/components/AppSidebar.tsx` - adicionar link no menu admin
-
+1. **Migracao**: Nova migracao SQL para adicionar `user_id` e atualizar RLS
+2. **`src/pages/admin/Events.tsx`**: Adicionar select de conta responsavel no formulario
+3. **`src/pages/team/TeamEvents.tsx`**: Atualizar query para incluir eventos por `user_id`
+4. **`src/pages/admin/EventDetail.tsx`**: Mostrar conta responsavel no cabecalho
