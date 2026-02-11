@@ -1,48 +1,48 @@
 
+# Plano: Validacao de Viatura por Horario + Ocultar Eventos Finalizados para Equipe
 
-# Plano: Corrigir 3 Problemas
+## 1. Validacao de disponibilidade da viatura por horario
 
-## Problema 1: Quilometragem nao salva
+Ao criar ou editar um evento, antes de salvar, o sistema verificara se a viatura selecionada ja esta vinculada a outro evento com horarios que se sobreponham. Se houver conflito de horario, o cadastro sera bloqueado com uma mensagem de erro. Se o novo evento for antes ou depois do evento existente (sem sobreposicao), o cadastro sera permitido normalmente.
 
-**Causa**: A tabela `events` so tem politica de UPDATE para admins (`is_admin()`). Quando o usuario da viatura (ex: basevtr66@gmail.com) tenta salvar o KM, a operacao e bloqueada silenciosamente pela seguranca do banco.
+**Logica de sobreposicao**: Dois eventos se sobrepoem quando `novo_inicio < existente_fim AND novo_fim > existente_inicio`.
 
-**Solucao**: Criar uma politica de UPDATE na tabela `events` para permitir que o dono do evento (`user_id = auth.uid()`) atualize os campos de KM.
+A validacao sera feita no frontend em dois pontos:
+- `src/pages/admin/Events.tsx` (tela principal de eventos)
+- `src/pages/admin/base/BaseEvents.tsx` (tela de eventos por base)
 
-## Problema 2: Calculo de horas mostra 0,3h em vez de minutos
+Antes do `insert` ou `update`, uma consulta verificara se existem outros eventos (excluindo o evento sendo editado e eventos finalizados) com a mesma `viatura_id` cujo periodo se sobreponha. Se encontrar, exibe um toast de erro e impede o salvamento.
 
-**Causa**: A funcao `handle_team_checkout` calcula as horas como decimal (18 min = 0.3h). Isso e matematicamente correto, mas confuso para o usuario.
+## 2. Ocultar eventos finalizados para profissionais
 
-**Solucao**: 
-- Alterar a funcao para retornar tambem os minutos exatos
-- No frontend (`TeamMemberCheckin`), exibir o tempo em formato "Xh Ymin" (ex: "0h 18min" ou simplesmente "18min")
-- Na descricao do pagamento, usar o mesmo formato legivel
-
-## Problema 3: Evento nao aparece sem atribuir profile
-
-**Causa**: A pagina `TeamEvents.tsx` busca eventos via RLS, e a funcao `is_assigned_to_event` ja inclui o check de `user_id = auth.uid()`. Porem, a pagina tambem busca `event_assignments` filtrado por `profile_id` do usuario. Se o usuario da viatura nao tem um assignment, os dados de equipe nao carregam corretamente, e a logica anterior de filtro pode estar interferindo.
-
-**Solucao**: Simplificar `TeamEvents.tsx` para confiar totalmente no RLS — remover a busca intermediaria de `event_assignments` por `profile_id` e buscar todos os eventos que o usuario pode ver diretamente.
+Na pagina de eventos da equipe (`src/pages/team/TeamEvents.tsx`), adicionar um filtro para excluir eventos com `status = 'finalizado'`. Assim, profissionais verao apenas eventos em andamento ou agendados. Administradores continuam vendo todos os eventos normalmente.
 
 ## Detalhes Tecnicos
 
-### Migracao SQL
-
-```text
--- 1. Permitir que o dono do evento atualize seus eventos
-CREATE POLICY "Event owner can update their events"
-ON public.events FOR UPDATE
-TO authenticated
-USING (user_id = auth.uid())
-WITH CHECK (user_id = auth.uid());
-
--- 2. Atualizar funcao de checkout para retornar minutos
--- Adicionar v_minutes ao retorno do handle_team_checkout
-```
-
 ### Arquivos a modificar
 
-1. **Migracao SQL** — politica de UPDATE para o dono do evento + atualizar funcao checkout para retornar minutos
-2. **`src/components/TeamMemberCheckin.tsx`** — exibir horas no formato "Xh Ymin" no toast de checkout
-3. **`src/pages/team/TeamEvents.tsx`** — remover busca intermediaria de assignments por profile_id, confiar no RLS
-4. **`src/pages/team/EventDetail.tsx`** — adicionar tratamento de erro visivel no save de KM (caso ainda falhe)
+1. **`src/pages/admin/Events.tsx`** — Adicionar funcao de validacao de conflito de horario da viatura antes do submit
+2. **`src/pages/admin/base/BaseEvents.tsx`** — Mesma validacao de conflito de horario
+3. **`src/pages/team/TeamEvents.tsx`** — Filtrar eventos com `status != 'finalizado'` na query (`.neq('status', 'finalizado')`)
 
+### Validacao de conflito (pseudo-codigo)
+
+```text
+async function checkVehicleConflict(viaturaId, dataInicio, dataFim, editingEventId?) {
+  // Buscar eventos que usam a mesma viatura e nao estao finalizados
+  query = supabase.from('events')
+    .select('id, nome_evento, data_inicio, data_fim')
+    .eq('viatura_id', viaturaId)
+    .neq('status', 'finalizado')
+
+  // Se editando, excluir o evento atual
+  if (editingEventId) query = query.neq('id', editingEventId)
+
+  // Verificar sobreposicao no frontend
+  // Conflito: novo_inicio < existente_fim AND novo_fim > existente_inicio
+  return eventos_conflitantes
+}
+```
+
+### Nenhuma alteracao no banco de dados necessaria
+Todas as mudancas sao exclusivamente no frontend.
