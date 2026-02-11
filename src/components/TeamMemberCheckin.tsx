@@ -58,12 +58,12 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate }: TeamM
       toast({ title: 'Erro', description: data.error, variant: 'destructive' });
     } else {
       const paymentValue = data?.payment_value || 0;
-      const hours = data?.hours || 0;
+      const timeDesc = data?.time_description || '';
       toast({
         title: `Checkout realizado para ${member.profiles.nome}!`,
         description: paymentValue > 0
-          ? `Pagamento de R$ ${paymentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} gerado (${hours}h).`
-          : undefined,
+          ? `Pagamento de R$ ${paymentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} gerado (${timeDesc}).`
+          : timeDesc ? `Tempo trabalhado: ${timeDesc}` : undefined,
       });
       onUpdate();
     }
