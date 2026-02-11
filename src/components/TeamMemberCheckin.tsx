@@ -40,7 +40,7 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate }: TeamM
     } else if (data?.error) {
       toast({ title: 'Erro', description: data.error, variant: 'destructive' });
     } else {
-      toast({ title: `Check-in realizado para ${member.profiles.nome}!` });
+      toast({ title: `Check-in realizado para ${member.profiles?.nome || 'profissional'}!` });
       onUpdate();
     }
     setIsProcessing(false);
@@ -60,7 +60,7 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate }: TeamM
       const paymentValue = data?.payment_value || 0;
       const timeDesc = data?.time_description || '';
       toast({
-        title: `Checkout realizado para ${member.profiles.nome}!`,
+        title: `Checkout realizado para ${member.profiles?.nome || 'profissional'}!`,
         description: paymentValue > 0
           ? `Pagamento de R$ ${paymentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} gerado (${timeDesc}).`
           : timeDesc ? `Tempo trabalhado: ${timeDesc}` : undefined,
@@ -99,8 +99,8 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate }: TeamM
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-medium">{member.profiles.nome}</p>
-          <p className="text-sm text-muted-foreground">{member.profiles.especialidade}</p>
+          <p className="font-medium">{member.profiles?.nome || 'Profissional'}</p>
+          <p className="text-sm text-muted-foreground">{member.profiles?.especialidade || ''}</p>
         </div>
         {getStatusBadge()}
       </div>
