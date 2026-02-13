@@ -69,6 +69,12 @@ interface Client {
   endereco: string | null;
 }
 
+interface Base {
+  id: string;
+  nome: string;
+  sigla: string;
+}
+
 export default function AdminEvents() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -80,6 +86,7 @@ export default function AdminEvents() {
   const [clients, setClients] = useState<Client[]>([]);
   const [assignments, setAssignments] = useState<Record<string, EventAssignment[]>>({});
   const [userAccounts, setUserAccounts] = useState<UserAccount[]>([]);
+  const [bases, setBases] = useState<Base[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -98,6 +105,7 @@ export default function AdminEvents() {
     data_inicio: '',
     data_fim: '',
     local: '',
+    base_id: '',
     viatura_id: '',
     user_id: '',
     equipe_completa: false,
@@ -110,12 +118,13 @@ export default function AdminEvents() {
   const fetchData = async () => {
     setIsLoading(true);
     
-    const [eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes, clientsRes] = await Promise.all([
+    const [eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes, clientsRes, basesRes] = await Promise.all([
       supabase.from('events').select('*, vehicles(*)').order('data_inicio', { ascending: false }),
       supabase.from('vehicles').select('*').order('prefixo'),
       supabase.from('vehicles').select('*').neq('status', 'manutencao'),
       supabase.from('profiles').select('*').order('nome'),
       supabase.from('clients').select('id, nome, endereco').order('nome'),
+      supabase.from('bases').select('id, nome, sigla').order('sigla'),
     ]);
 
     if (eventsRes.data) {
@@ -142,6 +151,7 @@ export default function AdminEvents() {
     if (availableVehiclesRes.data) setVehicles(availableVehiclesRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
     if (clientsRes.data) setClients(clientsRes.data);
+    if (basesRes.data) setBases(basesRes.data);
 
     // Fetch user accounts (profiles with user_id and cargo = equipe)
     const { data: accountsData } = await supabase
@@ -187,6 +197,7 @@ export default function AdminEvents() {
       data_inicio: '',
       data_fim: '',
       local: '',
+      base_id: '',
       viatura_id: '',
       user_id: '',
       equipe_completa: false,
@@ -200,14 +211,14 @@ export default function AdminEvents() {
 
   const openEditDialog = (event: Event) => {
     setEditingEvent(event);
-    // Need to fetch user_id for this event
-    const fetchEventUserId = async () => {
-      const { data } = await supabase.from('events').select('user_id').eq('id', event.id).single();
+    const fetchEventDetails = async () => {
+      const { data } = await supabase.from('events').select('user_id, base_id').eq('id', event.id).single();
       setFormData({
         nome_evento: event.nome_evento,
         data_inicio: isoToLocalDatetime(event.data_inicio),
         data_fim: isoToLocalDatetime(event.data_fim),
         local: event.local,
+        base_id: (data as any)?.base_id || '',
         viatura_id: event.viatura_id || '',
         user_id: (data as any)?.user_id || '',
         equipe_completa: event.equipe_completa || false,
@@ -217,7 +228,7 @@ export default function AdminEvents() {
         selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
       });
     };
-    fetchEventUserId();
+    fetchEventDetails();
     setDialogOpen(true);
   };
 
@@ -274,6 +285,7 @@ export default function AdminEvents() {
       data_inicio: dataInicioISO,
       data_fim: dataFimISO,
       local: formData.local,
+      base_id: formData.base_id || null,
       viatura_id: formData.viatura_id || null,
       user_id: formData.user_id || null,
       equipe_completa: formData.equipe_completa,
@@ -507,6 +519,23 @@ export default function AdminEvents() {
                   className="input-touch"
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Base</Label>
+                <Select
+                  value={formData.base_id}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, base_id: v }))}
+                >
+                  <SelectTrigger className="input-touch">
+                    <SelectValue placeholder="Selecione a base" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bases.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.sigla} — {b.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
