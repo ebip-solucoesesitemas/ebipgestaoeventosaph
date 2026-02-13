@@ -44,6 +44,7 @@ interface Base {
 
 const commercialLinks = [
   { href: '/admin/clients', label: 'Clientes', icon: Building2 },
+  { href: '/admin/contract-templates', label: 'Modelos de Contrato', icon: ClipboardList },
   { href: '/admin/finance', label: 'Financeiro', icon: DollarSign },
 ];
 
