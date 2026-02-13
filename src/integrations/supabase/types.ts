@@ -41,6 +41,66 @@ export type Database = {
         }
         Relationships: []
       }
+      client_contracts: {
+        Row: {
+          client_id: string
+          conteudo: string
+          created_at: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          id: string
+          observacoes: string | null
+          status: string
+          template_id: string | null
+          titulo: string
+          updated_at: string | null
+          valor_contrato: number | null
+        }
+        Insert: {
+          client_id: string
+          conteudo: string
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          template_id?: string | null
+          titulo: string
+          updated_at?: string | null
+          valor_contrato?: number | null
+        }
+        Update: {
+          client_id?: string
+          conteudo?: string
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          template_id?: string | null
+          titulo?: string
+          updated_at?: string | null
+          valor_contrato?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_contracts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_payments: {
         Row: {
           budget_id: string
@@ -177,6 +237,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contract_templates: {
+        Row: {
+          conteudo: string
+          created_at: string | null
+          descricao: string | null
+          id: string
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       event_assignments: {
         Row: {
