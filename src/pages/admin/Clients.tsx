@@ -12,8 +12,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Building2, Phone, Mail, MapPin } from 'lucide-react';
+import { Plus, Edit, Trash2, Building2, Phone, Mail, MapPin, FileText } from 'lucide-react';
 import { CepInput } from '@/components/CepInput';
+import { GenerateContractDialog } from '@/components/GenerateContractDialog';
 
 interface Client {
   id: string;
@@ -122,6 +123,8 @@ export default function Clients() {
       fetchClients();
     }
   };
+
+  const [contractClient, setContractClient] = useState<Client | null>(null);
 
   const handleAddressFound = (address: { endereco: string }) => {
     setFormData(prev => ({ ...prev, endereco: address.endereco }));
@@ -266,6 +269,15 @@ export default function Clients() {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => setContractClient(client)}
+                    title="Gerar Contrato"
+                  >
+                    <FileText className="w-4 h-4 mr-1" />
+                    Contrato
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="flex-1"
                     onClick={() => handleEdit(client)}
                   >
@@ -286,6 +298,13 @@ export default function Clients() {
           ))
         )}
       </div>
+      {contractClient && (
+        <GenerateContractDialog
+          client={contractClient}
+          open={!!contractClient}
+          onOpenChange={(open) => { if (!open) setContractClient(null); }}
+        />
+      )}
     </div>
   );
 }
