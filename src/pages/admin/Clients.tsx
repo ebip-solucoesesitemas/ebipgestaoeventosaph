@@ -267,7 +267,7 @@ export default function Clients() {
                     {client.endereco}
                   </p>
                 )}
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -289,7 +289,6 @@ export default function Clients() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1"
                     onClick={() => handleEdit(client)}
                   >
                     <Edit className="w-4 h-4 mr-1" />
