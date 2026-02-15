@@ -15,6 +15,7 @@ import {
 import { Plus, Edit, Trash2, Building2, Phone, Mail, MapPin, FileText } from 'lucide-react';
 import { CepInput } from '@/components/CepInput';
 import { GenerateContractDialog } from '@/components/GenerateContractDialog';
+import { ClientContractsList } from '@/components/ClientContractsList';
 
 interface Client {
   id: string;
@@ -125,6 +126,7 @@ export default function Clients() {
   };
 
   const [contractClient, setContractClient] = useState<Client | null>(null);
+  const [contractsListClient, setContractsListClient] = useState<Client | null>(null);
 
   const handleAddressFound = (address: { endereco: string }) => {
     setFormData(prev => ({ ...prev, endereco: address.endereco }));
@@ -273,7 +275,16 @@ export default function Clients() {
                     title="Gerar Contrato"
                   >
                     <FileText className="w-4 h-4 mr-1" />
-                    Contrato
+                    Novo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setContractsListClient(client)}
+                    title="Ver Contratos"
+                  >
+                    <FileText className="w-4 h-4 mr-1" />
+                    Contratos
                   </Button>
                   <Button
                     variant="outline"
@@ -303,6 +314,19 @@ export default function Clients() {
           client={contractClient}
           open={!!contractClient}
           onOpenChange={(open) => { if (!open) setContractClient(null); }}
+          onContractSaved={() => {
+            if (contractsListClient?.id === contractClient.id) {
+              setContractsListClient({ ...contractClient });
+            }
+          }}
+        />
+      )}
+      {contractsListClient && (
+        <ClientContractsList
+          clientId={contractsListClient.id}
+          clientName={contractsListClient.nome}
+          open={!!contractsListClient}
+          onOpenChange={(open) => { if (!open) setContractsListClient(null); }}
         />
       )}
     </div>
