@@ -127,8 +127,11 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
     loadAttendance();
   }, [attendanceId]);
 
-  const savePatientData = async () => {
-    if (!profile) return;
+  const savePatientData = async (): Promise<boolean> => {
+    if (!profile) {
+      toast({ title: 'Perfil não encontrado', variant: 'destructive' });
+      return false;
+    }
 
     setIsLoading(true);
 
@@ -284,17 +287,12 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
   };
 
   const handleSaveCurrentStep = async () => {
-    setIsLoading(true);
-    let success = false;
-
     if (step === 'patient' || step === 'evolution') {
-      success = await savePatientData();
+      const success = await savePatientData();
+      if (success) {
+        toast({ title: 'Alterações salvas!' });
+      }
     }
-
-    if (success) {
-      toast({ title: 'Alterações salvas!' });
-    }
-    setIsLoading(false);
   };
 
   const handleNext = async () => {
