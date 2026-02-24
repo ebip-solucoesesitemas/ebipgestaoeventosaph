@@ -23,9 +23,10 @@ interface TeamMemberCheckinProps {
   member: TeamMember;
   eventName: string;
   onUpdate: () => void;
+  checkoutEnabled?: boolean;
 }
 
-export default function TeamMemberCheckin({ member, eventName, onUpdate }: TeamMemberCheckinProps) {
+export default function TeamMemberCheckin({ member, eventName, onUpdate, checkoutEnabled = false }: TeamMemberCheckinProps) {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -123,28 +124,39 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate }: TeamM
         </div>
       )}
 
-      {/* Action button */}
+      {/* Action buttons */}
       {!member.checkout_at && (
-        <Button
-          onClick={member.checkin_at ? handleCheckout : handleCheckin}
-          disabled={isProcessing}
-          size="sm"
-          className={`w-full ${member.checkin_at ? 'bg-warning hover:bg-warning/90' : ''}`}
-        >
-          {isProcessing ? (
-            'Processando...'
-          ) : member.checkin_at ? (
-            <>
-              <LogOut className="w-4 h-4 mr-1" />
-              Fazer Checkout
-            </>
+        <>
+          {!member.checkin_at ? (
+            <Button
+              onClick={handleCheckin}
+              disabled={isProcessing}
+              size="sm"
+              className="w-full"
+            >
+              {isProcessing ? 'Processando...' : (
+                <>
+                  <LogIn className="w-4 h-4 mr-1" />
+                  Fazer Check-in
+                </>
+              )}
+            </Button>
           ) : (
-            <>
-              <LogIn className="w-4 h-4 mr-1" />
-              Fazer Check-in
-            </>
+            <Button
+              onClick={handleCheckout}
+              disabled={isProcessing || !checkoutEnabled}
+              size="sm"
+              className={`w-full ${checkoutEnabled ? 'bg-warning hover:bg-warning/90' : ''}`}
+            >
+              {isProcessing ? 'Processando...' : (
+                <>
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Fazer Checkout
+                </>
+              )}
+            </Button>
           )}
-        </Button>
+        </>
       )}
     </div>
   );

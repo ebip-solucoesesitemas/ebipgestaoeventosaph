@@ -47,6 +47,11 @@ interface TeamMember {
   profiles: { id: string; nome: string; especialidade: string };
 }
 
+interface SignatureRecord {
+  id: string;
+  tipo: string;
+}
+
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -59,6 +64,7 @@ export default function EventDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
+  const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
 
   // KM state
   const [kmInicial, setKmInicial] = useState('');
@@ -70,10 +76,11 @@ export default function EventDetail() {
 
     setIsLoading(true);
 
-    const [eventRes, attendancesRes, teamRes] = await Promise.all([
+    const [eventRes, attendancesRes, teamRes, sigRes] = await Promise.all([
       supabase.from('events').select('*, vehicles(prefixo, modelo)').eq('id', id).single(),
       supabase.from('clinical_attendances').select('*, profiles(nome)').eq('event_id', id).order('created_at', { ascending: false }),
       supabase.from('event_assignments').select('id, profile_id, checkin_at, checkout_at, profiles(id, nome, especialidade)').eq('event_id', id),
+      supabase.from('event_signatures').select('id, tipo').eq('event_id', id),
     ]);
 
     if (eventRes.error) {
@@ -87,6 +94,7 @@ export default function EventDetail() {
     setKmFinal(eventRes.data.km_final?.toString() || '');
     setAttendances(attendancesRes.data || []);
     setTeam((teamRes.data || []).filter((m: any) => m.profiles) as TeamMember[]);
+    setSignatures((sigRes.data || []) as SignatureRecord[]);
     setIsLoading(false);
   };
 
@@ -122,7 +130,8 @@ export default function EventDetail() {
       toast({ title: 'Erro ao salvar quilometragem', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Quilometragem salva!' });
-      fetchData();
+      // Immediately refetch to show saved values
+      await fetchData();
     }
     setIsSavingKm(false);
   };
@@ -140,6 +149,14 @@ export default function EventDetail() {
 
     return { totalKm, litrosUsados, custoTotal, valorLitro };
   };
+
+  // Check signatures
+  const hasArrivalSignature = signatures.some(s => s.tipo === 'chegada');
+  const hasDepartureSignature = signatures.some(s => s.tipo === 'saida');
+
+  // Checkout should only be allowed after event is finalized AND departure signature collected
+  const isEventFinalized = event?.status === 'finalizado';
+  const canCheckout = isEventFinalized && hasDepartureSignature;
 
   // Count statuses
   const checkinCount = team.filter(m => m.checkin_at).length;
@@ -175,7 +192,12 @@ export default function EventDetail() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground">{event.nome_evento}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground">{event.nome_evento}</h1>
+            {isEventFinalized && (
+              <Badge className="bg-stable/20 text-stable">Finalizado</Badge>
+            )}
+          </div>
           <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
@@ -237,6 +259,7 @@ export default function EventDetail() {
                 value={kmInicial}
                 onChange={(e) => setKmInicial(e.target.value)}
                 placeholder="Ex: 45230"
+                disabled={isEventFinalized}
               />
             </div>
             <div className="space-y-1">
@@ -249,18 +272,27 @@ export default function EventDetail() {
                 value={kmFinal}
                 onChange={(e) => setKmFinal(e.target.value)}
                 placeholder="Ex: 45350"
+                disabled={isEventFinalized}
               />
             </div>
           </div>
-          <Button
-            onClick={handleSaveKm}
-            disabled={isSavingKm}
-            size="sm"
-            className="w-full"
-          >
-            <Save className="w-4 h-4 mr-1" />
-            {isSavingKm ? 'Salvando...' : 'Salvar Quilometragem'}
-          </Button>
+          {!isEventFinalized && (
+            <Button
+              onClick={handleSaveKm}
+              disabled={isSavingKm}
+              size="sm"
+              className="w-full"
+            >
+              <Save className="w-4 h-4 mr-1" />
+              {isSavingKm ? 'Salvando...' : 'Salvar Quilometragem'}
+            </Button>
+          )}
+          {/* Show saved KM values */}
+          {(event.km_inicial !== null || event.km_final !== null) && (
+            <div className="text-xs text-muted-foreground text-center pt-1">
+              Salvo: KM Inicial {event.km_inicial ?? '—'} | KM Final {event.km_final ?? '—'}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -299,95 +331,8 @@ export default function EventDetail() {
         </Card>
       )}
 
-      {/* Team Members - Individual Check-in/Checkout */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Equipe ({team.length}) — {checkoutCount}/{team.length} concluídos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0 space-y-3">
-          {team.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Nenhum profissional escalado
-            </p>
-          ) : (
-            team.map((member) => (
-              <TeamMemberCheckin
-                key={member.id}
-                member={member}
-                eventName={event.nome_evento}
-                onUpdate={fetchData}
-              />
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Event Signatures - Arrival & Departure */}
-      <div className="space-y-3">
-        <h2 className="section-header">
-          <PenLine className="w-5 h-5" />
-          Assinaturas do Responsável
-        </h2>
-        <EventSignature eventId={event.id} tipo="chegada" label="Chegada" />
-        <EventSignature
-          eventId={event.id}
-          tipo="saida"
-          label="Saída"
-          disabled={checkoutCount < team.length}
-        />
-        {checkoutCount < team.length && (
-          <p className="text-xs text-muted-foreground text-center">
-            A assinatura de saída ficará disponível quando toda a equipe fizer checkout.
-          </p>
-        )}
-      </div>
-
-      {/* Finalize Event Button */}
-      {event.status !== 'finalizado' && (
-        <Button
-          className="w-full gap-2"
-          variant="outline"
-          onClick={async () => {
-            const { error } = await supabase
-              .from('events')
-              .update({ status: 'finalizado' } as any)
-              .eq('id', event.id);
-            if (error) {
-              toast({ title: 'Erro ao finalizar evento', description: error.message, variant: 'destructive' });
-            } else {
-              // Release vehicle back to available
-              if (event.viatura_id) {
-                await supabase
-                  .from('vehicles')
-                  .update({ status: 'disponivel' } as any)
-                  .eq('id', event.viatura_id);
-              }
-              toast({ title: 'Evento finalizado com sucesso!' });
-              fetchData();
-            }
-          }}
-        >
-          <CheckCircle2 className="w-5 h-5" />
-          Finalizar Evento
-        </Button>
-      )}
-
-      {event.status === 'finalizado' && (
-        <Card className="border-muted bg-muted/30">
-          <CardContent className="py-4 text-center">
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="font-medium">Evento Finalizado</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* New Attendance Button */}
-      <Button className="w-full btn-touch gap-2" onClick={() => setShowForm(true)} disabled={event.status === 'finalizado'}>
+      <Button className="w-full btn-touch gap-2" onClick={() => setShowForm(true)} disabled={isEventFinalized}>
         <Plus className="w-5 h-5" />
         Novo Atendimento
       </Button>
@@ -439,6 +384,104 @@ export default function EventDetail() {
           ))
         )}
       </div>
+
+      {/* Event Signatures - Arrival & Departure */}
+      <div className="space-y-3">
+        <h2 className="section-header">
+          <PenLine className="w-5 h-5" />
+          Assinaturas do Responsável
+        </h2>
+        <EventSignature eventId={event.id} tipo="chegada" label="Chegada" />
+        <EventSignature
+          eventId={event.id}
+          tipo="saida"
+          label="Saída"
+          disabled={!isEventFinalized}
+        />
+        {!isEventFinalized && (
+          <p className="text-xs text-muted-foreground text-center">
+            A assinatura de saída ficará disponível após finalizar o evento.
+          </p>
+        )}
+      </div>
+
+      {/* Finalize Event Button */}
+      {!isEventFinalized && (
+        <Button
+          className="w-full gap-2"
+          variant="outline"
+          onClick={async () => {
+            const { error } = await supabase
+              .from('events')
+              .update({ status: 'finalizado' } as any)
+              .eq('id', event.id);
+            if (error) {
+              toast({ title: 'Erro ao finalizar evento', description: error.message, variant: 'destructive' });
+            } else {
+              // Release vehicle back to available
+              if (event.viatura_id) {
+                await supabase
+                  .from('vehicles')
+                  .update({ status: 'disponivel' } as any)
+                  .eq('id', event.viatura_id);
+              }
+              toast({ title: 'Evento finalizado com sucesso!' });
+              await fetchData();
+            }
+          }}
+        >
+          <CheckCircle2 className="w-5 h-5" />
+          Finalizar Evento
+        </Button>
+      )}
+
+      {isEventFinalized && (
+        <Card className="border-stable/30 bg-stable/5">
+          <CardContent className="py-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-stable">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="font-medium">Evento Finalizado</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Team Members - Check-in/Checkout */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Equipe ({team.length}) — {checkoutCount}/{team.length} concluídos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 space-y-3">
+          {team.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhum profissional escalado
+            </p>
+          ) : (
+            team.map((member) => (
+              <TeamMemberCheckin
+                key={member.id}
+                member={member}
+                eventName={event.nome_evento}
+                onUpdate={fetchData}
+                checkoutEnabled={canCheckout}
+              />
+            ))
+          )}
+          {!canCheckout && isEventFinalized && !hasDepartureSignature && (
+            <p className="text-xs text-muted-foreground text-center">
+              Colete a assinatura de saída para liberar o checkout da equipe.
+            </p>
+          )}
+          {!isEventFinalized && (
+            <p className="text-xs text-muted-foreground text-center">
+              Finalize o evento e colete a assinatura de saída para liberar o checkout.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

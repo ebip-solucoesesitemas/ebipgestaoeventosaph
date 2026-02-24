@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import SignaturePad from '@/components/SignaturePad';
+import SignaturePad, { SignaturePadRef } from '@/components/SignaturePad';
 import { PenLine, CheckCircle2 } from 'lucide-react';
 
 interface EventSignatureProps {
@@ -29,8 +29,8 @@ export default function EventSignature({ eventId, tipo, label, disabled }: Event
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [nomeResponsavel, setNomeResponsavel] = useState('');
-  const [signatureData, setSignatureData] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const sigPadRef = useRef<SignaturePadRef>(null);
 
   useEffect(() => {
     fetchSignature();
@@ -53,16 +53,17 @@ export default function EventSignature({ eventId, tipo, label, disabled }: Event
       toast({ title: 'Informe o nome do responsável', variant: 'destructive' });
       return;
     }
-    if (!signatureData) {
+    if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
       toast({ title: 'Assinatura é obrigatória', variant: 'destructive' });
       return;
     }
 
     setIsSaving(true);
+    const signatureDataUrl = sigPadRef.current.getDataUrl();
 
     // Upload signature image
     const fileName = `event_${eventId}_${tipo}_${Date.now()}.png`;
-    const base64Data = signatureData.split(',')[1];
+    const base64Data = signatureDataUrl.split(',')[1];
     const byteArray = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
     const { error: uploadError } = await supabase.storage
@@ -127,17 +128,22 @@ export default function EventSignature({ eventId, tipo, label, disabled }: Event
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Name input ABOVE signature - user fills name first, then signs */}
           <div className="space-y-2">
             <Label>Nome do Responsável do Evento</Label>
             <Input
               value={nomeResponsavel}
               onChange={(e) => setNomeResponsavel(e.target.value)}
               placeholder="Nome completo do responsável"
+              onFocus={(e) => {
+                // Scroll input into view so keyboard doesn't overlap signature
+                setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+              }}
             />
           </div>
           <div className="space-y-2">
             <Label>Assinatura</Label>
-            <SignaturePad label="Assinatura do Responsável" onSave={setSignatureData} />
+            <SignaturePad ref={sigPadRef} label="Assinatura do Responsável" />
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowForm(false)} className="flex-1">
