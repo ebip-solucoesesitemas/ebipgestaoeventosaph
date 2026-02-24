@@ -41,18 +41,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if user is admin
-    const { data: isAdmin } = await supabaseAdmin.rpc("is_admin");
-    
-    // Alternative: check user_roles table directly
+    // Check if user is admin by querying user_roles directly
     const { data: adminRole } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", userData.user.id)
       .eq("role", "admin")
-      .single();
+      .maybeSingle();
 
-    if (!isAdmin && !adminRole) {
+    if (!adminRole) {
       return new Response(JSON.stringify({ error: "Forbidden: Admin only" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

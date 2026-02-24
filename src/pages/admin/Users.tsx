@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Shield, Users as UsersIcon } from 'lucide-react';
+import { Plus, Trash2, Shield, Users as UsersIcon, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -62,6 +62,7 @@ export default function AdminUsers() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [form, setForm] = useState({
     nome: '',
     email: '',
@@ -71,6 +72,25 @@ export default function AdminUsers() {
     registro_profissional: '',
     base_id: '',
   });
+
+  const resetForm = () => {
+    setForm({ nome: '', email: '', password: '', cargo: 'equipe', especialidade: 'Socorrista', registro_profissional: '', base_id: '' });
+    setEditingUser(null);
+  };
+
+  const openEditDialog = (user: UserProfile) => {
+    setEditingUser(user);
+    setForm({
+      nome: user.nome,
+      email: '',
+      password: '',
+      cargo: user.cargo,
+      especialidade: user.especialidade,
+      registro_profissional: user.registro_profissional,
+      base_id: user.base_id || '',
+    });
+    setOpen(true);
+  };
 
   const { data: bases = [] } = useQuery({
     queryKey: ['bases-list'],
@@ -121,23 +141,55 @@ export default function AdminUsers() {
       toast({ title: 'Usuário criado com sucesso' });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setOpen(false);
-      setForm({ nome: '', email: '', password: '', cargo: 'equipe', especialidade: 'Socorrista', registro_profissional: '', base_id: '' });
+      resetForm();
     },
     onError: (err: Error) => {
       toast({ title: 'Erro ao criar usuário', description: err.message, variant: 'destructive' });
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingUser) throw new Error('Nenhum usuário selecionado');
+
+      const payload: Record<string, unknown> = {
+        nome: form.nome.trim(),
+        especialidade: form.especialidade,
+        registro_profissional: form.registro_profissional.trim(),
+        cargo: form.cargo,
+        base_id: form.base_id || null,
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(payload)
+        .eq('id', editingUser.id);
+
+      if (error) throw new Error(error.message);
+
+      // Update role if cargo changed
+      if (editingUser.cargo !== form.cargo && editingUser.user_id) {
+        await (supabase.rpc as any)('toggle_user_role', { p_profile_id: editingUser.id });
+      }
+    },
+    onSuccess: () => {
+      toast({ title: 'Usuário atualizado com sucesso' });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setOpen(false);
+      resetForm();
+    },
+    onError: (err: Error) => {
+      toast({ title: 'Erro ao atualizar', description: err.message, variant: 'destructive' });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (profileId: string) => {
-      const profile = users.find(u => u.id === profileId);
-      if (!profile?.user_id) throw new Error('Usuário sem conta de acesso');
-
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
 
       const res = await supabase.functions.invoke('delete-user', {
-        body: { userId: profile.user_id },
+        body: { profileId },
       });
 
       if (res.error) throw new Error(res.error.message);
@@ -155,7 +207,19 @@ export default function AdminUsers() {
     },
   });
 
-  const isFormValid = form.nome.trim() && form.email.trim() && form.password.length >= 6 && form.registro_profissional.trim();
+  const isFormValid = editingUser
+    ? form.nome.trim() && form.registro_profissional.trim()
+    : form.nome.trim() && form.email.trim() && form.password.length >= 6 && form.registro_profissional.trim();
+
+  const handleSubmit = () => {
+    if (editingUser) {
+      updateMutation.mutate();
+    } else {
+      createMutation.mutate();
+    }
+  };
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -167,27 +231,31 @@ export default function AdminUsers() {
           <p className="text-muted-foreground text-sm">Gerencie contas com acesso ao sistema</p>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Novo Usuário</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Cadastrar Usuário</DialogTitle>
+              <DialogTitle>{editingUser ? 'Editar Usuário' : 'Cadastrar Usuário'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-1.5">
                 <Label>Nome completo *</Label>
                 <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} maxLength={100} />
               </div>
-              <div className="space-y-1.5">
-                <Label>Email *</Label>
-                <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} maxLength={255} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Senha * (mín. 6 caracteres)</Label>
-                <Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} maxLength={72} />
-              </div>
+              {!editingUser && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label>Email *</Label>
+                    <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} maxLength={255} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Senha * (mín. 6 caracteres)</Label>
+                    <Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} maxLength={72} />
+                  </div>
+                </>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Cargo *</Label>
@@ -224,8 +292,8 @@ export default function AdminUsers() {
                   </Select>
                 </div>
               </div>
-              <Button className="w-full" disabled={!isFormValid || createMutation.isPending} onClick={() => createMutation.mutate()}>
-                {createMutation.isPending ? 'Criando...' : 'Cadastrar'}
+              <Button className="w-full" disabled={!isFormValid || isPending} onClick={handleSubmit}>
+                {isPending ? 'Processando...' : editingUser ? 'Salvar Alterações' : 'Cadastrar'}
               </Button>
             </div>
           </DialogContent>
@@ -246,7 +314,7 @@ export default function AdminUsers() {
                 <TableHead>Especialidade</TableHead>
                 <TableHead>Registro</TableHead>
                 <TableHead>Acesso</TableHead>
-                <TableHead className="w-12" />
+                <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -263,9 +331,14 @@ export default function AdminUsers() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteId(u.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(u)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(u.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
