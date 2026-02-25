@@ -123,14 +123,13 @@ export default function EventDetail() {
 
     const { error } = await supabase
       .from('events')
-      .update({ km_inicial: kmInicialNum, km_final: kmFinalNum } as any)
+      .update({ km_inicial: kmInicialNum, km_final: kmFinalNum })
       .eq('id', event.id);
 
     if (error) {
       toast({ title: 'Erro ao salvar quilometragem', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Quilometragem salva!' });
-      // Immediately refetch to show saved values
       await fetchData();
     }
     setIsSavingKm(false);
@@ -154,8 +153,9 @@ export default function EventDetail() {
   const hasArrivalSignature = signatures.some(s => s.tipo === 'chegada');
   const hasDepartureSignature = signatures.some(s => s.tipo === 'saida');
 
-  // Checkout should only be allowed after event is finalized AND departure signature collected
   const isEventFinalized = event?.status === 'finalizado';
+  
+  // Checkout requires: event finalized AND departure signature collected
   const canCheckout = isEventFinalized && hasDepartureSignature;
 
   // Count statuses
@@ -259,7 +259,6 @@ export default function EventDetail() {
                 value={kmInicial}
                 onChange={(e) => setKmInicial(e.target.value)}
                 placeholder="Ex: 45230"
-                disabled={isEventFinalized}
               />
             </div>
             <div className="space-y-1">
@@ -272,21 +271,18 @@ export default function EventDetail() {
                 value={kmFinal}
                 onChange={(e) => setKmFinal(e.target.value)}
                 placeholder="Ex: 45350"
-                disabled={isEventFinalized}
               />
             </div>
           </div>
-          {!isEventFinalized && (
-            <Button
-              onClick={handleSaveKm}
-              disabled={isSavingKm}
-              size="sm"
-              className="w-full"
-            >
-              <Save className="w-4 h-4 mr-1" />
-              {isSavingKm ? 'Salvando...' : 'Salvar Quilometragem'}
-            </Button>
-          )}
+          <Button
+            onClick={handleSaveKm}
+            disabled={isSavingKm}
+            size="sm"
+            className="w-full"
+          >
+            <Save className="w-4 h-4 mr-1" />
+            {isSavingKm ? 'Salvando...' : 'Salvar Quilometragem'}
+          </Button>
           {/* Show saved KM values */}
           {(event.km_inicial !== null || event.km_final !== null) && (
             <div className="text-xs text-muted-foreground text-center pt-1">
@@ -392,17 +388,12 @@ export default function EventDetail() {
           Assinaturas do Responsável
         </h2>
         <EventSignature eventId={event.id} tipo="chegada" label="Chegada" />
+        {/* Departure signature is always available - not gated on finalization */}
         <EventSignature
           eventId={event.id}
           tipo="saida"
           label="Saída"
-          disabled={!isEventFinalized}
         />
-        {!isEventFinalized && (
-          <p className="text-xs text-muted-foreground text-center">
-            A assinatura de saída ficará disponível após finalizar o evento.
-          </p>
-        )}
       </div>
 
       {/* Finalize Event Button */}
@@ -413,7 +404,7 @@ export default function EventDetail() {
           onClick={async () => {
             const { error } = await supabase
               .from('events')
-              .update({ status: 'finalizado' } as any)
+              .update({ status: 'finalizado' })
               .eq('id', event.id);
             if (error) {
               toast({ title: 'Erro ao finalizar evento', description: error.message, variant: 'destructive' });

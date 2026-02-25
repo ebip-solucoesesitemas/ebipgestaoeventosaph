@@ -80,6 +80,7 @@ export default function BaseVehicles() {
           .from('events')
           .select('id, nome_evento, data_inicio, data_fim, viatura_id')
           .in('viatura_id', inUseIds)
+          .neq('status', 'finalizado')
           .order('data_inicio');
 
         const eventsMap: Record<string, VehicleEvent | null> = {};
