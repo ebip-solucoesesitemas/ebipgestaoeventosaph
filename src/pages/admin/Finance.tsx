@@ -57,6 +57,8 @@ interface Budget {
   event_id: string | null;
   client_id: string | null;
   valor_contrato: number;
+  valor_hora: number | null;
+  quantidade_horas: number | null;
   descricao: string | null;
   nome_evento: string | null;
   tipo_unidade: string | null;
@@ -137,12 +139,19 @@ const formaCobrancaLabels: Record<string, string> = {
 const tipoUnidadeLabels: Record<string, string> = {
   USB: 'USB - Unidade Básica',
   USA: 'USA - Unidade Avançada',
+  semi_presencial: 'Semi Presencial',
+  presencial: 'Presencial',
+  usb_dois_tecnicos: 'USB dois Técnicos',
+  usa_dois_enfermeiros: 'USA dois Enfermeiros',
+  ambulatorio: 'Ambulatório',
+  usb_somente_condutor: 'USB somente condutor',
 };
 
 const emptyBudgetForm = {
   nome_evento: '',
   client_id: '',
-  valor_contrato: '',
+  valor_hora: '',
+  quantidade_horas: '',
   descricao: '',
   data_vencimento: '',
   forma_cobranca: '',
@@ -230,6 +239,14 @@ export default function Finance() {
   const totalDespesas = expenses.reduce((sum, e) => sum + Number(e.valor), 0);
   const saldo = totalReceitas - totalDespesas;
 
+  // Check if forma_cobranca is 'empenho' (fields become optional)
+  const isEmpenho = budgetForm.forma_cobranca === 'empenho';
+
+  // Calculate valor_total from valor_hora * quantidade_horas
+  const valorHoraNum = parseFloat(budgetForm.valor_hora) || 0;
+  const qtdHorasNum = parseFloat(budgetForm.quantidade_horas) || 0;
+  const valorTotal = valorHoraNum * qtdHorasNum;
+
   // Auto-calculate KM when base and event address change
   const calculateKm = useCallback(async (baseId: string, enderecoEvento: string) => {
     if (!baseId || !enderecoEvento || enderecoEvento.length < 5) return;
@@ -267,7 +284,9 @@ export default function Finance() {
     const budgetData = {
       event_id: null,
       client_id: budgetForm.client_id || null,
-      valor_contrato: parseFloat(budgetForm.valor_contrato),
+      valor_contrato: valorTotal || 0,
+      valor_hora: valorHoraNum || 0,
+      quantidade_horas: qtdHorasNum || 0,
       descricao: budgetForm.descricao || null,
       nome_evento: budgetForm.nome_evento || null,
       tipo_unidade: budgetForm.tipo_unidade || null,
@@ -292,7 +311,7 @@ export default function Finance() {
     }
 
     if (error) {
-      toast({ title: editingBudgetId ? 'Erro ao atualizar orçamento' : 'Erro ao criar orçamento', variant: 'destructive' });
+      toast({ title: editingBudgetId ? 'Erro ao atualizar orçamento' : 'Erro ao criar orçamento', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: editingBudgetId ? 'Orçamento atualizado!' : 'Orçamento criado!' });
       closeBudgetDialog();
@@ -304,7 +323,8 @@ export default function Finance() {
     setBudgetForm({
       nome_evento: budget.nome_evento || '',
       client_id: budget.client_id || '',
-      valor_contrato: budget.valor_contrato?.toString() || '',
+      valor_hora: budget.valor_hora?.toString() || '',
+      quantidade_horas: budget.quantidade_horas?.toString() || '',
       descricao: budget.descricao || '',
       data_vencimento: budget.data_vencimento || '',
       forma_cobranca: budget.forma_cobranca || '',
@@ -389,7 +409,7 @@ export default function Finance() {
     });
 
     if (error) {
-      toast({ title: 'Erro ao registrar pagamento', variant: 'destructive' });
+      toast({ title: 'Erro ao registrar pagamento', description: error.message, variant: 'destructive' });
     } else {
       await supabase.from('event_budgets').update({ status: 'pago' }).eq('id', paymentForm.budget_id);
       toast({ title: 'Pagamento registrado!' });
@@ -403,7 +423,6 @@ export default function Finance() {
     baseIdRef.current = baseId;
     setBudgetForm((prev) => {
       const updated = { ...prev, base_id: baseId, valor_km: kmRate.toString() };
-      // Auto-calculate if event address already filled
       if (updated.endereco_evento) {
         calculateKm(baseId, updated.endereco_evento);
       }
@@ -575,10 +594,15 @@ export default function Finance() {
                             {format(new Date(budget.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR })} - {budget.data_fim ? format(new Date(budget.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR }) : ''}
                           </p>
                         )}
+                        {budget.valor_hora && Number(budget.valor_hora) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            R$ {Number(budget.valor_hora).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/h × {Number(budget.quantidade_horas || 0)} horas
+                          </p>
+                        )}
                         {budget.km_estimado && Number(budget.km_estimado) > 0 && (
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <Route className="w-3 h-3" />
-                            {Number(budget.km_estimado).toLocaleString('pt-BR')} km (ida e volta) × R$ {Number(budget.valor_km || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} = R$ {(Number(budget.km_estimado) * Number(budget.valor_km || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            {Number(budget.km_estimado).toLocaleString('pt-BR')} km × R$ {Number(budget.valor_km || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} = R$ {(Number(budget.km_estimado) * Number(budget.valor_km || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         )}
                         {budget.forma_cobranca && (
@@ -791,12 +815,67 @@ export default function Finance() {
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USB">USB - Unidade Básica</SelectItem>
-                    <SelectItem value="USA">USA - Unidade Avançada</SelectItem>
+                    {Object.entries(tipoUnidadeLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label>Forma de Cobrança</Label>
+              <Select value={budgetForm.forma_cobranca} onValueChange={(v) => setBudgetForm({ ...budgetForm, forma_cobranca: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(formaCobrancaLabels).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label>Valor por Hora {!isEmpenho ? '*' : ''}</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={budgetForm.valor_hora}
+                  onChange={(e) => setBudgetForm({ ...budgetForm, valor_hora: e.target.value })}
+                  placeholder="0,00"
+                  required={!isEmpenho}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Qtd. Horas {!isEmpenho ? '*' : ''}</Label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  value={budgetForm.quantidade_horas}
+                  onChange={(e) => setBudgetForm({ ...budgetForm, quantidade_horas: e.target.value })}
+                  placeholder="0"
+                  required={!isEmpenho}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor Total</Label>
+                <Input
+                  type="number"
+                  value={valorTotal > 0 ? valorTotal.toFixed(2) : ''}
+                  readOnly
+                  className="bg-muted"
+                  placeholder="Calculado"
+                />
+              </div>
+            </div>
+            {isEmpenho && (
+              <p className="text-xs text-muted-foreground">
+                Forma de cobrança "Empenho": Valor por Hora e Qtd. Horas são opcionais.
+              </p>
+            )}
 
             <div className="space-y-2">
               <Label>Base</Label>
@@ -919,17 +998,6 @@ export default function Finance() {
             )}
 
             <div className="space-y-2">
-              <Label>Valor do Contrato *</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={budgetForm.valor_contrato}
-                onChange={(e) => setBudgetForm({ ...budgetForm, valor_contrato: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label>Data de Vencimento</Label>
               <Input
                 type="date"
@@ -944,20 +1012,6 @@ export default function Finance() {
                 value={budgetForm.descricao}
                 onChange={(e) => setBudgetForm({ ...budgetForm, descricao: e.target.value })}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Forma de Cobrança</Label>
-              <Select value={budgetForm.forma_cobranca} onValueChange={(v) => setBudgetForm({ ...budgetForm, forma_cobranca: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(formaCobrancaLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <Button type="submit" className="w-full btn-touch">
@@ -1043,7 +1097,14 @@ export default function Finance() {
           <form onSubmit={handlePaymentSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Orçamento *</Label>
-              <Select value={paymentForm.budget_id} onValueChange={(v) => setPaymentForm({ ...paymentForm, budget_id: v })}>
+              <Select value={paymentForm.budget_id} onValueChange={(v) => {
+                const budget = budgets.find(b => b.id === v);
+                setPaymentForm({ 
+                  ...paymentForm, 
+                  budget_id: v,
+                  valor: budget ? Number(budget.valor_contrato).toString() : paymentForm.valor,
+                });
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o orçamento" />
                 </SelectTrigger>

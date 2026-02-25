@@ -74,6 +74,7 @@ export default function AdminVehicles() {
           .from('events')
           .select('id, nome_evento, data_inicio, data_fim, viatura_id')
           .in('viatura_id', vehicleIds)
+          .neq('status', 'finalizado')
           .order('data_inicio');
 
         const eventsMap: Record<string, VehicleEvent | null> = {};

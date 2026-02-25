@@ -328,10 +328,12 @@ export type Database = {
           id: string
           km_estimado: number | null
           nome_evento: string | null
+          quantidade_horas: number | null
           status: Database["public"]["Enums"]["status_financeiro"] | null
           tipo_unidade: string | null
           updated_at: string | null
           valor_contrato: number
+          valor_hora: number | null
           valor_km: number | null
         }
         Insert: {
@@ -348,10 +350,12 @@ export type Database = {
           id?: string
           km_estimado?: number | null
           nome_evento?: string | null
+          quantidade_horas?: number | null
           status?: Database["public"]["Enums"]["status_financeiro"] | null
           tipo_unidade?: string | null
           updated_at?: string | null
           valor_contrato?: number
+          valor_hora?: number | null
           valor_km?: number | null
         }
         Update: {
@@ -368,10 +372,12 @@ export type Database = {
           id?: string
           km_estimado?: number | null
           nome_evento?: string | null
+          quantidade_horas?: number | null
           status?: Database["public"]["Enums"]["status_financeiro"] | null
           tipo_unidade?: string | null
           updated_at?: string | null
           valor_contrato?: number
+          valor_hora?: number | null
           valor_km?: number | null
         }
         Relationships: [

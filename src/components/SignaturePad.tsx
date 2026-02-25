@@ -1,4 +1,4 @@
-import { useRef, forwardRef, useImperativeHandle } from 'react';
+import { useRef, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { Button } from '@/components/ui/button';
 import { Eraser } from 'lucide-react';
@@ -16,6 +16,16 @@ export interface SignaturePadRef {
 
 const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label, onSave }, ref) => {
   const sigCanvas = useRef<SignatureCanvas>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canvasWidth, setCanvasWidth] = useState(300);
+
+  // Measure container once on mount and set fixed canvas dimensions
+  // This prevents the canvas from resizing when the mobile keyboard opens
+  useEffect(() => {
+    if (containerRef.current) {
+      setCanvasWidth(containerRef.current.offsetWidth - 4); // subtract border
+    }
+  }, []);
 
   useImperativeHandle(ref, () => ({
     clear: () => sigCanvas.current?.clear(),
@@ -44,14 +54,16 @@ const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label, on
           Limpar
         </Button>
       </div>
-      <div className="border-2 border-dashed border-border rounded-xl overflow-hidden bg-white">
+      <div ref={containerRef} className="border-2 border-dashed border-border rounded-xl overflow-hidden bg-white">
         <SignatureCanvas
           ref={sigCanvas}
           penColor="#1e40af"
           onEnd={handleEnd}
           canvasProps={{
-            className: 'w-full h-32 touch-none',
-            style: { width: '100%', height: '128px' }
+            width: canvasWidth,
+            height: 128,
+            className: 'touch-none',
+            style: { width: `${canvasWidth}px`, height: '128px' }
           }}
         />
       </div>
