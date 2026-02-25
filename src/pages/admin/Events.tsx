@@ -22,6 +22,7 @@ interface Vehicle {
   placa: string;
   prefixo: string;
   status: string;
+  base_id: string | null;
 }
 
 interface Profile {
@@ -567,7 +568,13 @@ export default function AdminEvents() {
                     <SelectValue placeholder="Selecione uma viatura" />
                   </SelectTrigger>
                   <SelectContent>
-                    {getAvailableVehicles().map((v) => (
+                    {getAvailableVehicles()
+                      .filter((v) => {
+                        // Filter by selected base - only show vehicles assigned to this base or unassigned
+                        if (!formData.base_id) return true;
+                        return v.id === editingEvent?.viatura_id || (v as any).base_id === formData.base_id || !(v as any).base_id;
+                      })
+                      .map((v) => (
                       <SelectItem key={v.id} value={v.id}>
                         {v.prefixo} - {v.modelo} ({v.placa})
                       </SelectItem>
