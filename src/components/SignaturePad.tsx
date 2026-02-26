@@ -1,4 +1,4 @@
-import { useRef, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
+import { useRef, forwardRef, useImperativeHandle, useEffect, useState, useCallback } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { Button } from '@/components/ui/button';
 import { Eraser } from 'lucide-react';
@@ -17,13 +17,17 @@ export interface SignaturePadRef {
 const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label, onSave }, ref) => {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [canvasWidth, setCanvasWidth] = useState(300);
+  const [canvasDimensions, setCanvasDimensions] = useState<{ width: number; height: number } | null>(null);
+  const hasInitialized = useRef(false);
 
-  // Measure container once on mount and set fixed canvas dimensions
-  // This prevents the canvas from resizing when the mobile keyboard opens
+  // Measure container ONCE on mount with a stable dimension
+  // Using a ref flag to ensure we never re-measure (which would clear the canvas)
   useEffect(() => {
+    if (hasInitialized.current) return;
     if (containerRef.current) {
-      setCanvasWidth(containerRef.current.offsetWidth - 4); // subtract border
+      const width = containerRef.current.offsetWidth - 4;
+      setCanvasDimensions({ width, height: 128 });
+      hasInitialized.current = true;
     }
   }, []);
 
@@ -54,18 +58,24 @@ const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label, on
           Limpar
         </Button>
       </div>
-      <div ref={containerRef} className="border-2 border-dashed border-border rounded-xl overflow-hidden bg-white">
-        <SignatureCanvas
-          ref={sigCanvas}
-          penColor="#1e40af"
-          onEnd={handleEnd}
-          canvasProps={{
-            width: canvasWidth,
-            height: 128,
-            className: 'touch-none',
-            style: { width: `${canvasWidth}px`, height: '128px' }
-          }}
-        />
+      <div 
+        ref={containerRef} 
+        className="border-2 border-dashed border-border rounded-xl overflow-hidden bg-white"
+        style={canvasDimensions ? { width: canvasDimensions.width + 4, height: canvasDimensions.height } : undefined}
+      >
+        {canvasDimensions && (
+          <SignatureCanvas
+            ref={sigCanvas}
+            penColor="#1e40af"
+            onEnd={handleEnd}
+            canvasProps={{
+              width: canvasDimensions.width,
+              height: canvasDimensions.height,
+              className: 'touch-none',
+              style: { width: `${canvasDimensions.width}px`, height: `${canvasDimensions.height}px` }
+            }}
+          />
+        )}
       </div>
       <p className="text-xs text-muted-foreground text-center">
         Assine dentro da área acima
