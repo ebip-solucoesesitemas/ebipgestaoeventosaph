@@ -180,13 +180,19 @@ export type Database = {
       }
       clinical_attendances: {
         Row: {
+          assinatura_receptor_url: string | null
           created_at: string | null
+          crm_receptor: string | null
+          data_remocao: string | null
+          desfecho: string | null
           documento: string | null
           event_id: string
           evolucao_clinica: string | null
+          hospital_destino: string | null
           id: string
           idade: number | null
           nome_paciente: string
+          nome_receptor: string | null
           profissional_id: string
           queixa_principal: string
           sexo: string | null
@@ -194,13 +200,19 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          assinatura_receptor_url?: string | null
           created_at?: string | null
+          crm_receptor?: string | null
+          data_remocao?: string | null
+          desfecho?: string | null
           documento?: string | null
           event_id: string
           evolucao_clinica?: string | null
+          hospital_destino?: string | null
           id?: string
           idade?: number | null
           nome_paciente: string
+          nome_receptor?: string | null
           profissional_id: string
           queixa_principal: string
           sexo?: string | null
@@ -208,13 +220,19 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          assinatura_receptor_url?: string | null
           created_at?: string | null
+          crm_receptor?: string | null
+          data_remocao?: string | null
+          desfecho?: string | null
           documento?: string | null
           event_id?: string
           evolucao_clinica?: string | null
+          hospital_destino?: string | null
           id?: string
           idade?: number | null
           nome_paciente?: string
+          nome_receptor?: string | null
           profissional_id?: string
           queixa_principal?: string
           sexo?: string | null
@@ -724,6 +742,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      regulation_phones: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       signatures: {
         Row: {

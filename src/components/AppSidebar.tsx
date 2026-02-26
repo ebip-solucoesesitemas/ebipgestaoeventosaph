@@ -53,6 +53,7 @@ const configLinks = [
   { href: '/admin/bases', label: 'Bases', icon: MapPin },
   { href: '/admin/professional-rates', label: 'Valores Profissionais', icon: DollarSign },
   { href: '/admin/operational-rates', label: 'Valores Operacionais', icon: Settings },
+  { href: '/admin/regulation-phones', label: 'Tel. Regulação', icon: Shield },
   { href: '/admin/professional-report', label: 'Relatórios', icon: ClipboardList },
   { href: '/admin/payroll', label: 'Pagamentos', icon: Wallet },
 ];
