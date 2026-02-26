@@ -14,6 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import VitalSignsInput from './VitalSignsInput';
 import SignaturePad, { SignaturePadRef } from './SignaturePad';
 import APHSummary from './APHSummary';
+import PatientDisposition from './PatientDisposition';
 
 interface APHFormProps {
   eventId: string;
@@ -55,6 +56,7 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
   const [step, setStep] = useState<Step>('patient');
   const [isLoading, setIsLoading] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [showDisposition, setShowDisposition] = useState(false);
 
   // Patient data
   const [nomePaciente, setNomePaciente] = useState('');
@@ -275,15 +277,15 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
       assinatura_profissional_url: professionalSigUrl,
     });
 
-    // Update attendance status
+    // Save evolution but don't finalize yet - go to disposition step
     await supabase
       .from('clinical_attendances')
-      .update({ status: 'finalizado', evolucao_clinica: evolucao })
+      .update({ evolucao_clinica: evolucao })
       .eq('id', savedAttendanceId);
 
-    toast({ title: 'Atendimento finalizado!' });
+    toast({ title: 'Assinaturas salvas! Defina o desfecho do paciente.' });
     setIsLoading(false);
-    setShowSummary(true);
+    setShowDisposition(true);
   };
 
   const handleSaveCurrentStep = async () => {
@@ -323,6 +325,23 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
 
   if (showSummary && savedAttendanceId) {
     return <APHSummary attendanceId={savedAttendanceId} onClose={onClose} />;
+  }
+
+  if (showDisposition && savedAttendanceId) {
+    return (
+      <div className="space-y-6 animate-slide-up">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setShowDisposition(false)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-xl font-bold">Desfecho do Atendimento</h1>
+        </div>
+        <PatientDisposition
+          attendanceId={savedAttendanceId}
+          onComplete={() => setShowSummary(true)}
+        />
+      </div>
+    );
   }
 
   return (

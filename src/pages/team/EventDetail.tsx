@@ -387,12 +387,13 @@ export default function EventDetail() {
           <PenLine className="w-5 h-5" />
           Assinaturas do Responsável
         </h2>
-        <EventSignature eventId={event.id} tipo="chegada" label="Chegada" />
+        <EventSignature eventId={event.id} tipo="chegada" label="Chegada" onSaved={fetchData} />
         {/* Departure signature is always available - not gated on finalization */}
         <EventSignature
           eventId={event.id}
           tipo="saida"
           label="Saída"
+          onSaved={fetchData}
         />
       </div>
 

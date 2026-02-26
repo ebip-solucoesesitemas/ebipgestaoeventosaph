@@ -14,6 +14,7 @@ interface EventSignatureProps {
   tipo: 'chegada' | 'saida';
   label: string;
   disabled?: boolean;
+  onSaved?: () => void;
 }
 
 interface SignatureRecord {
@@ -23,7 +24,7 @@ interface SignatureRecord {
   created_at: string;
 }
 
-export default function EventSignature({ eventId, tipo, label, disabled }: EventSignatureProps) {
+export default function EventSignature({ eventId, tipo, label, disabled, onSaved }: EventSignatureProps) {
   const { toast } = useToast();
   const [signature, setSignature] = useState<SignatureRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,6 +92,7 @@ export default function EventSignature({ eventId, tipo, label, disabled }: Event
       toast({ title: `Assinatura de ${label.toLowerCase()} registrada!` });
       setShowForm(false);
       fetchSignature();
+      onSaved?.();
     }
     setIsSaving(false);
   };
