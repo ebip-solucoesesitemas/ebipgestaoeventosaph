@@ -8,13 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, User, Activity, FileText, PenTool, Save, Check, Plus, Trash2, Clock, Heart } from 'lucide-react';
+import { ArrowLeft, User, Activity, FileText, PenTool, Save, Check, Plus, Trash2, Clock, Heart, Ambulance, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import VitalSignsInput from './VitalSignsInput';
 import SignaturePad, { SignaturePadRef } from './SignaturePad';
 import APHSummary from './APHSummary';
-import PatientDisposition from './PatientDisposition';
+import { RemovalStatusBanner, StartRemovalDialog, FinalizeRemovalDialog } from './PatientDisposition';
 
 interface APHFormProps {
   eventId: string;
@@ -56,7 +56,12 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
   const [step, setStep] = useState<Step>('patient');
   const [isLoading, setIsLoading] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
-  const [showDisposition, setShowDisposition] = useState(false);
+
+  // Removal state
+  const [removalStatus, setRemovalStatus] = useState<'none' | 'em_remocao'>('none');
+  const [hospitalDestino, setHospitalDestino] = useState('');
+  const [showRemovalDialog, setShowRemovalDialog] = useState(false);
+  const [showFinalizeRemovalDialog, setShowFinalizeRemovalDialog] = useState(false);
 
   // Patient data
   const [nomePaciente, setNomePaciente] = useState('');
@@ -101,6 +106,9 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
 
         if (attendance.status === 'finalizado') {
           setShowSummary(true);
+        } else if (attendance.status === 'em_remocao') {
+          setRemovalStatus('em_remocao');
+          setHospitalDestino(attendance.hospital_destino || '');
         }
       }
 
@@ -182,7 +190,6 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
   const saveVitals = async () => {
     if (!savedAttendanceId) return false;
 
-    // Check if any vital value is filled
     const hasValues = Object.values(vitals).some(v => v !== null);
     if (!hasValues) {
       toast({ title: 'Preencha ao menos um sinal vital', variant: 'destructive' });
@@ -202,7 +209,6 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
       return false;
     }
 
-    // Add to saved list and reset form
     if (data) {
       setSavedVitals(prev => [...prev, {
         id: data.id,
@@ -237,17 +243,15 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
 
     setIsLoading(true);
 
-    // Upload signatures to storage
+    // Upload signatures
     let patientSigUrl = null;
     let professionalSigUrl = null;
 
     if (!patientSigRef.current?.isEmpty()) {
       const dataUrl = patientSigRef.current?.getDataUrl();
       if (dataUrl) {
-        const base64 = dataUrl.split(',')[1];
         const blob = await fetch(dataUrl).then(r => r.blob());
         const path = `${savedAttendanceId}/patient.png`;
-        
         const { error } = await supabase.storage.from('signatures').upload(path, blob, { upsert: true });
         if (!error) {
           const { data } = supabase.storage.from('signatures').getPublicUrl(path);
@@ -261,7 +265,6 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
       if (dataUrl) {
         const blob = await fetch(dataUrl).then(r => r.blob());
         const path = `${savedAttendanceId}/professional.png`;
-        
         const { error } = await supabase.storage.from('signatures').upload(path, blob, { upsert: true });
         if (!error) {
           const { data } = supabase.storage.from('signatures').getPublicUrl(path);
@@ -270,22 +273,56 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
       }
     }
 
-    // Save signatures record
     await supabase.from('signatures').upsert({
       attendance_id: savedAttendanceId,
       assinatura_paciente_url: patientSigUrl,
       assinatura_profissional_url: professionalSigUrl,
     });
 
-    // Save evolution but don't finalize yet - go to disposition step
+    // If currently in removal, go to finalize removal dialog
+    if (removalStatus === 'em_remocao') {
+      await supabase
+        .from('clinical_attendances')
+        .update({ evolucao_clinica: evolucao } as any)
+        .eq('id', savedAttendanceId);
+
+      toast({ title: 'Assinaturas salvas! Registre a entrega no hospital.' });
+      setIsLoading(false);
+      setShowFinalizeRemovalDialog(true);
+      return;
+    }
+
+    // Normal finalization (patient released)
     await supabase
       .from('clinical_attendances')
-      .update({ evolucao_clinica: evolucao })
+      .update({
+        evolucao_clinica: evolucao,
+        desfecho: 'liberado',
+        status: 'finalizado',
+      } as any)
       .eq('id', savedAttendanceId);
 
-    toast({ title: 'Assinaturas salvas! Defina o desfecho do paciente.' });
+    toast({ title: 'Atendimento finalizado! Paciente liberado.' });
     setIsLoading(false);
-    setShowDisposition(true);
+    setShowSummary(true);
+  };
+
+  const handleCancelRemoval = async () => {
+    if (!savedAttendanceId) return;
+    const { error } = await supabase
+      .from('clinical_attendances')
+      .update({
+        status: 'em_andamento',
+        hospital_destino: null,
+        desfecho: null,
+      } as any)
+      .eq('id', savedAttendanceId);
+
+    if (!error) {
+      setRemovalStatus('none');
+      setHospitalDestino('');
+      toast({ title: 'Remoção cancelada. Paciente melhorou!' });
+    }
   };
 
   const handleSaveCurrentStep = async () => {
@@ -306,7 +343,6 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
       const saved = await savePatientData();
       if (saved) setStep('vitals');
     } else if (step === 'vitals') {
-      // Don't auto-save vitals on next, just advance
       setStep('evolution');
     } else if (step === 'evolution') {
       await savePatientData();
@@ -327,23 +363,6 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
     return <APHSummary attendanceId={savedAttendanceId} onClose={onClose} />;
   }
 
-  if (showDisposition && savedAttendanceId) {
-    return (
-      <div className="space-y-6 animate-slide-up">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setShowDisposition(false)}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Desfecho do Atendimento</h1>
-        </div>
-        <PatientDisposition
-          attendanceId={savedAttendanceId}
-          onComplete={() => setShowSummary(true)}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 animate-slide-up pb-24">
       {/* Header */}
@@ -353,6 +372,26 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
         </Button>
         <h1 className="text-xl font-bold">Ficha de APH</h1>
       </div>
+
+      {/* Removal Status Banner */}
+      {removalStatus === 'em_remocao' && (
+        <RemovalStatusBanner
+          hospitalDestino={hospitalDestino}
+          onCancel={handleCancelRemoval}
+        />
+      )}
+
+      {/* Removal Button - visible when patient data is saved and not already in removal */}
+      {savedAttendanceId && removalStatus === 'none' && (
+        <Button
+          variant="destructive"
+          className="w-full gap-2"
+          onClick={() => setShowRemovalDialog(true)}
+        >
+          <Ambulance className="w-4 h-4" />
+          Remover ao Hospital
+        </Button>
+      )}
 
       {/* Step Indicator */}
       <div className="flex justify-between">
@@ -444,7 +483,6 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
 
           {step === 'vitals' && (
             <div className="space-y-4">
-              {/* Saved vital signs list */}
               {savedVitals.length > 0 && (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Registros Salvos</Label>
@@ -476,7 +514,6 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
                 </div>
               )}
 
-              {/* New vital signs form */}
               {showVitalsForm ? (
                 <div className="space-y-4">
                   <VitalSignsInput values={vitals} onChange={setVitals} />
@@ -554,8 +591,7 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
               Voltar
             </Button>
           )}
-          
-          {/* Save Button - available on patient and evolution steps */}
+
           {step !== 'signatures' && step !== 'vitals' && (
             <Button
               variant="secondary"
@@ -567,21 +603,49 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
               Salvar
             </Button>
           )}
-          
+
           <Button className="flex-1 btn-touch gap-2" onClick={handleNext} disabled={isLoading}>
             {isLoading ? (
               'Salvando...'
             ) : step === 'signatures' ? (
-              <>
-                <Save className="w-5 h-5" />
-                Finalizar
-              </>
+              removalStatus === 'em_remocao' ? (
+                <>
+                  <Ambulance className="w-5 h-5" />
+                  Finalizar e Entregar no Hospital
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-5 h-5" />
+                  Finalizar - Paciente Liberado
+                </>
+              )
             ) : (
               'Próximo'
             )}
           </Button>
         </div>
       </div>
+
+      {/* Dialogs */}
+      {savedAttendanceId && (
+        <>
+          <StartRemovalDialog
+            open={showRemovalDialog}
+            onOpenChange={setShowRemovalDialog}
+            attendanceId={savedAttendanceId}
+            onRemovalStarted={(hospital) => {
+              setRemovalStatus('em_remocao');
+              setHospitalDestino(hospital);
+            }}
+          />
+          <FinalizeRemovalDialog
+            open={showFinalizeRemovalDialog}
+            onOpenChange={setShowFinalizeRemovalDialog}
+            attendanceId={savedAttendanceId}
+            onComplete={() => setShowSummary(true)}
+          />
+        </>
+      )}
     </div>
   );
 }
