@@ -1,11 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const allowedOrigins = [
+  "https://aphaid-quickcare.lovable.app",
+  "https://id-preview--2200ae23-748b-4d29-98e8-fc570ecea26b.lovable.app",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") || "";
+  const allowOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -14,20 +25,15 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Create admin client with service role
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
+      auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Verify the caller is an admin using the regular client
+    // Verify caller is admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -36,12 +42,10 @@ Deno.serve(async (req) => {
 
     if (userError || !userData.user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check if user is admin by querying user_roles directly
     const { data: adminRole } = await supabaseAdmin
       .from("user_roles")
       .select("role")
@@ -51,8 +55,7 @@ Deno.serve(async (req) => {
 
     if (!adminRole) {
       return new Response(JSON.stringify({ error: "Forbidden: Admin only" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -60,12 +63,29 @@ Deno.serve(async (req) => {
 
     if (!email || !password || !profileData) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 1. Create the auth user
+    // Input validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email) || email.length > 255) {
+      return new Response(JSON.stringify({ error: "Email inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (typeof password !== "string" || password.length < 6 || password.length > 72) {
+      return new Response(JSON.stringify({ error: "Senha deve ter entre 6 e 72 caracteres" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!profileData.nome || typeof profileData.nome !== "string" || profileData.nome.length > 100) {
+      return new Response(JSON.stringify({ error: "Nome inválido (máximo 100 caracteres)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 1. Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -74,14 +94,13 @@ Deno.serve(async (req) => {
 
     if (authError) {
       return new Response(JSON.stringify({ error: authError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const userId = authData.user.id;
 
-    // 2. Create the profile
+    // 2. Create profile
     const profileInsert: Record<string, unknown> = {
       user_id: userId,
       nome: profileData.nome,
@@ -95,28 +114,27 @@ Deno.serve(async (req) => {
     const { error: profileError } = await supabaseAdmin.from("profiles").insert(profileInsert);
 
     if (profileError) {
-      // Rollback: delete the auth user if profile creation fails
       await supabaseAdmin.auth.admin.deleteUser(userId);
       return new Response(JSON.stringify({ error: profileError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // 3. Add user role
     const role = profileData.cargo === "admin" ? "admin" : "equipe";
-    await supabaseAdmin.from("user_roles").insert({
-      user_id: userId,
-      role: role,
-    });
+    await supabaseAdmin.from("user_roles").insert({ user_id: userId, role });
 
-    // If admin, also add the equipe role (admins have both)
     if (role === "admin") {
-      await supabaseAdmin.from("user_roles").insert({
-        user_id: userId,
-        role: "equipe",
-      });
+      await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "equipe" });
     }
+
+    // 4. Audit log
+    await supabaseAdmin.rpc("log_audit_event", {
+      p_user_id: userData.user.id,
+      p_action: "create_user",
+      p_target_id: userId,
+      p_details: { email, nome: profileData.nome, cargo: profileData.cargo },
+    });
 
     return new Response(
       JSON.stringify({ success: true, userId }),
@@ -124,8 +142,7 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
