@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          target_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       bases: {
         Row: {
           created_at: string
@@ -941,6 +968,15 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_assigned_to_event: { Args: { event_uuid: string }; Returns: boolean }
       is_event_teammate: { Args: { p_profile_id: string }; Returns: boolean }
+      log_audit_event: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_target_id?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       toggle_user_role: { Args: { p_profile_id: string }; Returns: undefined }
     }
     Enums: {
