@@ -56,6 +56,7 @@ const configLinks = [
   { href: '/admin/regulation-phones', label: 'Tel. Regulação', icon: Shield },
   { href: '/admin/professional-report', label: 'Relatórios', icon: ClipboardList },
   { href: '/admin/payroll', label: 'Pagamentos', icon: Wallet },
+  { href: '/admin/audit-logs', label: 'Logs de Auditoria', icon: Shield },
 ];
 
 const teamLinks = [
