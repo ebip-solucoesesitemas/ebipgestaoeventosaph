@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Ambulance } from 'lucide-react';
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_SECONDS = 30;
+
 export default function Auth() {
   const navigate = useNavigate();
   const { signIn } = useAuth();
@@ -16,22 +19,58 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
+  const failCount = useRef(0);
+  const lockoutTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startLockout = useCallback(() => {
+    const until = Date.now() + LOCKOUT_SECONDS * 1000;
+    setLockoutUntil(until);
+    setLockoutRemaining(LOCKOUT_SECONDS);
+    lockoutTimer.current = setInterval(() => {
+      const remaining = Math.ceil((until - Date.now()) / 1000);
+      if (remaining <= 0) {
+        clearInterval(lockoutTimer.current!);
+        lockoutTimer.current = null;
+        setLockoutUntil(null);
+        setLockoutRemaining(0);
+        failCount.current = 0;
+      } else {
+        setLockoutRemaining(remaining);
+      }
+    }, 1000);
+  }, []);
+
+  const isLockedOut = lockoutUntil !== null && Date.now() < lockoutUntil;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (isLockedOut) return;
 
+    setIsLoading(true);
     const { error } = await signIn(email, password);
 
     if (error) {
-      toast({
-        title: 'Erro ao entrar',
-        description: error.message === 'Invalid login credentials' 
-          ? 'Email ou senha incorretos' 
-          : error.message,
-        variant: 'destructive',
-      });
+      failCount.current += 1;
+      if (failCount.current >= MAX_ATTEMPTS) {
+        startLockout();
+        toast({
+          title: 'Muitas tentativas',
+          description: `Aguarde ${LOCKOUT_SECONDS} segundos antes de tentar novamente.`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Erro ao entrar',
+          description: error.message === 'Invalid login credentials'
+            ? 'Email ou senha incorretos'
+            : error.message,
+          variant: 'destructive',
+        });
+      }
     } else {
+      failCount.current = 0;
       toast({ title: 'Bem-vindo!', description: 'Login realizado com sucesso.' });
       navigate('/');
     }
@@ -78,8 +117,19 @@ export default function Auth() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full btn-touch" disabled={isLoading}>
-              {isLoading ? 'Entrando...' : 'Entrar'}
+
+            {isLockedOut && (
+              <p className="text-sm text-destructive text-center font-medium">
+                Muitas tentativas. Aguarde {lockoutRemaining}s...
+              </p>
+            )}
+
+            <Button type="submit" className="w-full btn-touch" disabled={isLoading || isLockedOut}>
+              {isLockedOut
+                ? `Aguarde ${lockoutRemaining}s`
+                : isLoading
+                  ? 'Entrando...'
+                  : 'Entrar'}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground mt-4">

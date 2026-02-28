@@ -20,6 +20,7 @@ import AdminBases from "./pages/admin/Bases";
 import AdminUsers from "./pages/admin/Users";
 import AdminContractTemplates from "./pages/admin/ContractTemplates";
 import AdminRegulationPhones from "./pages/admin/RegulationPhones";
+import AdminAuditLogs from "./pages/admin/AuditLogs";
 import BaseEvents from "./pages/admin/base/BaseEvents";
 import BaseProfessionals from "./pages/admin/base/BaseProfessionals";
 import BaseVehicles from "./pages/admin/base/BaseVehicles";
@@ -67,6 +68,7 @@ const App = () => (
             <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
             <Route path="/admin/contract-templates" element={<AdminLayout><AdminContractTemplates /></AdminLayout>} />
             <Route path="/admin/regulation-phones" element={<AdminLayout><AdminRegulationPhones /></AdminLayout>} />
+            <Route path="/admin/audit-logs" element={<AdminLayout><AdminAuditLogs /></AdminLayout>} />
             
             {/* Base-specific Routes */}
             <Route path="/admin/base/:baseId/events" element={<AdminLayout><BaseEvents /></AdminLayout>} />
