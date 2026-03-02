@@ -83,6 +83,8 @@ export default function BaseEvents() {
     viatura_id: '',
     equipe_completa: false,
     equipe_minima: 2,
+    min_antes_saida_base: '',
+    horario_saida_base: '',
     selectedProfiles: [] as string[],
   });
 
@@ -131,13 +133,16 @@ export default function BaseEvents() {
   const resetForm = () => {
     setFormData({
       nome_evento: '', data_inicio: '', data_fim: '', local: '',
-      viatura_id: '', equipe_completa: false, equipe_minima: 2, selectedProfiles: [],
+      viatura_id: '', equipe_completa: false, equipe_minima: 2,
+      min_antes_saida_base: '', horario_saida_base: '',
+      selectedProfiles: [],
     });
     setEditingEvent(null);
   };
 
-  const openEditDialog = (event: Event) => {
+  const openEditDialog = async (event: Event) => {
     setEditingEvent(event);
+    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base').eq('id', event.id).single();
     setFormData({
       nome_evento: event.nome_evento,
       data_inicio: isoToLocalDatetime(event.data_inicio),
@@ -146,6 +151,8 @@ export default function BaseEvents() {
       viatura_id: event.viatura_id || '',
       equipe_completa: event.equipe_completa || false,
       equipe_minima: event.equipe_minima || 2,
+      min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || '',
+      horario_saida_base: (data as any)?.horario_saida_base ? isoToLocalDatetime((data as any).horario_saida_base) : '',
       selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
     });
     setDialogOpen(true);
@@ -207,6 +214,8 @@ export default function BaseEvents() {
       viatura_id: formData.viatura_id || null,
       equipe_completa: formData.equipe_completa,
       equipe_minima: formData.equipe_minima,
+      min_antes_saida_base: formData.min_antes_saida_base ? parseInt(formData.min_antes_saida_base) : null,
+      horario_saida_base: formData.horario_saida_base ? localDatetimeToISO(formData.horario_saida_base) : null,
       base_id: baseId,
     };
 
@@ -374,6 +383,37 @@ export default function BaseEvents() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Saída da Base
+                </Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Horário de Saída da Base</Label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.horario_saida_base}
+                      onChange={(e) => setFormData(prev => ({ ...prev, horario_saida_base: e.target.value }))}
+                      className="input-touch"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Min. antes p/ Check-in</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={formData.min_antes_saida_base}
+                      onChange={(e) => setFormData(prev => ({ ...prev, min_antes_saida_base: e.target.value }))}
+                      placeholder="Ex: 30"
+                      className="input-touch"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Profissionais só poderão fazer check-in dentro do período configurado antes do horário de saída
+                </p>
               </div>
               <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
                 <Label className="text-base font-semibold">Equipe</Label>
