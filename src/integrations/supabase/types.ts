@@ -544,10 +544,12 @@ export type Database = {
           data_inicio: string
           equipe_completa: boolean | null
           equipe_minima: number | null
+          horario_saida_base: string | null
           id: string
           km_final: number | null
           km_inicial: number | null
           local: string
+          min_antes_saida_base: number | null
           nome_evento: string
           status: string
           updated_at: string | null
@@ -563,10 +565,12 @@ export type Database = {
           data_inicio: string
           equipe_completa?: boolean | null
           equipe_minima?: number | null
+          horario_saida_base?: string | null
           id?: string
           km_final?: number | null
           km_inicial?: number | null
           local: string
+          min_antes_saida_base?: number | null
           nome_evento: string
           status?: string
           updated_at?: string | null
@@ -582,10 +586,12 @@ export type Database = {
           data_inicio?: string
           equipe_completa?: boolean | null
           equipe_minima?: number | null
+          horario_saida_base?: string | null
           id?: string
           km_final?: number | null
           km_inicial?: number | null
           local?: string
+          min_antes_saida_base?: number | null
           nome_evento?: string
           status?: string
           updated_at?: string | null

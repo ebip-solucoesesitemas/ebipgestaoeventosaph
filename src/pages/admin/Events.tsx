@@ -113,6 +113,8 @@ export default function AdminEvents() {
     equipe_minima: 2,
     valor_litro_combustivel: '',
     consumo_medio_km_litro: '10',
+    min_antes_saida_base: '',
+    horario_saida_base: '',
     selectedProfiles: [] as string[],
   });
 
@@ -205,6 +207,8 @@ export default function AdminEvents() {
       equipe_minima: 2,
       valor_litro_combustivel: '',
       consumo_medio_km_litro: '10',
+      min_antes_saida_base: '',
+      horario_saida_base: '',
       selectedProfiles: [],
     });
     setEditingEvent(null);
@@ -213,7 +217,7 @@ export default function AdminEvents() {
   const openEditDialog = (event: Event) => {
     setEditingEvent(event);
     const fetchEventDetails = async () => {
-      const { data } = await supabase.from('events').select('user_id, base_id').eq('id', event.id).single();
+      const { data } = await supabase.from('events').select('user_id, base_id, min_antes_saida_base, horario_saida_base').eq('id', event.id).single();
       setFormData({
         nome_evento: event.nome_evento,
         data_inicio: isoToLocalDatetime(event.data_inicio),
@@ -226,6 +230,8 @@ export default function AdminEvents() {
         equipe_minima: event.equipe_minima || 2,
         valor_litro_combustivel: event.valor_litro_combustivel?.toString() || '',
         consumo_medio_km_litro: event.consumo_medio_km_litro?.toString() || '10',
+        min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || '',
+        horario_saida_base: (data as any)?.horario_saida_base ? isoToLocalDatetime((data as any).horario_saida_base) : '',
         selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
       });
     };
@@ -293,6 +299,8 @@ export default function AdminEvents() {
       equipe_minima: formData.equipe_minima,
       valor_litro_combustivel: formData.valor_litro_combustivel ? parseFloat(formData.valor_litro_combustivel) : null,
       consumo_medio_km_litro: formData.consumo_medio_km_litro ? parseFloat(formData.consumo_medio_km_litro) : 10,
+      min_antes_saida_base: formData.min_antes_saida_base ? parseInt(formData.min_antes_saida_base) : null,
+      horario_saida_base: formData.horario_saida_base ? localDatetimeToISO(formData.horario_saida_base) : null,
     };
 
     let eventId: string;
@@ -616,6 +624,39 @@ export default function AdminEvents() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Usado para calcular o custo estimado de combustível com base na quilometragem
+                </p>
+              </div>
+
+              {/* Saída da Base */}
+              <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Saída da Base
+                </Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Horário de Saída da Base</Label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.horario_saida_base}
+                      onChange={(e) => setFormData(prev => ({ ...prev, horario_saida_base: e.target.value }))}
+                      className="input-touch"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Min. antes p/ Check-in</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={formData.min_antes_saida_base}
+                      onChange={(e) => setFormData(prev => ({ ...prev, min_antes_saida_base: e.target.value }))}
+                      placeholder="Ex: 30"
+                      className="input-touch"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Profissionais só poderão fazer check-in dentro do período configurado antes do horário de saída da base
                 </p>
               </div>
 
