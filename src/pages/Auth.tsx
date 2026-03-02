@@ -1,12 +1,12 @@
-import { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { Ambulance } from 'lucide-react';
+import { useState, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Ambulance } from "lucide-react";
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 30;
@@ -17,8 +17,8 @@ export default function Auth() {
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
   const failCount = useRef(0);
@@ -56,23 +56,21 @@ export default function Auth() {
       if (failCount.current >= MAX_ATTEMPTS) {
         startLockout();
         toast({
-          title: 'Muitas tentativas',
+          title: "Muitas tentativas",
           description: `Aguarde ${LOCKOUT_SECONDS} segundos antes de tentar novamente.`,
-          variant: 'destructive',
+          variant: "destructive",
         });
       } else {
         toast({
-          title: 'Erro ao entrar',
-          description: error.message === 'Invalid login credentials'
-            ? 'Email ou senha incorretos'
-            : error.message,
-          variant: 'destructive',
+          title: "Erro ao entrar",
+          description: error.message === "Invalid login credentials" ? "Email ou senha incorretos" : error.message,
+          variant: "destructive",
         });
       }
     } else {
       failCount.current = 0;
-      toast({ title: 'Bem-vindo!', description: 'Login realizado com sucesso.' });
-      navigate('/');
+      toast({ title: "Bem-vindo!", description: "Login realizado com sucesso." });
+      navigate("/");
     }
 
     setIsLoading(false);
@@ -85,9 +83,9 @@ export default function Auth() {
           <div className="mx-auto mb-4 w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg">
             <Ambulance className="w-8 h-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold text-foreground">EBIP Eventos</CardTitle>
+          <CardTitle className="text-2xl font-bold text-foreground">EBIP EVENTOS</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Sistema de Gestão de Atendimento Pré-Hospitalar
+            Sistema de Gestão de Atendimento Pré-Hospitalar em eventos
           </CardDescription>
         </CardHeader>
 
@@ -125,11 +123,7 @@ export default function Auth() {
             )}
 
             <Button type="submit" className="w-full btn-touch" disabled={isLoading || isLockedOut}>
-              {isLockedOut
-                ? `Aguarde ${lockoutRemaining}s`
-                : isLoading
-                  ? 'Entrando...'
-                  : 'Entrar'}
+              {isLockedOut ? `Aguarde ${lockoutRemaining}s` : isLoading ? "Entrando..." : "Entrar"}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground mt-4">
