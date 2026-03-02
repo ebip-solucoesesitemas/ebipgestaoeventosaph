@@ -94,7 +94,7 @@ export default function BaseEvents() {
       supabase.from('bases').select('id, nome, sigla').eq('id', baseId).single(),
       supabase.from('events').select('*, vehicles(*)').eq('base_id', baseId).order('data_inicio', { ascending: false }),
       supabase.from('vehicles').select('*').order('prefixo'),
-      supabase.from('vehicles').select('*').neq('status', 'manutencao'),
+      supabase.from('vehicles').select('*').eq('base_id', baseId).neq('status', 'manutencao'),
       supabase.from('profiles').select('id, nome, especialidade').order('nome'),
       supabase.from('clients').select('id, nome, endereco').order('nome'),
     ]);
