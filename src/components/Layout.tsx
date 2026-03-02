@@ -1,7 +1,7 @@
-import { ReactNode } from 'react';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/AppSidebar';
-import { Ambulance } from 'lucide-react';
+import { ReactNode } from "react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { Ambulance } from "lucide-react";
 
 interface LayoutProps {
   children: ReactNode;
@@ -18,7 +18,7 @@ export default function Layout({ children }: LayoutProps) {
             <SidebarTrigger />
             <div className="flex items-center gap-2 md:hidden">
               <Ambulance className="w-5 h-5 text-primary" />
-              <span className="text-sm font-semibold text-foreground">EBIP Eventos</span>
+              <span className="text-sm font-semibold text-foreground">EBIP EVENTOS</span>
             </div>
           </header>
           <main className="flex-1 p-4 md:p-6">{children}</main>
