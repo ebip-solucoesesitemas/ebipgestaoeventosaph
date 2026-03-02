@@ -27,6 +27,8 @@ interface Event {
   consumo_medio_km_litro: number | null;
   km_inicial: number | null;
   km_final: number | null;
+  min_antes_saida_base: number | null;
+  horario_saida_base: string | null;
   vehicles?: { prefixo: string; modelo: string };
 }
 
@@ -459,6 +461,8 @@ export default function EventDetail() {
                 eventName={event.nome_evento}
                 onUpdate={fetchData}
                 checkoutEnabled={canCheckout}
+                horarioSaidaBase={event.horario_saida_base}
+                minAntesSaidaBase={event.min_antes_saida_base}
               />
             ))
           )}

@@ -24,13 +24,42 @@ interface TeamMemberCheckinProps {
   eventName: string;
   onUpdate: () => void;
   checkoutEnabled?: boolean;
+  horarioSaidaBase?: string | null;
+  minAntesSaidaBase?: number | null;
 }
 
-export default function TeamMemberCheckin({ member, eventName, onUpdate, checkoutEnabled = false }: TeamMemberCheckinProps) {
+export default function TeamMemberCheckin({ member, eventName, onUpdate, checkoutEnabled = false, horarioSaidaBase, minAntesSaidaBase }: TeamMemberCheckinProps) {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const isCheckinWindowOpen = () => {
+    if (!horarioSaidaBase || !minAntesSaidaBase) return true; // No restriction configured
+    const saida = new Date(horarioSaidaBase);
+    const windowStart = new Date(saida.getTime() - minAntesSaidaBase * 60 * 1000);
+    const now = new Date();
+    return now >= windowStart && now <= saida;
+  };
+
+  const getCheckinWindowMessage = () => {
+    if (!horarioSaidaBase || !minAntesSaidaBase) return null;
+    const saida = new Date(horarioSaidaBase);
+    const windowStart = new Date(saida.getTime() - minAntesSaidaBase * 60 * 1000);
+    const now = new Date();
+    if (now < windowStart) {
+      return `Check-in disponível a partir de ${format(windowStart, "HH:mm", { locale: ptBR })} (${minAntesSaidaBase}min antes da saída às ${format(saida, "HH:mm", { locale: ptBR })})`;
+    }
+    if (now > saida) {
+      return `Horário de saída da base (${format(saida, "HH:mm", { locale: ptBR })}) já passou`;
+    }
+    return null;
+  };
+
   const handleCheckin = async () => {
+    if (!isCheckinWindowOpen()) {
+      const msg = getCheckinWindowMessage();
+      toast({ title: 'Check-in fora do horário permitido', description: msg || undefined, variant: 'destructive' });
+      return;
+    }
     setIsProcessing(true);
     const { data, error } = await (supabase.rpc as any)('handle_team_checkin', {
       p_assignment_id: member.id,
@@ -128,19 +157,26 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
       {!member.checkout_at && (
         <>
           {!member.checkin_at ? (
-            <Button
-              onClick={handleCheckin}
-              disabled={isProcessing}
-              size="sm"
-              className="w-full"
-            >
-              {isProcessing ? 'Processando...' : (
-                <>
-                  <LogIn className="w-4 h-4 mr-1" />
-                  Fazer Check-in
-                </>
+            <>
+              <Button
+                onClick={handleCheckin}
+                disabled={isProcessing || !isCheckinWindowOpen()}
+                size="sm"
+                className="w-full"
+              >
+                {isProcessing ? 'Processando...' : (
+                  <>
+                    <LogIn className="w-4 h-4 mr-1" />
+                    Fazer Check-in
+                  </>
+                )}
+              </Button>
+              {!isCheckinWindowOpen() && getCheckinWindowMessage() && (
+                <p className="text-xs text-warning text-center">
+                  {getCheckinWindowMessage()}
+                </p>
               )}
-            </Button>
+            </>
           ) : (
             <Button
               onClick={handleCheckout}
