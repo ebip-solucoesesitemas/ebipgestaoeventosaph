@@ -1002,6 +1002,7 @@ export type Database = {
         | "Técnico"
         | "Socorrista"
         | "Gestor"
+        | "admin"
       forma_cobranca:
         | "boleto"
         | "pix"
@@ -1162,6 +1163,7 @@ export const Constants = {
         "Técnico",
         "Socorrista",
         "Gestor",
+        "admin",
       ],
       forma_cobranca: [
         "boleto",
