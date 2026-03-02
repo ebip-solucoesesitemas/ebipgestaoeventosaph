@@ -1,0 +1,1 @@
+ALTER TYPE public.especialidade_tipo RENAME VALUE 'admin' TO 'Administrador';
