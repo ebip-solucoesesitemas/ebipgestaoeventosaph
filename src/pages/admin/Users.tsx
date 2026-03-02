@@ -1,32 +1,13 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,13 +17,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Shield, Users as UsersIcon, Edit } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import type { Database } from '@/integrations/supabase/types';
+} from "@/components/ui/alert-dialog";
+import { Plus, Trash2, Shield, Users as UsersIcon, Edit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
 
-type EspecialidadeTipo = Database['public']['Enums']['especialidade_tipo'];
-type CargoTipo = Database['public']['Enums']['cargo_tipo'];
+type EspecialidadeTipo = Database["public"]["Enums"]["especialidade_tipo"];
+type CargoTipo = Database["public"]["Enums"]["cargo_tipo"];
 
 interface UserProfile {
   id: string;
@@ -55,7 +36,7 @@ interface UserProfile {
   bases: { sigla: string; nome: string } | null;
 }
 
-const especialidades: EspecialidadeTipo[] = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'Gestor'];
+const especialidades: EspecialidadeTipo[] = ["Médico", "Enfermeiro", "Técnico", "Socorrista", "Gestor", "Admin"];
 
 export default function AdminUsers() {
   const { toast } = useToast();
@@ -64,17 +45,25 @@ export default function AdminUsers() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [form, setForm] = useState({
-    nome: '',
-    email: '',
-    password: '',
-    cargo: 'equipe' as CargoTipo,
-    especialidade: 'Socorrista' as EspecialidadeTipo,
-    registro_profissional: '',
-    base_id: '',
+    nome: "",
+    email: "",
+    password: "",
+    cargo: "equipe" as CargoTipo,
+    especialidade: "Socorrista" as EspecialidadeTipo,
+    registro_profissional: "",
+    base_id: "",
   });
 
   const resetForm = () => {
-    setForm({ nome: '', email: '', password: '', cargo: 'equipe', especialidade: 'Socorrista', registro_profissional: '', base_id: '' });
+    setForm({
+      nome: "",
+      email: "",
+      password: "",
+      cargo: "equipe",
+      especialidade: "Socorrista",
+      registro_profissional: "",
+      base_id: "",
+    });
     setEditingUser(null);
   };
 
@@ -82,33 +71,33 @@ export default function AdminUsers() {
     setEditingUser(user);
     setForm({
       nome: user.nome,
-      email: '',
-      password: '',
+      email: "",
+      password: "",
       cargo: user.cargo,
       especialidade: user.especialidade,
       registro_profissional: user.registro_profissional,
-      base_id: user.base_id || '',
+      base_id: user.base_id || "",
     });
     setOpen(true);
   };
 
   const { data: bases = [] } = useQuery({
-    queryKey: ['bases-list'],
+    queryKey: ["bases-list"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('bases').select('id, sigla, nome').order('sigla');
+      const { data, error } = await supabase.from("bases").select("id, sigla, nome").order("sigla");
       if (error) throw error;
       return data;
     },
   });
 
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ['admin-users'],
+    queryKey: ["admin-users"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*, bases(sigla, nome)')
-        .not('user_id', 'is', null)
-        .order('nome');
+        .from("profiles")
+        .select("*, bases(sigla, nome)")
+        .not("user_id", "is", null)
+        .order("nome");
       if (error) throw error;
       return data as UserProfile[];
     },
@@ -116,10 +105,12 @@ export default function AdminUsers() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Não autenticado');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
 
-      const res = await supabase.functions.invoke('create-user', {
+      const res = await supabase.functions.invoke("create-user", {
         body: {
           email: form.email.trim(),
           password: form.password,
@@ -138,19 +129,19 @@ export default function AdminUsers() {
       return res.data;
     },
     onSuccess: () => {
-      toast({ title: 'Usuário criado com sucesso' });
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast({ title: "Usuário criado com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       setOpen(false);
       resetForm();
     },
     onError: (err: Error) => {
-      toast({ title: 'Erro ao criar usuário', description: err.message, variant: 'destructive' });
+      toast({ title: "Erro ao criar usuário", description: err.message, variant: "destructive" });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async () => {
-      if (!editingUser) throw new Error('Nenhum usuário selecionado');
+      if (!editingUser) throw new Error("Nenhum usuário selecionado");
 
       const payload: Record<string, unknown> = {
         nome: form.nome.trim(),
@@ -160,35 +151,34 @@ export default function AdminUsers() {
         base_id: form.base_id || null,
       };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(payload)
-        .eq('id', editingUser.id);
+      const { error } = await supabase.from("profiles").update(payload).eq("id", editingUser.id);
 
       if (error) throw new Error(error.message);
 
       // Update role if cargo changed
       if (editingUser.cargo !== form.cargo && editingUser.user_id) {
-        await (supabase.rpc as any)('toggle_user_role', { p_profile_id: editingUser.id });
+        await (supabase.rpc as any)("toggle_user_role", { p_profile_id: editingUser.id });
       }
     },
     onSuccess: () => {
-      toast({ title: 'Usuário atualizado com sucesso' });
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast({ title: "Usuário atualizado com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       setOpen(false);
       resetForm();
     },
     onError: (err: Error) => {
-      toast({ title: 'Erro ao atualizar', description: err.message, variant: 'destructive' });
+      toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (profileId: string) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Não autenticado');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
 
-      const res = await supabase.functions.invoke('delete-user', {
+      const res = await supabase.functions.invoke("delete-user", {
         body: { profileId },
       });
 
@@ -197,12 +187,12 @@ export default function AdminUsers() {
       return res.data;
     },
     onSuccess: () => {
-      toast({ title: 'Usuário excluído' });
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast({ title: "Usuário excluído" });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       setDeleteId(null);
     },
     onError: (err: Error) => {
-      toast({ title: 'Erro ao excluir', description: err.message, variant: 'destructive' });
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
       setDeleteId(null);
     },
   });
@@ -231,36 +221,60 @@ export default function AdminUsers() {
           <p className="text-muted-foreground text-sm">Gerencie contas com acesso ao sistema</p>
         </div>
 
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
+        <Dialog
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o);
+            if (!o) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" /> Novo Usuário</Button>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" /> Novo Usuário
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingUser ? 'Editar Usuário' : 'Cadastrar Usuário'}</DialogTitle>
+              <DialogTitle>{editingUser ? "Editar Usuário" : "Cadastrar Usuário"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-1.5">
                 <Label>Nome completo *</Label>
-                <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} maxLength={100} />
+                <Input
+                  value={form.nome}
+                  onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
+                  maxLength={100}
+                />
               </div>
               {!editingUser && (
                 <>
                   <div className="space-y-1.5">
                     <Label>Email *</Label>
-                    <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} maxLength={255} />
+                    <Input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                      maxLength={255}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Senha * (mín. 6 caracteres)</Label>
-                    <Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} maxLength={72} />
+                    <Input
+                      type="password"
+                      value={form.password}
+                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                      maxLength={72}
+                    />
                   </div>
                 </>
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Cargo *</Label>
-                  <Select value={form.cargo} onValueChange={(v: CargoTipo) => setForm(f => ({ ...f, cargo: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select value={form.cargo} onValueChange={(v: CargoTipo) => setForm((f) => ({ ...f, cargo: v }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="equipe">Equipe</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
@@ -269,10 +283,19 @@ export default function AdminUsers() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Especialidade *</Label>
-                  <Select value={form.especialidade} onValueChange={(v: EspecialidadeTipo) => setForm(f => ({ ...f, especialidade: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select
+                    value={form.especialidade}
+                    onValueChange={(v: EspecialidadeTipo) => setForm((f) => ({ ...f, especialidade: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      {especialidades.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                      {especialidades.map((e) => (
+                        <SelectItem key={e} value={e}>
+                          {e}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -280,20 +303,30 @@ export default function AdminUsers() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Registro Profissional *</Label>
-                  <Input value={form.registro_profissional} onChange={e => setForm(f => ({ ...f, registro_profissional: e.target.value }))} maxLength={50} />
+                  <Input
+                    value={form.registro_profissional}
+                    onChange={(e) => setForm((f) => ({ ...f, registro_profissional: e.target.value }))}
+                    maxLength={50}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Base</Label>
-                  <Select value={form.base_id} onValueChange={(v) => setForm(f => ({ ...f, base_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <Select value={form.base_id} onValueChange={(v) => setForm((f) => ({ ...f, base_id: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
                     <SelectContent>
-                      {bases.map(b => <SelectItem key={b.id} value={b.id}>{b.sigla} - {b.nome}</SelectItem>)}
+                      {bases.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.sigla} - {b.nome}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <Button className="w-full" disabled={!isFormValid || isPending} onClick={handleSubmit}>
-                {isPending ? 'Processando...' : editingUser ? 'Salvar Alterações' : 'Cadastrar'}
+                {isPending ? "Processando..." : editingUser ? "Salvar Alterações" : "Cadastrar"}
               </Button>
             </div>
           </DialogContent>
@@ -318,16 +351,16 @@ export default function AdminUsers() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map(u => (
+              {users.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.nome}</TableCell>
-                  <TableCell>{u.bases?.sigla || '—'}</TableCell>
+                  <TableCell>{u.bases?.sigla || "—"}</TableCell>
                   <TableCell>{u.especialidade}</TableCell>
                   <TableCell>{u.registro_profissional}</TableCell>
                   <TableCell>
-                    <Badge variant={u.cargo === 'admin' ? 'default' : 'secondary'} className="gap-1">
-                      {u.cargo === 'admin' && <Shield className="h-3 w-3" />}
-                      {u.cargo === 'admin' ? 'Admin' : 'Equipe'}
+                    <Badge variant={u.cargo === "admin" ? "default" : "secondary"} className="gap-1">
+                      {u.cargo === "admin" && <Shield className="h-3 w-3" />}
+                      {u.cargo === "admin" ? "Admin" : "Equipe"}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -347,7 +380,7 @@ export default function AdminUsers() {
         </div>
       )}
 
-      <AlertDialog open={!!deleteId} onOpenChange={o => !o && setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
@@ -357,8 +390,11 @@ export default function AdminUsers() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteId && deleteMutation.mutate(deleteId)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
+            <AlertDialogAction
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
