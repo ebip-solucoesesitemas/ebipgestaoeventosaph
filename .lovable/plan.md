@@ -1,92 +1,38 @@
 
 
-# Plano de Segurança — Ajustes Adicionais
+# Revisão das Variáveis de Contrato
 
-## 1. Service Role Key — Status: SEGURA
+## Situação Atual
 
-A chave `SUPABASE_SERVICE_ROLE_KEY` **não está exposta no frontend**. O cliente usa apenas `VITE_SUPABASE_PUBLISHABLE_KEY` (anon key). A service role key existe apenas nos secrets do backend, acessível somente pelas edge functions. Nenhuma ação necessária.
+As variáveis disponíveis nos modelos de contrato cobrem apenas dados básicos do cliente e datas. Faltam variáveis importantes do contexto do negócio (orçamento, evento, base, valores por hora, etc.).
 
-## 2. Tabela de Auditoria (`audit_logs`)
+## Variáveis Atuais (10)
+`CLIENTE_NOME`, `CLIENTE_DOCUMENTO`, `CLIENTE_EMAIL`, `CLIENTE_TELEFONE`, `CLIENTE_ENDERECO`, `CLIENTE_CEP`, `VALOR_CONTRATO`, `DATA_INICIO`, `DATA_FIM`, `DATA_ATUAL`
 
-### 2.1 Migration SQL
+## Novas Variáveis a Adicionar (8)
 
-Criar tabela `audit_logs` com RLS restrito a admins:
+| Variável | Descrição |
+|---|---|
+| `{{VALOR_HORA}}` | Valor por hora (R$) |
+| `{{QUANTIDADE_HORAS}}` | Quantidade de horas contratadas |
+| `{{VALOR_TOTAL}}` | Valor total (hora × quantidade) |
+| `{{TIPO_UNIDADE}}` | Tipo de unidade (USB, USA, etc.) |
+| `{{FORMA_COBRANCA}}` | Forma de cobrança (Empenho, PIX, etc.) |
+| `{{NOME_EVENTO}}` | Nome do evento vinculado |
+| `{{ENDERECO_EVENTO}}` | Endereço do evento |
+| `{{BASE_NOME}}` | Nome da base operacional |
 
-```text
-audit_logs
-├── id (uuid, PK)
-├── user_id (uuid, NOT NULL) — quem executou a ação
-├── action (text, NOT NULL) — ex: "create_user", "delete_user", "change_role"
-├── target_id (text) — ID do recurso afetado
-├── details (jsonb) — dados extras (role anterior, novo cargo, etc.)
-├── created_at (timestamptz, default now())
-```
+## Alterações
 
-RLS: SELECT somente para admins (`is_admin()`). INSERT via `SECURITY DEFINER` function para que edge functions possam gravar sem expor acesso direto.
+### 1. `ContractTemplates.tsx` — Atualizar lista PLACEHOLDERS
+Adicionar as 8 novas variáveis na lista de badges clicáveis, organizadas em categorias visuais (Cliente, Financeiro, Evento).
 
-### 2.2 Função `log_audit_event`
+### 2. `GenerateContractDialog.tsx` — Atualizar `replacePlaceholders`
+- Adicionar campos de input para `valor_hora`, `quantidade_horas`, `tipo_unidade`, `forma_cobranca`
+- Adicionar selects para evento e base (opcionais)
+- Expandir a função `replacePlaceholders` para substituir as novas variáveis
+- Calcular `VALOR_TOTAL` automaticamente (valor_hora × quantidade_horas)
 
-```text
-log_audit_event(p_user_id uuid, p_action text, p_target_id text, p_details jsonb)
-```
-
-Function `SECURITY DEFINER` que insere na tabela `audit_logs`. Será chamada pelas edge functions.
-
-### 2.3 Edge Functions — Adicionar logs
-
-Atualizar `create-user/index.ts`:
-- Após criação bem-sucedida, chamar `log_audit_event` com action `create_user`
-
-Atualizar `delete-user/index.ts`:
-- Após exclusão, chamar `log_audit_event` com action `delete_user`
-
-Atualizar `toggle_user_role` (DB function):
-- Adicionar chamada a `log_audit_event` com action `change_role` e details contendo cargo anterior e novo
-
-### 2.4 Página Admin — Visualizar Logs
-
-Criar página `/admin/audit-logs` com tabela mostrando: data, quem fez, ação, alvo, detalhes. Adicionar link no sidebar.
-
-## 3. Remoção de Edge Functions Perigosas
-
-- Deletar `supabase/functions/debug-data/index.ts` (expõe todos os perfis sem autenticação)
-- Deletar `supabase/functions/seed-demo/index.ts` (apaga dados sem autenticação)
-- Adicionar verificação de admin em `bootstrap-admin` ou removê-la
-
-## 4. Correções de RLS (da auditoria anterior)
-
-- Restringir `clients` SELECT para admins apenas
-- Restringir `client_payments` SELECT para admins apenas
-
-## 5. CORS — Restringir domínios
-
-Trocar `Access-Control-Allow-Origin: "*"` nas edge functions por:
-```text
-const allowedOrigins = [
-  "https://aphaid-quickcare.lovable.app",
-  "https://id-preview--2200ae23-748b-4d29-98e8-fc570ecea26b.lovable.app"
-];
-```
-
-## 6. Rate Limiting no Login
-
-Adicionar contador de tentativas no frontend (`Auth.tsx`):
-- Após 5 falhas consecutivas, bloquear por 30 segundos
-- Mostrar mensagem de "Muitas tentativas, aguarde"
-
-## 7. Validação de Input nas Edge Functions
-
-- `create-user`: validar email (regex), senha (6-72 chars), nome (max 100)
-- `delete-user`: validar UUID format do profileId
-
-## Ordem de Implementação
-
-1. Criar tabela `audit_logs` + função `log_audit_event` (migration)
-2. Deletar `debug-data` e `seed-demo`
-3. Atualizar edge functions com logs de auditoria e CORS restrito
-4. Corrigir RLS de `clients` e `client_payments`
-5. Adicionar rate limiting no login
-6. Adicionar validação de inputs
-7. Criar página de visualização de audit logs
-8. Atualizar `bootstrap-admin` com proteção
+### 3. Sem alterações no banco de dados
+Todas as novas variáveis são preenchidas no momento da geração do contrato a partir de dados já existentes no sistema.
 
