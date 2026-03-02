@@ -36,7 +36,7 @@ interface UserProfile {
   bases: { sigla: string; nome: string } | null;
 }
 
-const especialidades: EspecialidadeTipo[] = ["Médico", "Enfermeiro", "Técnico", "Socorrista", "Gestor"];
+const especialidades: EspecialidadeTipo[] = ["Médico", "Enfermeiro", "Técnico", "Socorrista", "Gestor", "admin"];
 
 export default function AdminUsers() {
   const { toast } = useToast();
