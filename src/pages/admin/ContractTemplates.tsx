@@ -25,17 +25,40 @@ interface ContractTemplate {
   updated_at: string;
 }
 
-const PLACEHOLDERS = [
-  { tag: '{{CLIENTE_NOME}}', desc: 'Nome/Razão Social do cliente' },
-  { tag: '{{CLIENTE_DOCUMENTO}}', desc: 'CNPJ/CPF do cliente' },
-  { tag: '{{CLIENTE_EMAIL}}', desc: 'Email do cliente' },
-  { tag: '{{CLIENTE_TELEFONE}}', desc: 'Telefone do cliente' },
-  { tag: '{{CLIENTE_ENDERECO}}', desc: 'Endereço do cliente' },
-  { tag: '{{CLIENTE_CEP}}', desc: 'CEP do cliente' },
-  { tag: '{{VALOR_CONTRATO}}', desc: 'Valor do contrato' },
-  { tag: '{{DATA_INICIO}}', desc: 'Data de início' },
-  { tag: '{{DATA_FIM}}', desc: 'Data de término' },
-  { tag: '{{DATA_ATUAL}}', desc: 'Data atual da geração' },
+const PLACEHOLDER_GROUPS = [
+  {
+    label: 'Cliente',
+    items: [
+      { tag: '{{CLIENTE_NOME}}', desc: 'Nome/Razão Social do cliente' },
+      { tag: '{{CLIENTE_DOCUMENTO}}', desc: 'CNPJ/CPF do cliente' },
+      { tag: '{{CLIENTE_EMAIL}}', desc: 'Email do cliente' },
+      { tag: '{{CLIENTE_TELEFONE}}', desc: 'Telefone do cliente' },
+      { tag: '{{CLIENTE_ENDERECO}}', desc: 'Endereço do cliente' },
+      { tag: '{{CLIENTE_CEP}}', desc: 'CEP do cliente' },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    items: [
+      { tag: '{{VALOR_CONTRATO}}', desc: 'Valor do contrato' },
+      { tag: '{{VALOR_HORA}}', desc: 'Valor por hora (R$)' },
+      { tag: '{{QUANTIDADE_HORAS}}', desc: 'Quantidade de horas contratadas' },
+      { tag: '{{VALOR_TOTAL}}', desc: 'Valor total (hora × quantidade)' },
+      { tag: '{{FORMA_COBRANCA}}', desc: 'Forma de cobrança' },
+    ],
+  },
+  {
+    label: 'Evento / Operação',
+    items: [
+      { tag: '{{NOME_EVENTO}}', desc: 'Nome do evento vinculado' },
+      { tag: '{{ENDERECO_EVENTO}}', desc: 'Endereço do evento' },
+      { tag: '{{BASE_NOME}}', desc: 'Nome da base operacional' },
+      { tag: '{{TIPO_UNIDADE}}', desc: 'Tipo de unidade (USB, USA, etc.)' },
+      { tag: '{{DATA_INICIO}}', desc: 'Data de início' },
+      { tag: '{{DATA_FIM}}', desc: 'Data de término' },
+      { tag: '{{DATA_ATUAL}}', desc: 'Data atual da geração' },
+    ],
+  },
 ];
 
 export default function ContractTemplates() {
@@ -183,20 +206,25 @@ export default function ContractTemplates() {
                     Variáveis disponíveis (clique para inserir)
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-3">
-                  <div className="flex flex-wrap gap-1.5">
-                    {PLACEHOLDERS.map((p) => (
-                      <Badge
-                        key={p.tag}
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors text-xs"
-                        onClick={() => insertPlaceholder(p.tag)}
-                        title={p.desc}
-                      >
-                        {p.tag}
-                      </Badge>
-                    ))}
-                  </div>
+                <CardContent className="px-4 pb-3 space-y-3">
+                  {PLACEHOLDER_GROUPS.map((group) => (
+                    <div key={group.label}>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">{group.label}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {group.items.map((p) => (
+                          <Badge
+                            key={p.tag}
+                            variant="secondary"
+                            className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors text-xs"
+                            onClick={() => insertPlaceholder(p.tag)}
+                            title={p.desc}
+                          >
+                            {p.tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
