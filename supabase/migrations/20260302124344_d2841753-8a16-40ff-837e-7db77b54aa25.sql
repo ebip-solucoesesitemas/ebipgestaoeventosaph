@@ -1,0 +1,1 @@
+ALTER TYPE public.especialidade_tipo ADD VALUE IF NOT EXISTS 'admin';
