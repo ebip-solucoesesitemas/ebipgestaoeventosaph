@@ -110,7 +110,7 @@ export function AppSidebar() {
             <Ambulance className="w-5 h-5 text-sidebar-accent-foreground" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm font-bold text-sidebar-foreground truncate">APH System</h1>
+            <h1 className="text-sm font-bold text-sidebar-foreground truncate">EBIP Eventos</h1>
             <p className="text-xs text-sidebar-foreground/60">Gestão Pré-Hospitalar</p>
           </div>
         </div>
