@@ -996,7 +996,12 @@ export type Database = {
         | "hospedagem"
         | "transporte"
         | "outros"
-      especialidade_tipo: "Médico" | "Enfermeiro" | "Técnico" | "Socorrista"
+      especialidade_tipo:
+        | "Médico"
+        | "Enfermeiro"
+        | "Técnico"
+        | "Socorrista"
+        | "Gestor"
       forma_cobranca:
         | "boleto"
         | "pix"
@@ -1151,7 +1156,13 @@ export const Constants = {
         "transporte",
         "outros",
       ],
-      especialidade_tipo: ["Médico", "Enfermeiro", "Técnico", "Socorrista"],
+      especialidade_tipo: [
+        "Médico",
+        "Enfermeiro",
+        "Técnico",
+        "Socorrista",
+        "Gestor",
+      ],
       forma_cobranca: [
         "boleto",
         "pix",
