@@ -85,7 +85,7 @@ export default function Auth() {
           <div className="mx-auto mb-4 w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg">
             <Ambulance className="w-8 h-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold text-foreground">APH System</CardTitle>
+          <CardTitle className="text-2xl font-bold text-foreground">EBIP Eventos</CardTitle>
           <CardDescription className="text-muted-foreground">
             Sistema de Gestão de Atendimento Pré-Hospitalar
           </CardDescription>
