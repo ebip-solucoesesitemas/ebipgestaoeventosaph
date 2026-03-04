@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Button } from "@/components/uui/button";
+import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 
 interface EventData {
