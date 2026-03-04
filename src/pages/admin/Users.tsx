@@ -160,6 +160,7 @@ export default function AdminUsers() {
         registro_profissional: form.registro_profissional.trim(),
         cargo: form.cargo,
         base_id: form.base_id || null,
+        telefone: form.telefone.trim() || null,
       };
 
       const { error } = await supabase.from("profiles").update(payload).eq("id", editingUser.id);
