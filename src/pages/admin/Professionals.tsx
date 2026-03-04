@@ -29,6 +29,7 @@ interface Profile {
   registro_profissional: string;
   cargo: string;
   user_id: string | null;
+  telefone: string | null;
 }
 
 const especialidadeIcons: Record<string, typeof Stethoscope> = {
