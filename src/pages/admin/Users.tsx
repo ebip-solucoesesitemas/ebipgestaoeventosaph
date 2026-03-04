@@ -59,6 +59,7 @@ export default function AdminUsers() {
     especialidade: "Socorrista" as EspecialidadeTipo,
     registro_profissional: "",
     base_id: "",
+    telefone: "",
   });
 
   const resetForm = () => {
