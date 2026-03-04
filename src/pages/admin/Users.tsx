@@ -312,6 +312,16 @@ export default function AdminUsers() {
                   </Select>
                 </div>
               </div>
+              <div className="space-y-1.5">
+                <Label>Telefone</Label>
+                <Input
+                  type="tel"
+                  value={form.telefone}
+                  onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))}
+                  placeholder="(00) 00000-0000"
+                  maxLength={20}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Registro Profissional *</Label>
