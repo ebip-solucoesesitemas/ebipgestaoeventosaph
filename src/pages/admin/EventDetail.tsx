@@ -53,6 +53,7 @@ interface Assignment {
     id: string;
     nome: string;
     especialidade: string;
+    telefone: string | null;
   };
 }
 
