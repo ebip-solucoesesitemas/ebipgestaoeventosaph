@@ -27,6 +27,7 @@ import BaseVehicles from "./pages/admin/base/BaseVehicles";
 import BaseFinance from "./pages/admin/base/BaseFinance";
 import TeamEvents from "./pages/team/TeamEvents";
 import TeamEventDetail from "./pages/team/EventDetail";
+import EventReportPage from "./pages/EventReportPage";
 import NotFound from "./pages/NotFound";
 import Layout from "@/components/Layout";
 
@@ -79,6 +80,9 @@ const App = () => (
             {/* Team Routes */}
             <Route path="/events" element={<TeamLayout><TeamEvents /></TeamLayout>} />
             <Route path="/events/:id" element={<TeamLayout><TeamEventDetail /></TeamLayout>} />
+            
+            {/* Report Route (no layout) */}
+            <Route path="/evento/:id/relatorio" element={<EventReportPage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

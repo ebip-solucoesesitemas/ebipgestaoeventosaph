@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2, Key } from 'lucide-react';
+import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2, Key, Phone } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -29,6 +29,7 @@ interface Profile {
   registro_profissional: string;
   cargo: string;
   user_id: string | null;
+  telefone: string | null;
 }
 
 const especialidadeIcons: Record<string, typeof Stethoscope> = {
@@ -369,6 +370,11 @@ export default function AdminProfessionals() {
                   <p className="text-sm text-muted-foreground">
                     {profile.registro_profissional}
                   </p>
+                  {profile.telefone && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> {profile.telefone}
+                    </p>
+                  )}
                   <div className="flex items-center gap-2">
                     {profile.user_id ? (
                       <Badge variant="outline" className="text-xs">

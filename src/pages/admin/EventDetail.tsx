@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, Calendar, MapPin, Truck, Users, Clock, 
   CheckCircle2, AlertCircle, Fuel, FileText, DollarSign,
-  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save
+  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save, Printer, Phone
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -53,6 +53,7 @@ interface Assignment {
     id: string;
     nome: string;
     especialidade: string;
+    telefone: string | null;
   };
 }
 
@@ -121,7 +122,7 @@ export default function AdminEventDetail() {
     try {
       const [eventRes, assignmentsRes, attendancesRes, expensesRes] = await Promise.all([
         supabase.from('events').select('*, vehicles(*)').eq('id', id).single() as any,
-        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade)').eq('event_id', id),
+        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade, telefone)').eq('event_id', id),
         supabase.from('clinical_attendances').select('*, profiles:profissional_id(nome, especialidade)').eq('event_id', id).order('created_at'),
         supabase.from('event_expenses').select('*').eq('event_id', id).order('data_despesa'),
       ]);
@@ -282,6 +283,10 @@ export default function AdminEventDetail() {
             )}
           </div>
         </div>
+        <Button variant="outline" size="sm" className="gap-1 print-hide" onClick={() => window.open(`/evento/${event.id}/relatorio`, '_blank')}>
+          <Printer className="w-4 h-4" />
+          Relatório
+        </Button>
       </div>
 
       {/* Finalize Event Button (Admin) */}
@@ -432,6 +437,11 @@ export default function AdminEventDetail() {
                     <div>
                       <p className="font-medium">{a.profiles.nome}</p>
                       <p className="text-sm text-muted-foreground">{a.profiles.especialidade}</p>
+                      {a.profiles.telefone && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Phone className="w-3 h-3" /> {a.profiles.telefone}
+                        </p>
+                      )}
                     </div>
                     <Badge className={`gap-1 ${status.color}`}>
                       <StatusIcon className="w-3 h-3" />
