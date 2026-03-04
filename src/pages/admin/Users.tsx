@@ -129,6 +129,7 @@ export default function AdminUsers() {
             especialidade: form.especialidade,
             registro_profissional: form.registro_profissional.trim(),
             cargo: form.cargo,
+            telefone: form.telefone.trim() || null,
             ...(form.base_id ? { base_id: form.base_id } : {}),
           },
         },
