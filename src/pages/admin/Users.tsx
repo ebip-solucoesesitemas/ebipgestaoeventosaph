@@ -71,6 +71,7 @@ export default function AdminUsers() {
       especialidade: "Socorrista",
       registro_profissional: "",
       base_id: "",
+      telefone: "",
     });
     setEditingUser(null);
   };
