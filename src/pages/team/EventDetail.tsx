@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine, Gauge, Save, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine, Gauge, Save, CheckCircle2, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import APHForm from '@/components/APHForm';
@@ -211,6 +211,10 @@ export default function EventDetail() {
             </span>
           </div>
         </div>
+        <Button variant="outline" size="sm" className="gap-1" onClick={() => window.open(`/evento/${event.id}/relatorio`, '_blank')}>
+          <Printer className="w-4 h-4" />
+          Relatório
+        </Button>
       </div>
 
       {/* Info Cards */}

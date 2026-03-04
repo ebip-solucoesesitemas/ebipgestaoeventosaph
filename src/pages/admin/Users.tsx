@@ -59,6 +59,7 @@ export default function AdminUsers() {
     especialidade: "Socorrista" as EspecialidadeTipo,
     registro_profissional: "",
     base_id: "",
+    telefone: "",
   });
 
   const resetForm = () => {
@@ -70,6 +71,7 @@ export default function AdminUsers() {
       especialidade: "Socorrista",
       registro_profissional: "",
       base_id: "",
+      telefone: "",
     });
     setEditingUser(null);
   };
@@ -84,6 +86,7 @@ export default function AdminUsers() {
       especialidade: user.especialidade,
       registro_profissional: user.registro_profissional,
       base_id: user.base_id || "",
+      telefone: (user as any).telefone || "",
     });
     setOpen(true);
   };
@@ -126,6 +129,7 @@ export default function AdminUsers() {
             especialidade: form.especialidade,
             registro_profissional: form.registro_profissional.trim(),
             cargo: form.cargo,
+            telefone: form.telefone.trim() || null,
             ...(form.base_id ? { base_id: form.base_id } : {}),
           },
         },
@@ -156,6 +160,7 @@ export default function AdminUsers() {
         registro_profissional: form.registro_profissional.trim(),
         cargo: form.cargo,
         base_id: form.base_id || null,
+        telefone: form.telefone.trim() || null,
       };
 
       const { error } = await supabase.from("profiles").update(payload).eq("id", editingUser.id);
@@ -306,6 +311,16 @@ export default function AdminUsers() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Telefone</Label>
+                <Input
+                  type="tel"
+                  value={form.telefone}
+                  onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))}
+                  placeholder="(00) 00000-0000"
+                  maxLength={20}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">

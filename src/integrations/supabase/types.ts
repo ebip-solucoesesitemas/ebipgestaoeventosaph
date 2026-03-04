@@ -741,6 +741,7 @@ export type Database = {
           id: string
           nome: string
           registro_profissional: string
+          telefone: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -752,6 +753,7 @@ export type Database = {
           id?: string
           nome: string
           registro_profissional: string
+          telefone?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -763,6 +765,7 @@ export type Database = {
           id?: string
           nome?: string
           registro_profissional?: string
+          telefone?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
