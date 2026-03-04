@@ -86,6 +86,7 @@ export default function AdminUsers() {
       especialidade: user.especialidade,
       registro_profissional: user.registro_profissional,
       base_id: user.base_id || "",
+      telefone: (user as any).telefone || "",
     });
     setOpen(true);
   };
