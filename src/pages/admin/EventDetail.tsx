@@ -283,6 +283,10 @@ export default function AdminEventDetail() {
             )}
           </div>
         </div>
+        <Button variant="outline" size="sm" className="gap-1 print-hide" onClick={() => window.open(`/evento/${event.id}/relatorio`, '_blank')}>
+          <Printer className="w-4 h-4" />
+          Relatório
+        </Button>
       </div>
 
       {/* Finalize Event Button (Admin) */}
