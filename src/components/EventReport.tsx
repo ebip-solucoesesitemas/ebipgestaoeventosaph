@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
 
 interface EventData {
   id: string;
@@ -47,6 +47,9 @@ interface SignatureRecord {
 
 export default function EventReport() {
   const { id } = useParams<{ id: string }>();
+  useEffect(() => {
+    console.log("ID recebido da rota:", id);
+  }, [id]);
   const [event, setEvent] = useState<EventData | null>(null);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [client, setClient] = useState<ClientInfo | null>(null);
@@ -60,24 +63,13 @@ export default function EventReport() {
       setIsLoading(true);
 
       const [eventRes, teamRes, sigRes, budgetRes] = await Promise.all([
+        supabase.from("events").select("*, vehicles(prefixo, modelo, placa), bases(nome, sigla)").eq("id", id).single(),
         supabase
-          .from('events')
-          .select('*, vehicles(prefixo, modelo, placa), bases(nome, sigla)')
-          .eq('id', id)
-          .single(),
-        supabase
-          .from('event_assignments')
-          .select('id, checkin_at, checkout_at, profiles(nome, especialidade, registro_profissional, telefone)')
-          .eq('event_id', id),
-        supabase
-          .from('event_signatures')
-          .select('id, tipo, nome_responsavel, created_at')
-          .eq('event_id', id),
-        supabase
-          .from('event_budgets')
-          .select('*, clients(nome, telefone, endereco)')
-          .eq('event_id', id)
-          .limit(1),
+          .from("event_assignments")
+          .select("id, checkin_at, checkout_at, profiles(nome, especialidade, registro_profissional, telefone)")
+          .eq("event_id", id),
+        supabase.from("event_signatures").select("id, tipo, nome_responsavel, created_at").eq("event_id", id),
+        supabase.from("event_budgets").select("*, clients(nome, telefone, endereco)").eq("event_id", id).limit(1),
       ]);
 
       if (eventRes.data) setEvent(eventRes.data as unknown as EventData);
@@ -122,8 +114,8 @@ export default function EventReport() {
       ? event.km_final - event.km_inicial
       : null;
 
-  const arrivalSig = signatures.find(s => s.tipo === 'chegada');
-  const departureSig = signatures.find(s => s.tipo === 'saida');
+  const arrivalSig = signatures.find((s) => s.tipo === "chegada");
+  const departureSig = signatures.find((s) => s.tipo === "saida");
 
   return (
     <div className="report-page bg-white min-h-screen">
@@ -174,12 +166,14 @@ export default function EventReport() {
               )}
               <tr>
                 <td className="report-label">Status</td>
-                <td>{event.status === 'finalizado' ? 'Finalizado' : 'Em andamento'}</td>
+                <td>{event.status === "finalizado" ? "Finalizado" : "Em andamento"}</td>
               </tr>
               {event.bases && (
                 <tr>
                   <td className="report-label">Base</td>
-                  <td>{event.bases.sigla} — {event.bases.nome}</td>
+                  <td>
+                    {event.bases.sigla} — {event.bases.nome}
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -206,11 +200,11 @@ export default function EventReport() {
                 </tr>
                 <tr>
                   <td className="report-label">KM Inicial</td>
-                  <td>{event.km_inicial ?? '___________'}</td>
+                  <td>{event.km_inicial ?? "___________"}</td>
                 </tr>
                 <tr>
                   <td className="report-label">KM Final</td>
-                  <td>{event.km_final ?? '___________'}</td>
+                  <td>{event.km_final ?? "___________"}</td>
                 </tr>
                 {totalKm !== null && (
                   <tr>
@@ -273,12 +267,10 @@ export default function EventReport() {
                     <td className="report-td">{m.profiles.nome}</td>
                     <td className="report-td">{m.profiles.especialidade}</td>
                     <td className="report-td">{m.profiles.registro_profissional}</td>
-                    <td className="report-td">{m.profiles.telefone || '—'}</td>
+                    <td className="report-td">{m.profiles.telefone || "—"}</td>
+                    <td className="report-td">{m.checkin_at ? format(new Date(m.checkin_at), "HH:mm") : "___:___"}</td>
                     <td className="report-td">
-                      {m.checkin_at ? format(new Date(m.checkin_at), 'HH:mm') : '___:___'}
-                    </td>
-                    <td className="report-td">
-                      {m.checkout_at ? format(new Date(m.checkout_at), 'HH:mm') : '___:___'}
+                      {m.checkout_at ? format(new Date(m.checkout_at), "HH:mm") : "___:___"}
                     </td>
                   </tr>
                 ))}
@@ -294,15 +286,15 @@ export default function EventReport() {
             <div className="flex justify-between items-end">
               <div className="flex-1">
                 <p className="text-xs text-gray-600 mb-1">Nome do Responsável:</p>
-                <p className="border-b border-black pb-1 min-h-[24px]">
-                  {arrivalSig?.nome_responsavel || ''}
-                </p>
+                <p className="border-b border-black pb-1 min-h-[24px]">{arrivalSig?.nome_responsavel || ""}</p>
               </div>
               <div className="w-8" />
               <div className="flex-1">
                 <p className="text-xs text-gray-600 mb-1">Data/Hora:</p>
                 <p className="border-b border-black pb-1 min-h-[24px]">
-                  {arrivalSig ? format(new Date(arrivalSig.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '____/____/________ às ___:___'}
+                  {arrivalSig
+                    ? format(new Date(arrivalSig.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                    : "____/____/________ às ___:___"}
                 </p>
               </div>
             </div>
@@ -319,15 +311,15 @@ export default function EventReport() {
             <div className="flex justify-between items-end">
               <div className="flex-1">
                 <p className="text-xs text-gray-600 mb-1">Nome do Responsável:</p>
-                <p className="border-b border-black pb-1 min-h-[24px]">
-                  {departureSig?.nome_responsavel || ''}
-                </p>
+                <p className="border-b border-black pb-1 min-h-[24px]">{departureSig?.nome_responsavel || ""}</p>
               </div>
               <div className="w-8" />
               <div className="flex-1">
                 <p className="text-xs text-gray-600 mb-1">Data/Hora:</p>
                 <p className="border-b border-black pb-1 min-h-[24px]">
-                  {departureSig ? format(new Date(departureSig.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '____/____/________ às ___:___'}
+                  {departureSig
+                    ? format(new Date(departureSig.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                    : "____/____/________ às ___:___"}
                 </p>
               </div>
             </div>
