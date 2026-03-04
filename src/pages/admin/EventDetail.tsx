@@ -122,7 +122,7 @@ export default function AdminEventDetail() {
     try {
       const [eventRes, assignmentsRes, attendancesRes, expensesRes] = await Promise.all([
         supabase.from('events').select('*, vehicles(*)').eq('id', id).single() as any,
-        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade)').eq('event_id', id),
+        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade, telefone)').eq('event_id', id),
         supabase.from('clinical_attendances').select('*, profiles:profissional_id(nome, especialidade)').eq('event_id', id).order('created_at'),
         supabase.from('event_expenses').select('*').eq('event_id', id).order('data_despesa'),
       ]);
