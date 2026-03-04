@@ -437,6 +437,11 @@ export default function AdminEventDetail() {
                     <div>
                       <p className="font-medium">{a.profiles.nome}</p>
                       <p className="text-sm text-muted-foreground">{a.profiles.especialidade}</p>
+                      {a.profiles.telefone && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Phone className="w-3 h-3" /> {a.profiles.telefone}
+                        </p>
+                      )}
                     </div>
                     <Badge className={`gap-1 ${status.color}`}>
                       <StatusIcon className="w-3 h-3" />

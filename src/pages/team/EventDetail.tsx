@@ -211,6 +211,10 @@ export default function EventDetail() {
             </span>
           </div>
         </div>
+        <Button variant="outline" size="sm" className="gap-1" onClick={() => window.open(`/evento/${event.id}/relatorio`, '_blank')}>
+          <Printer className="w-4 h-4" />
+          Relatório
+        </Button>
       </div>
 
       {/* Info Cards */}

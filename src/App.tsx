@@ -81,6 +81,9 @@ const App = () => (
             <Route path="/events" element={<TeamLayout><TeamEvents /></TeamLayout>} />
             <Route path="/events/:id" element={<TeamLayout><TeamEventDetail /></TeamLayout>} />
             
+            {/* Report Route (no layout) */}
+            <Route path="/evento/:id/relatorio" element={<EventReportPage />} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
