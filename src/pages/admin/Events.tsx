@@ -116,6 +116,7 @@ export default function AdminEvents() {
     min_antes_saida_base: '',
     horario_saida_base: '',
     selectedProfiles: [] as string[],
+    client_id: '',
   });
 
   const fetchData = async () => {
