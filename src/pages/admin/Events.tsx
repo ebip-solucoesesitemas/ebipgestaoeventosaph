@@ -116,6 +116,7 @@ export default function AdminEvents() {
     min_antes_saida_base: '',
     horario_saida_base: '',
     selectedProfiles: [] as string[],
+    client_id: '',
   });
 
   const fetchData = async () => {
@@ -210,6 +211,7 @@ export default function AdminEvents() {
       min_antes_saida_base: '',
       horario_saida_base: '',
       selectedProfiles: [],
+      client_id: '',
     });
     setEditingEvent(null);
   };
@@ -217,7 +219,11 @@ export default function AdminEvents() {
   const openEditDialog = (event: Event) => {
     setEditingEvent(event);
     const fetchEventDetails = async () => {
-      const { data } = await supabase.from('events').select('user_id, base_id, min_antes_saida_base, horario_saida_base').eq('id', event.id).single();
+      const [eventRes, budgetRes] = await Promise.all([
+        supabase.from('events').select('user_id, base_id, min_antes_saida_base, horario_saida_base').eq('id', event.id).single(),
+        supabase.from('event_budgets').select('client_id').eq('event_id', event.id).maybeSingle(),
+      ]);
+      const data = eventRes.data;
       setFormData({
         nome_evento: event.nome_evento,
         data_inicio: isoToLocalDatetime(event.data_inicio),
@@ -233,6 +239,7 @@ export default function AdminEvents() {
         min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || '',
         horario_saida_base: (data as any)?.horario_saida_base ? isoToLocalDatetime((data as any).horario_saida_base) : '',
         selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
+        client_id: (budgetRes.data as any)?.client_id || '',
       });
     };
     fetchEventDetails();
@@ -501,7 +508,9 @@ export default function AdminEvents() {
               <div className="space-y-2">
                 <Label>Cliente</Label>
                 <Select
+                  value={formData.client_id || undefined}
                   onValueChange={(clientId) => {
+                    setFormData(prev => ({ ...prev, client_id: clientId }));
                     const client = clients.find(c => c.id === clientId);
                     if (client?.endereco) {
                       setFormData(prev => ({ ...prev, local: client.endereco! }));

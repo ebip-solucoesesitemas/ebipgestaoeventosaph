@@ -6,9 +6,9 @@ interface Profile {
   id: string;
   user_id: string;
   nome: string;
-  especialidade: "Médico" | "Enfermeiro" | "Técnico" | "Socorrista" | "Gestor";
+  especialidade: "Médico" | "Enfermeiro" | "Técnico" | "Socorrista" | "Gestor" | "Administrador";
   registro_profissional: string;
-  cargo: "admin" | "equipe";
+  cargo: "admin" | "equipe" | "gestor";
 }
 
 interface AuthContextType {
