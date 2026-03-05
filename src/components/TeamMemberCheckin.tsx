@@ -37,7 +37,7 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
     const saida = new Date(horarioSaidaBase);
     const windowStart = new Date(saida.getTime() - minAntesSaidaBase * 60 * 1000);
     const now = new Date();
-    return now >= windowStart && now <= saida;
+    return now >= windowStart;
   };
 
   const getCheckinWindowMessage = () => {
