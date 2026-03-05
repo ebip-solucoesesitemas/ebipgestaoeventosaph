@@ -52,18 +52,32 @@ export default function EventReport() {
   const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  // Wait for auth session to be restored from localStorage
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthReady(true);
+    });
+
+    // Also try getSession to handle already-restored sessions
+    supabase.auth.getSession().then(() => {
+      setAuthReady(true);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !authReady) return;
 
     const fetchAll = async () => {
       setIsLoading(true);
       setError(null);
 
-      // Check if user is authenticated
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setError("Você precisa estar autenticado para visualizar o relatório.");
+        setError("Você precisa estar autenticado para visualizar o relatório. Faça login e tente novamente.");
         setIsLoading(false);
         return;
       }
@@ -110,7 +124,7 @@ export default function EventReport() {
     };
 
     fetchAll();
-  }, [id]);
+  }, [id, authReady]);
 
   if (isLoading) {
     return (
