@@ -1,0 +1,1 @@
+ALTER TYPE public.cargo_tipo ADD VALUE IF NOT EXISTS 'gestor';
