@@ -381,9 +381,9 @@ export default function AdminUsers() {
                   <TableCell>{u.especialidade}</TableCell>
                   <TableCell>{u.registro_profissional}</TableCell>
                   <TableCell>
-                    <Badge variant={u.cargo === "admin" ? "default" : "secondary"} className="gap-1">
+                    <Badge variant={u.cargo === "admin" ? "default" : u.cargo === "gestor" ? "outline" : "secondary"} className="gap-1">
                       {u.cargo === "admin" && <Shield className="h-3 w-3" />}
-                      {u.cargo === "admin" ? "Admin" : "Equipe"}
+                      {u.cargo === "admin" ? "Admin" : u.cargo === "gestor" ? "Gestor" : "Equipe"}
                     </Badge>
                   </TableCell>
                   <TableCell>
