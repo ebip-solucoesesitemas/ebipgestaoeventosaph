@@ -990,7 +990,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "equipe"
-      cargo_tipo: "admin" | "equipe"
+      cargo_tipo: "admin" | "equipe" | "gestor"
       categoria_despesa:
         | "combustivel"
         | "equipamento"
@@ -1150,7 +1150,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "equipe"],
-      cargo_tipo: ["admin", "equipe"],
+      cargo_tipo: ["admin", "equipe", "gestor"],
       categoria_despesa: [
         "combustivel",
         "equipamento",

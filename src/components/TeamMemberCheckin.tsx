@@ -37,7 +37,7 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
     const saida = new Date(horarioSaidaBase);
     const windowStart = new Date(saida.getTime() - minAntesSaidaBase * 60 * 1000);
     const now = new Date();
-    return now >= windowStart && now <= saida;
+    return now >= windowStart;
   };
 
   const getCheckinWindowMessage = () => {
@@ -47,9 +47,6 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
     const now = new Date();
     if (now < windowStart) {
       return `Check-in disponível a partir de ${format(windowStart, "HH:mm", { locale: ptBR })} (${minAntesSaidaBase}min antes da saída às ${format(saida, "HH:mm", { locale: ptBR })})`;
-    }
-    if (now > saida) {
-      return `Horário de saída da base (${format(saida, "HH:mm", { locale: ptBR })}) já passou`;
     }
     return null;
   };
