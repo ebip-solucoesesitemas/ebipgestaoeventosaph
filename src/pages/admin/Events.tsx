@@ -508,7 +508,9 @@ export default function AdminEvents() {
               <div className="space-y-2">
                 <Label>Cliente</Label>
                 <Select
+                  value={formData.client_id || undefined}
                   onValueChange={(clientId) => {
+                    setFormData(prev => ({ ...prev, client_id: clientId }));
                     const client = clients.find(c => c.id === clientId);
                     if (client?.endereco) {
                       setFormData(prev => ({ ...prev, local: client.endereco! }));
