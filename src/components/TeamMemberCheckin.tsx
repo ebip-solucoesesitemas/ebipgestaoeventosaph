@@ -48,9 +48,6 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
     if (now < windowStart) {
       return `Check-in disponível a partir de ${format(windowStart, "HH:mm", { locale: ptBR })} (${minAntesSaidaBase}min antes da saída às ${format(saida, "HH:mm", { locale: ptBR })})`;
     }
-    if (now > saida) {
-      return `Horário de saída da base (${format(saida, "HH:mm", { locale: ptBR })}) já passou`;
-    }
     return null;
   };
 
