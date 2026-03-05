@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 
 interface EventData {
@@ -47,23 +46,30 @@ interface SignatureRecord {
 
 export default function EventReport() {
   const { id } = useParams<{ id: string }>();
-  useEffect(() => {
-    console.log("ID recebido da rota:", id);
-  }, [id]);
   const [event, setEvent] = useState<EventData | null>(null);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [client, setClient] = useState<ClientInfo | null>(null);
   const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
 
     const fetchAll = async () => {
       setIsLoading(true);
+      setError(null);
+
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError("Você precisa estar autenticado para visualizar o relatório.");
+        setIsLoading(false);
+        return;
+      }
 
       const [eventRes, teamRes, sigRes, budgetRes] = await Promise.all([
-        supabase.from("events").select("*, vehicles(prefixo, modelo, placa), bases(nome, sigla)").eq("id", id).single(),
+        supabase.from("events").select("*, vehicles(prefixo, modelo, placa), bases(nome, sigla)").eq("id", id).maybeSingle(),
         supabase
           .from("event_assignments")
           .select("id, checkin_at, checkout_at, profiles(nome, especialidade, registro_profissional, telefone)")
@@ -72,7 +78,20 @@ export default function EventReport() {
         supabase.from("event_budgets").select("*, clients(nome, telefone, endereco)").eq("event_id", id).limit(1),
       ]);
 
-      if (eventRes.data) setEvent(eventRes.data as unknown as EventData);
+      if (eventRes.error) {
+        console.error("Erro ao buscar evento:", eventRes.error);
+        setError("Erro ao carregar dados do evento.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!eventRes.data) {
+        setError("Evento não encontrado. Verifique se você tem permissão para acessar este evento.");
+        setIsLoading(false);
+        return;
+      }
+
+      setEvent(eventRes.data as unknown as EventData);
       if (teamRes.data) setTeam(teamRes.data.filter((m: any) => m.profiles) as unknown as TeamMember[]);
       if (sigRes.data) setSignatures(sigRes.data as SignatureRecord[]);
 
@@ -95,19 +114,33 @@ export default function EventReport() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-800 mx-auto" />
+          <p className="mt-4 text-gray-600 text-sm">Carregando relatório...</p>
+        </div>
       </div>
     );
   }
 
-  if (!event) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Evento não encontrado</p>
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="text-center max-w-md px-4">
+          <p className="text-red-600 font-medium text-lg mb-2">⚠ Erro</p>
+          <p className="text-gray-600">{error}</p>
+          <button
+            onClick={() => window.close()}
+            className="mt-4 px-4 py-2 bg-gray-800 text-white rounded text-sm hover:bg-gray-700"
+          >
+            Fechar
+          </button>
+        </div>
       </div>
     );
   }
+
+  if (!event) return null;
 
   const totalKm =
     event.km_inicial != null && event.km_final != null && event.km_final > event.km_inicial
@@ -117,222 +150,279 @@ export default function EventReport() {
   const arrivalSig = signatures.find((s) => s.tipo === "chegada");
   const departureSig = signatures.find((s) => s.tipo === "saida");
 
+  const statusLabel: Record<string, string> = {
+    em_andamento: "Em andamento",
+    finalizado: "Finalizado",
+    cancelado: "Cancelado",
+  };
+
   return (
-    <div className="report-page bg-white min-h-screen">
-      {/* Print button - hidden on print */}
-      <div className="print-hide fixed top-4 right-4 z-50">
-        <Button onClick={() => window.print()} className="gap-2">
+    <div className="report-page bg-white min-h-screen" id="event-report">
+      {/* Print button */}
+      <div className="print-hide fixed top-4 right-4 z-50 flex gap-2">
+        <button
+          onClick={() => window.print()}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 shadow-lg"
+        >
           <Printer className="w-4 h-4" />
-          Imprimir Relatório
-        </Button>
+          Imprimir
+        </button>
+        <button
+          onClick={() => window.close()}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 shadow-lg"
+        >
+          Fechar
+        </button>
       </div>
 
-      <div className="max-w-[210mm] mx-auto p-8 text-black text-sm">
+      <div className="max-w-[210mm] mx-auto px-10 py-8 text-black text-[11px] leading-relaxed">
         {/* Header */}
-        <div className="text-center border-b-2 border-black pb-4 mb-6">
-          <h1 className="text-xl font-bold uppercase tracking-wide">Anjos da Vida Saúde</h1>
-          <p className="text-xs mt-1">Relatório de Evento</p>
-          <p className="text-xs text-gray-600 mt-1">
-            Gerado em: {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-          </p>
-        </div>
+        <header className="border-b-2 border-gray-900 pb-3 mb-5">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-lg font-bold uppercase tracking-wider text-gray-900">Anjos da Vida Saúde</h1>
+              <p className="text-[10px] text-gray-500 mt-0.5">Cobertura de Eventos e Serviços de Saúde</p>
+            </div>
+            <div className="text-right text-[10px] text-gray-500">
+              <p>Relatório de Evento</p>
+              <p>Gerado em: {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+            </div>
+          </div>
+        </header>
 
-        {/* Event Data */}
-        <section className="mb-6">
-          <h2 className="report-section-title">Dados do Evento</h2>
-          <table className="report-table">
-            <tbody>
-              <tr>
-                <td className="report-label">Nome do Evento</td>
-                <td>{event.nome_evento}</td>
-              </tr>
-              <tr>
-                <td className="report-label">Localização</td>
-                <td>{event.local}</td>
-              </tr>
-              <tr>
-                <td className="report-label">Data/Hora Início</td>
-                <td>{format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</td>
-              </tr>
-              <tr>
-                <td className="report-label">Data/Hora Fim</td>
-                <td>{format(new Date(event.data_fim), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</td>
-              </tr>
-              {event.horario_saida_base && (
-                <tr>
-                  <td className="report-label">Saída da Base</td>
-                  <td>{format(new Date(event.horario_saida_base), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</td>
-                </tr>
-              )}
-              <tr>
-                <td className="report-label">Status</td>
-                <td>{event.status === "finalizado" ? "Finalizado" : "Em andamento"}</td>
-              </tr>
-              {event.bases && (
-                <tr>
-                  <td className="report-label">Base</td>
-                  <td>
-                    {event.bases.sigla} — {event.bases.nome}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        {/* Event Info - Grid */}
+        <section className="mb-5">
+          <h2 className="text-xs font-bold uppercase bg-gray-900 text-white px-3 py-1.5 mb-0">
+            Dados do Evento
+          </h2>
+          <div className="border border-gray-400 border-t-0">
+            <div className="grid grid-cols-2">
+              <div className="border-b border-r border-gray-300 px-3 py-1.5">
+                <span className="text-[10px] text-gray-500 block">Evento</span>
+                <span className="font-semibold">{event.nome_evento}</span>
+              </div>
+              <div className="border-b border-gray-300 px-3 py-1.5">
+                <span className="text-[10px] text-gray-500 block">Status</span>
+                <span className="font-semibold">{statusLabel[event.status] || event.status}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1">
+              <div className="border-b border-gray-300 px-3 py-1.5">
+                <span className="text-[10px] text-gray-500 block">Localização</span>
+                <span>{event.local}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3">
+              <div className="border-b border-r border-gray-300 px-3 py-1.5">
+                <span className="text-[10px] text-gray-500 block">Início</span>
+                <span>{format(new Date(event.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+              </div>
+              <div className="border-b border-r border-gray-300 px-3 py-1.5">
+                <span className="text-[10px] text-gray-500 block">Término</span>
+                <span>{format(new Date(event.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+              </div>
+              <div className="border-b border-gray-300 px-3 py-1.5">
+                <span className="text-[10px] text-gray-500 block">Saída da Base</span>
+                <span>
+                  {event.horario_saida_base
+                    ? format(new Date(event.horario_saida_base), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                    : "—"}
+                </span>
+              </div>
+            </div>
+            {event.bases && (
+              <div className="px-3 py-1.5">
+                <span className="text-[10px] text-gray-500 block">Base</span>
+                <span>{event.bases.sigla} — {event.bases.nome}</span>
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Vehicle */}
         {event.vehicles && (
-          <section className="mb-6">
-            <h2 className="report-section-title">Viatura</h2>
-            <table className="report-table">
-              <tbody>
-                <tr>
-                  <td className="report-label">Prefixo</td>
-                  <td>{event.vehicles.prefixo}</td>
-                </tr>
-                <tr>
-                  <td className="report-label">Modelo</td>
-                  <td>{event.vehicles.modelo}</td>
-                </tr>
-                <tr>
-                  <td className="report-label">Placa</td>
-                  <td>{event.vehicles.placa}</td>
-                </tr>
-                <tr>
-                  <td className="report-label">KM Inicial</td>
-                  <td>{event.km_inicial ?? "___________"}</td>
-                </tr>
-                <tr>
-                  <td className="report-label">KM Final</td>
-                  <td>{event.km_final ?? "___________"}</td>
-                </tr>
-                {totalKm !== null && (
-                  <tr>
-                    <td className="report-label">KM Total</td>
-                    <td>{totalKm} km</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <section className="mb-5">
+            <h2 className="text-xs font-bold uppercase bg-gray-900 text-white px-3 py-1.5 mb-0">
+              Viatura
+            </h2>
+            <div className="border border-gray-400 border-t-0">
+              <div className="grid grid-cols-3">
+                <div className="border-b border-r border-gray-300 px-3 py-1.5">
+                  <span className="text-[10px] text-gray-500 block">Prefixo</span>
+                  <span className="font-semibold">{event.vehicles.prefixo}</span>
+                </div>
+                <div className="border-b border-r border-gray-300 px-3 py-1.5">
+                  <span className="text-[10px] text-gray-500 block">Modelo</span>
+                  <span>{event.vehicles.modelo}</span>
+                </div>
+                <div className="border-b border-gray-300 px-3 py-1.5">
+                  <span className="text-[10px] text-gray-500 block">Placa</span>
+                  <span>{event.vehicles.placa}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-3">
+                <div className="border-r border-gray-300 px-3 py-1.5">
+                  <span className="text-[10px] text-gray-500 block">KM Inicial</span>
+                  <span>{event.km_inicial ?? "___________"}</span>
+                </div>
+                <div className="border-r border-gray-300 px-3 py-1.5">
+                  <span className="text-[10px] text-gray-500 block">KM Final</span>
+                  <span>{event.km_final ?? "___________"}</span>
+                </div>
+                <div className="px-3 py-1.5">
+                  <span className="text-[10px] text-gray-500 block">KM Total</span>
+                  <span className="font-semibold">{totalKm !== null ? `${totalKm} km` : "___________"}</span>
+                </div>
+              </div>
+            </div>
           </section>
         )}
 
         {/* Client */}
         {client && (
-          <section className="mb-6">
-            <h2 className="report-section-title">Cliente</h2>
-            <table className="report-table">
-              <tbody>
-                <tr>
-                  <td className="report-label">Nome</td>
-                  <td>{client.nome}</td>
-                </tr>
-                {client.telefone && (
-                  <tr>
-                    <td className="report-label">Telefone</td>
-                    <td>{client.telefone}</td>
-                  </tr>
-                )}
-                {client.endereco && (
-                  <tr>
-                    <td className="report-label">Endereço</td>
-                    <td>{client.endereco}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <section className="mb-5">
+            <h2 className="text-xs font-bold uppercase bg-gray-900 text-white px-3 py-1.5 mb-0">
+              Cliente / Contratante
+            </h2>
+            <div className="border border-gray-400 border-t-0">
+              <div className="grid grid-cols-2">
+                <div className="border-b border-r border-gray-300 px-3 py-1.5">
+                  <span className="text-[10px] text-gray-500 block">Nome</span>
+                  <span className="font-semibold">{client.nome}</span>
+                </div>
+                <div className="border-b border-gray-300 px-3 py-1.5">
+                  <span className="text-[10px] text-gray-500 block">Telefone</span>
+                  <span>{client.telefone || "—"}</span>
+                </div>
+              </div>
+              {client.endereco && (
+                <div className="px-3 py-1.5">
+                  <span className="text-[10px] text-gray-500 block">Endereço</span>
+                  <span>{client.endereco}</span>
+                </div>
+              )}
+            </div>
           </section>
         )}
 
         {/* Team */}
-        <section className="mb-6">
-          <h2 className="report-section-title">Equipe Escalada</h2>
-          {team.length === 0 ? (
-            <p className="text-gray-500 text-xs">Nenhum profissional escalado</p>
-          ) : (
-            <table className="report-table">
-              <thead>
-                <tr>
-                  <th className="report-th">Nome</th>
-                  <th className="report-th">Especialidade</th>
-                  <th className="report-th">Registro</th>
-                  <th className="report-th">Telefone</th>
-                  <th className="report-th">Check-in</th>
-                  <th className="report-th">Checkout</th>
-                </tr>
-              </thead>
-              <tbody>
-                {team.map((m) => (
-                  <tr key={m.id}>
-                    <td className="report-td">{m.profiles.nome}</td>
-                    <td className="report-td">{m.profiles.especialidade}</td>
-                    <td className="report-td">{m.profiles.registro_profissional}</td>
-                    <td className="report-td">{m.profiles.telefone || "—"}</td>
-                    <td className="report-td">{m.checkin_at ? format(new Date(m.checkin_at), "HH:mm") : "___:___"}</td>
-                    <td className="report-td">
-                      {m.checkout_at ? format(new Date(m.checkout_at), "HH:mm") : "___:___"}
-                    </td>
+        <section className="mb-5">
+          <h2 className="text-xs font-bold uppercase bg-gray-900 text-white px-3 py-1.5 mb-0">
+            Equipe Escalada
+          </h2>
+          <div className="border border-gray-400 border-t-0">
+            {team.length === 0 ? (
+              <p className="text-gray-500 text-[10px] px-3 py-3 italic">Nenhum profissional escalado para este evento</p>
+            ) : (
+              <table className="w-full text-[10px]">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="text-left px-2 py-1.5 font-semibold border-b border-gray-300">Nome</th>
+                    <th className="text-left px-2 py-1.5 font-semibold border-b border-gray-300">Função</th>
+                    <th className="text-left px-2 py-1.5 font-semibold border-b border-gray-300">Registro</th>
+                    <th className="text-left px-2 py-1.5 font-semibold border-b border-gray-300">Telefone</th>
+                    <th className="text-center px-2 py-1.5 font-semibold border-b border-gray-300">Check-in</th>
+                    <th className="text-center px-2 py-1.5 font-semibold border-b border-gray-300">Checkout</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {team.map((m, idx) => (
+                    <tr key={m.id} className={idx % 2 === 1 ? "bg-gray-50" : ""}>
+                      <td className="px-2 py-1.5 border-b border-gray-200 font-medium">{m.profiles.nome}</td>
+                      <td className="px-2 py-1.5 border-b border-gray-200">{m.profiles.especialidade}</td>
+                      <td className="px-2 py-1.5 border-b border-gray-200">{m.profiles.registro_profissional}</td>
+                      <td className="px-2 py-1.5 border-b border-gray-200">{m.profiles.telefone || "—"}</td>
+                      <td className="px-2 py-1.5 border-b border-gray-200 text-center">
+                        {m.checkin_at ? format(new Date(m.checkin_at), "HH:mm") : "___:___"}
+                      </td>
+                      <td className="px-2 py-1.5 border-b border-gray-200 text-center">
+                        {m.checkout_at ? format(new Date(m.checkout_at), "HH:mm") : "___:___"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </section>
 
-        {/* Signatures - Arrival */}
-        <section className="mb-8">
-          <h2 className="report-section-title">Assinatura de Chegada</h2>
-          <div className="border border-black p-4">
-            <div className="flex justify-between items-end">
-              <div className="flex-1">
-                <p className="text-xs text-gray-600 mb-1">Nome do Responsável:</p>
-                <p className="border-b border-black pb-1 min-h-[24px]">{arrivalSig?.nome_responsavel || ""}</p>
+        {/* Signatures */}
+        <section className="mb-5">
+          <h2 className="text-xs font-bold uppercase bg-gray-900 text-white px-3 py-1.5 mb-0">
+            Assinaturas
+          </h2>
+          <div className="border border-gray-400 border-t-0">
+            {/* Arrival */}
+            <div className="px-4 py-3 border-b border-gray-300">
+              <p className="text-[10px] font-semibold text-gray-700 uppercase mb-2">Chegada da Equipe</p>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <p className="text-[9px] text-gray-500 mb-0.5">Nome do Responsável:</p>
+                  <div className="border-b border-gray-900 min-h-[20px] pb-0.5">
+                    {arrivalSig?.nome_responsavel || ""}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[9px] text-gray-500 mb-0.5">Data/Hora:</p>
+                  <div className="border-b border-gray-900 min-h-[20px] pb-0.5">
+                    {arrivalSig
+                      ? format(new Date(arrivalSig.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                      : "____/____/________ às ___:___"}
+                  </div>
+                </div>
               </div>
-              <div className="w-8" />
-              <div className="flex-1">
-                <p className="text-xs text-gray-600 mb-1">Data/Hora:</p>
-                <p className="border-b border-black pb-1 min-h-[24px]">
-                  {arrivalSig
-                    ? format(new Date(arrivalSig.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                    : "____/____/________ às ___:___"}
-                </p>
+              <div className="mt-8 mb-2">
+                <div className="border-b border-gray-900 w-2/3 mx-auto" />
+                <p className="text-[9px] text-center text-gray-500 mt-1">Assinatura do Responsável — Chegada</p>
               </div>
             </div>
-            <div className="mt-6 pt-8 border-t border-dashed border-gray-400">
-              <p className="text-xs text-center text-gray-500">Assinatura do Responsável — Chegada</p>
+
+            {/* Departure */}
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-semibold text-gray-700 uppercase mb-2">Saída da Equipe</p>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <p className="text-[9px] text-gray-500 mb-0.5">Nome do Responsável:</p>
+                  <div className="border-b border-gray-900 min-h-[20px] pb-0.5">
+                    {departureSig?.nome_responsavel || ""}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[9px] text-gray-500 mb-0.5">Data/Hora:</p>
+                  <div className="border-b border-gray-900 min-h-[20px] pb-0.5">
+                    {departureSig
+                      ? format(new Date(departureSig.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                      : "____/____/________ às ___:___"}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-8 mb-2">
+                <div className="border-b border-gray-900 w-2/3 mx-auto" />
+                <p className="text-[9px] text-center text-gray-500 mt-1">Assinatura do Responsável — Saída</p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Signatures - Departure */}
-        <section className="mb-8">
-          <h2 className="report-section-title">Assinatura de Saída</h2>
-          <div className="border border-black p-4">
-            <div className="flex justify-between items-end">
-              <div className="flex-1">
-                <p className="text-xs text-gray-600 mb-1">Nome do Responsável:</p>
-                <p className="border-b border-black pb-1 min-h-[24px]">{departureSig?.nome_responsavel || ""}</p>
-              </div>
-              <div className="w-8" />
-              <div className="flex-1">
-                <p className="text-xs text-gray-600 mb-1">Data/Hora:</p>
-                <p className="border-b border-black pb-1 min-h-[24px]">
-                  {departureSig
-                    ? format(new Date(departureSig.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                    : "____/____/________ às ___:___"}
-                </p>
-              </div>
-            </div>
-            <div className="mt-6 pt-8 border-t border-dashed border-gray-400">
-              <p className="text-xs text-center text-gray-500">Assinatura do Responsável — Saída</p>
+        {/* Observations */}
+        <section className="mb-5">
+          <h2 className="text-xs font-bold uppercase bg-gray-900 text-white px-3 py-1.5 mb-0">
+            Observações
+          </h2>
+          <div className="border border-gray-400 border-t-0 min-h-[80px] px-3 py-2">
+            <div className="space-y-4">
+              <div className="border-b border-gray-300 min-h-[18px]" />
+              <div className="border-b border-gray-300 min-h-[18px]" />
+              <div className="border-b border-gray-300 min-h-[18px]" />
             </div>
           </div>
         </section>
 
         {/* Footer */}
-        <div className="text-center text-xs text-gray-400 border-t border-gray-300 pt-4 mt-8">
-          <p>Anjos da Vida Saúde — Relatório gerado automaticamente pelo sistema</p>
-        </div>
+        <footer className="text-center text-[9px] text-gray-400 border-t border-gray-300 pt-3 mt-6">
+          <p>Anjos da Vida Saúde — Documento gerado automaticamente pelo sistema</p>
+          <p className="mt-0.5">Este documento é válido como comprovante de prestação de serviço</p>
+        </footer>
       </div>
     </div>
   );

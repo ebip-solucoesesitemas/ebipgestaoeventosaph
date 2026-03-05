@@ -1,22 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const allowedOrigins = [
-  "https://aphaid-quickcare.lovable.app",
-  "https://id-preview--2200ae23-748b-4d29-98e8-fc570ecea26b.lovable.app",
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get("Origin") || "";
-  const allowOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 
 Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -107,6 +96,7 @@ Deno.serve(async (req) => {
       especialidade: profileData.especialidade,
       registro_profissional: profileData.registro_profissional,
       cargo: profileData.cargo || "equipe",
+      telefone: profileData.telefone || null,
     };
     if (profileData.base_id) {
       profileInsert.base_id = profileData.base_id;
