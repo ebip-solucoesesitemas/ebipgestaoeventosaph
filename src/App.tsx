@@ -71,6 +71,8 @@ const App = () => (
             <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
             <Route path="/admin/contract-templates" element={<AdminLayout><AdminContractTemplates /></AdminLayout>} />
             <Route path="/admin/regulation-phones" element={<AdminLayout><AdminRegulationPhones /></AdminLayout>} />
+            <Route path="/admin/permissions" element={<AdminLayout><AdminPermissions /></AdminLayout>} />
+            <Route path="/admin/payroll-report" element={<AdminLayout><AdminPayrollReport /></AdminLayout>} />
             <Route path="/admin/audit-logs" element={<AdminLayout><AdminAuditLogs /></AdminLayout>} />
             
             {/* Base-specific Routes */}
