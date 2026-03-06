@@ -386,8 +386,16 @@ export default function EventReport() {
                   </div>
                 </div>
               </div>
-              <div className="mt-8 mb-2">
-                <div className="border-b border-gray-900 w-2/3 mx-auto" />
+              <div className="mt-4 mb-2 flex flex-col items-center">
+                {arrivalSig?.assinatura_url ? (
+                  <img
+                    src={arrivalSig.assinatura_url}
+                    alt="Assinatura de chegada"
+                    className="max-h-[80px] max-w-[280px] object-contain mb-1"
+                  />
+                ) : (
+                  <div className="border-b border-gray-900 w-2/3 mt-8" />
+                )}
                 <p className="text-[9px] text-center text-gray-500 mt-1">Assinatura do Responsável — Chegada</p>
               </div>
             </div>
@@ -411,8 +419,16 @@ export default function EventReport() {
                   </div>
                 </div>
               </div>
-              <div className="mt-8 mb-2">
-                <div className="border-b border-gray-900 w-2/3 mx-auto" />
+              <div className="mt-4 mb-2 flex flex-col items-center">
+                {departureSig?.assinatura_url ? (
+                  <img
+                    src={departureSig.assinatura_url}
+                    alt="Assinatura de saída"
+                    className="max-h-[80px] max-w-[280px] object-contain mb-1"
+                  />
+                ) : (
+                  <div className="border-b border-gray-900 w-2/3 mt-8" />
+                )}
                 <p className="text-[9px] text-center text-gray-500 mt-1">Assinatura do Responsável — Saída</p>
               </div>
             </div>
