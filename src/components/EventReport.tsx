@@ -437,9 +437,9 @@ export default function EventReport() {
                 </div>
               </div>
               <div className="mt-4 mb-2 flex flex-col items-center">
-                {departureSig?.assinatura_url ? (
+                {departureSig && signedUrls[departureSig.id] ? (
                   <img
-                    src={departureSig.assinatura_url}
+                    src={signedUrls[departureSig.id]}
                     alt="Assinatura de saída"
                     className="max-h-[80px] max-w-[280px] object-contain mb-1"
                   />
