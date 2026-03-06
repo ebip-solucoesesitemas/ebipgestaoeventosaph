@@ -41,6 +41,7 @@ interface SignatureRecord {
   id: string;
   tipo: string;
   nome_responsavel: string;
+  assinatura_url: string | null;
   created_at: string;
 }
 
