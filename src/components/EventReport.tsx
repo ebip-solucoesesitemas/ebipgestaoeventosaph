@@ -404,9 +404,9 @@ export default function EventReport() {
                 </div>
               </div>
               <div className="mt-4 mb-2 flex flex-col items-center">
-                {arrivalSig?.assinatura_url ? (
+                {arrivalSig && signedUrls[arrivalSig.id] ? (
                   <img
-                    src={arrivalSig.assinatura_url}
+                    src={signedUrls[arrivalSig.id]}
                     alt="Assinatura de chegada"
                     className="max-h-[80px] max-w-[280px] object-contain mb-1"
                   />
