@@ -21,6 +21,8 @@ import AdminUsers from "./pages/admin/Users";
 import AdminContractTemplates from "./pages/admin/ContractTemplates";
 import AdminRegulationPhones from "./pages/admin/RegulationPhones";
 import AdminAuditLogs from "./pages/admin/AuditLogs";
+import AdminPermissions from "./pages/admin/Permissions";
+import AdminPayrollReport from "./pages/admin/PayrollReport";
 import BaseEvents from "./pages/admin/base/BaseEvents";
 import BaseProfessionals from "./pages/admin/base/BaseProfessionals";
 import BaseVehicles from "./pages/admin/base/BaseVehicles";
