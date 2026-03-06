@@ -49,12 +49,14 @@ const commercialLinks = [
 
 const configLinks = [
   { href: "/admin/users", label: "Usuários", icon: Users },
+  { href: "/admin/permissions", label: "Permissões", icon: Shield },
   { href: "/admin/bases", label: "Bases", icon: MapPin },
   { href: "/admin/professional-rates", label: "Valores Profissionais", icon: DollarSign },
   { href: "/admin/operational-rates", label: "Valores Operacionais", icon: Settings },
   { href: "/admin/regulation-phones", label: "Tel. Regulação", icon: Shield },
   { href: "/admin/professional-report", label: "Relatórios", icon: ClipboardList },
   { href: "/admin/payroll", label: "Pagamentos", icon: Wallet },
+  { href: "/admin/payroll-report", label: "Folha de Pagamento", icon: ClipboardList },
   { href: "/admin/audit-logs", label: "Logs de Auditoria", icon: Shield },
 ];
 
