@@ -41,6 +41,7 @@ interface SignatureRecord {
   id: string;
   tipo: string;
   nome_responsavel: string;
+  assinatura_url: string | null;
   created_at: string;
 }
 
@@ -88,7 +89,7 @@ export default function EventReport() {
           .from("event_assignments")
           .select("id, checkin_at, checkout_at, profiles(nome, especialidade, registro_profissional, telefone)")
           .eq("event_id", id),
-        supabase.from("event_signatures").select("id, tipo, nome_responsavel, created_at").eq("event_id", id),
+        supabase.from("event_signatures").select("id, tipo, nome_responsavel, assinatura_url, created_at").eq("event_id", id),
         supabase.from("event_budgets").select("*, clients(nome, telefone, endereco)").eq("event_id", id).limit(1),
       ]);
 
@@ -385,8 +386,16 @@ export default function EventReport() {
                   </div>
                 </div>
               </div>
-              <div className="mt-8 mb-2">
-                <div className="border-b border-gray-900 w-2/3 mx-auto" />
+              <div className="mt-4 mb-2 flex flex-col items-center">
+                {arrivalSig?.assinatura_url ? (
+                  <img
+                    src={arrivalSig.assinatura_url}
+                    alt="Assinatura de chegada"
+                    className="max-h-[80px] max-w-[280px] object-contain mb-1"
+                  />
+                ) : (
+                  <div className="border-b border-gray-900 w-2/3 mt-8" />
+                )}
                 <p className="text-[9px] text-center text-gray-500 mt-1">Assinatura do Responsável — Chegada</p>
               </div>
             </div>
@@ -410,8 +419,16 @@ export default function EventReport() {
                   </div>
                 </div>
               </div>
-              <div className="mt-8 mb-2">
-                <div className="border-b border-gray-900 w-2/3 mx-auto" />
+              <div className="mt-4 mb-2 flex flex-col items-center">
+                {departureSig?.assinatura_url ? (
+                  <img
+                    src={departureSig.assinatura_url}
+                    alt="Assinatura de saída"
+                    className="max-h-[80px] max-w-[280px] object-contain mb-1"
+                  />
+                ) : (
+                  <div className="border-b border-gray-900 w-2/3 mt-8" />
+                )}
                 <p className="text-[9px] text-center text-gray-500 mt-1">Assinatura do Responsável — Saída</p>
               </div>
             </div>
