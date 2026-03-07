@@ -4,7 +4,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Settings, Navigation } from 'lucide-react';
+import { Save, Settings, Navigation, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 interface OperationalRate {
   id: string;
@@ -23,6 +25,9 @@ export default function OperationalRates() {
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newRate, setNewRate] = useState({ tipo: '', valor: '', descricao: '' });
+  const [creating, setCreating] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -62,6 +67,28 @@ export default function OperationalRates() {
     setSaving(null);
   };
 
+  const createRate = async () => {
+    if (!newRate.tipo.trim()) {
+      toast({ title: 'Informe o tipo', variant: 'destructive' });
+      return;
+    }
+    setCreating(true);
+    const { error } = await supabase.from('operational_rates').insert({
+      tipo: newRate.tipo.trim(),
+      valor: parseFloat(newRate.valor) || 0,
+      descricao: newRate.descricao.trim() || null,
+    });
+    if (error) {
+      toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Valor criado com sucesso!' });
+      setDialogOpen(false);
+      setNewRate({ tipo: '', valor: '', descricao: '' });
+      fetchData();
+    }
+    setCreating(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -72,9 +99,54 @@ export default function OperationalRates() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Valores Operacionais</h1>
-        <p className="text-muted-foreground">Configure valores de quilometragem e outros custos</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Valores Operacionais</h1>
+          <p className="text-muted-foreground">Configure valores de quilometragem e outros custos</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" /> Novo Valor
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Novo Valor Operacional</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <Label>Tipo (identificador) *</Label>
+                <Input
+                  value={newRate.tipo}
+                  onChange={(e) => setNewRate(prev => ({ ...prev, tipo: e.target.value }))}
+                  placeholder="Ex: km, diaria, pedagio"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Descrição</Label>
+                <Input
+                  value={newRate.descricao}
+                  onChange={(e) => setNewRate(prev => ({ ...prev, descricao: e.target.value }))}
+                  placeholder="Ex: Valor por quilômetro rodado"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Valor (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={newRate.valor}
+                  onChange={(e) => setNewRate(prev => ({ ...prev, valor: e.target.value }))}
+                  placeholder="0,00"
+                />
+              </div>
+              <Button className="w-full" onClick={createRate} disabled={creating}>
+                {creating ? 'Criando...' : 'Cadastrar'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
