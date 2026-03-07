@@ -196,15 +196,27 @@ export default function AdminUsers() {
       });
 
       if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
-      return res.data;
+      const resData = res.data;
+      if (resData?.error) throw new Error(resData.error);
+      return resData;
+    },
+    onMutate: async (profileId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-users"] });
+      const previous = queryClient.getQueryData<UserProfile[]>(["admin-users"]);
+      queryClient.setQueryData<UserProfile[]>(["admin-users"], (old) =>
+        old ? old.filter((u) => u.id !== profileId) : []
+      );
+      return { previous };
     },
     onSuccess: () => {
       toast({ title: "Usuário excluído" });
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       setDeleteId(null);
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _profileId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["admin-users"], context.previous);
+      }
       toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
       setDeleteId(null);
     },
