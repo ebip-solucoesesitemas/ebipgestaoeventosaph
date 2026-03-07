@@ -25,6 +25,9 @@ export default function OperationalRates() {
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newRate, setNewRate] = useState({ tipo: '', valor: '', descricao: '' });
+  const [creating, setCreating] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
