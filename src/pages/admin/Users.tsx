@@ -107,6 +107,7 @@ export default function AdminUsers() {
         .from("profiles")
         .select("*, bases(sigla, nome)")
         .not("user_id", "is", null)
+        .eq("hidden", false)
         .order("nome");
       if (error) throw error;
       return data as UserProfile[];
