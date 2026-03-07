@@ -63,6 +63,7 @@ export default function AdminProfessionals() {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
+      .eq('hidden', false)
       .order('nome');
 
     if (error) {
