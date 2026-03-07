@@ -138,7 +138,30 @@ export default function PayrollReport() {
     return acc;
   }, {});
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    if (!printRef.current) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Folha de Pagamento - ${months[parseInt(selectedMonth)]} ${selectedYear}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; padding: 8mm; }
+  @page { size: A4 landscape; margin: 8mm; }
+  .payroll-header { text-align: center; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #333; }
+  .payroll-profile-group { margin-bottom: 20px; page-break-inside: avoid; }
+  .payroll-profile-header { font-size: 13px; padding: 4px 6px; background: #f3f4f6; border: 1px solid #d1d5db; border-bottom: none; }
+  .payroll-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .payroll-table th { background: #e5e7eb; border: 1px solid #d1d5db; padding: 4px 6px; text-align: left; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .payroll-table td { border: 1px solid #d1d5db; padding: 3px 6px; }
+  .payroll-table tbody tr:nth-child(even) { background: #fafafa; }
+  .payroll-subtotal td { background: #f0f0f0 !important; border-top: 2px solid #999; }
+  .payroll-grand-total { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; padding: 8px 12px; border: 2px solid #333; margin-top: 12px; background: #f9fafb; }
+  .payroll-footer { margin-top: 20px; text-align: center; font-size: 10px; color: #888; }
+</style></head><body>${printRef.current.innerHTML}</body></html>`);
+    printWindow.document.close();
+    printWindow.onload = () => { printWindow.print(); };
+  };
 
   const currentYear = new Date().getFullYear();
   const years = [currentYear - 1, currentYear, currentYear + 1];
