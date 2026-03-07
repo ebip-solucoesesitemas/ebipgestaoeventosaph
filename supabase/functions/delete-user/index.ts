@@ -62,9 +62,29 @@ Deno.serve(async (req) => {
     // Get profile
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("user_id, nome")
+      .select("user_id, nome, hidden")
       .eq("id", profileId)
       .single();
+
+    if (profileError || !profile) {
+      return new Response(JSON.stringify({ error: "Perfil não encontrado" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Prevent deleting hidden super admins
+    if (profile.hidden) {
+      return new Response(JSON.stringify({ error: "Este perfil não pode ser excluído" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Prevent self-deletion
+    if (profile.user_id === requestingUser.id) {
+      return new Response(JSON.stringify({ error: "Você não pode excluir sua própria conta" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (profileError) {
       return new Response(JSON.stringify({ error: "Perfil não encontrado" }), {
