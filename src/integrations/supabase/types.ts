@@ -738,6 +738,7 @@ export type Database = {
           cargo: Database["public"]["Enums"]["cargo_tipo"]
           created_at: string | null
           especialidade: Database["public"]["Enums"]["especialidade_tipo"]
+          hidden: boolean
           id: string
           nome: string
           registro_profissional: string
@@ -750,6 +751,7 @@ export type Database = {
           cargo?: Database["public"]["Enums"]["cargo_tipo"]
           created_at?: string | null
           especialidade: Database["public"]["Enums"]["especialidade_tipo"]
+          hidden?: boolean
           id?: string
           nome: string
           registro_profissional: string
@@ -762,6 +764,7 @@ export type Database = {
           cargo?: Database["public"]["Enums"]["cargo_tipo"]
           created_at?: string | null
           especialidade?: Database["public"]["Enums"]["especialidade_tipo"]
+          hidden?: boolean
           id?: string
           nome?: string
           registro_profissional?: string

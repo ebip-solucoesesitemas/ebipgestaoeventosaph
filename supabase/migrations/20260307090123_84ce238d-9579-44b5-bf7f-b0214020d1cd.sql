@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN hidden boolean NOT NULL DEFAULT false;
