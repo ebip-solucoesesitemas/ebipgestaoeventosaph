@@ -119,6 +119,7 @@ export default function AdminVehicles() {
       placa: vehicle.placa,
       prefixo: vehicle.prefixo,
       status: vehicle.status,
+      observacao_manutencao: vehicle.observacao_manutencao || '',
     });
     setDialogOpen(true);
   };
