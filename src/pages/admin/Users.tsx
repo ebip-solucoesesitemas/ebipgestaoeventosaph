@@ -56,6 +56,7 @@ export default function AdminUsers() {
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [newPassword, setNewPassword] = useState("");
   const [form, setForm] = useState({
     nome: "",
     email: "",
