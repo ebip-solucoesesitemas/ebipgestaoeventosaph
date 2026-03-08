@@ -209,8 +209,11 @@ export default function PayrollReport() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={handlePrint} className="gap-2">
+          <Button onClick={handlePrint} className="gap-2" variant="outline">
             <Printer className="h-4 w-4" /> Imprimir
+          </Button>
+          <Button onClick={handleExportPDF} className="gap-2">
+            <Download className="h-4 w-4" /> Exportar PDF
           </Button>
         </div>
       </div>
