@@ -81,6 +81,7 @@ export default function BaseEvents() {
     data_fim: '',
     local: '',
     viatura_id: '',
+    client_id: '',
     equipe_completa: false,
     equipe_minima: 2,
     min_antes_saida_base: '',
