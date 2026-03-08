@@ -91,7 +91,21 @@ export default function SupportTickets() {
     if (error) {
       toast.error("Erro ao carregar chamados");
     } else {
-      setTickets((data as unknown as Ticket[]) || []);
+      const ticketData = (data as unknown as Ticket[]) || [];
+      setTickets(ticketData);
+      // Load creator names
+      const creatorIds = [...new Set(ticketData.map(t => t.created_by))];
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, nome")
+          .in("user_id", creatorIds);
+        if (profiles) {
+          const map: Record<string, string> = {};
+          profiles.forEach((p: any) => { map[p.user_id] = p.nome; });
+          setProfileNames(prev => ({ ...prev, ...map }));
+        }
+      }
     }
     setLoading(false);
   }, []);
@@ -288,6 +302,7 @@ export default function SupportTickets() {
               <TableRow>
                 <TableHead className="w-[80px]">Nº</TableHead>
                 <TableHead>Título</TableHead>
+                <TableHead>Solicitante</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Prioridade</TableHead>
                 <TableHead>Status</TableHead>
@@ -297,13 +312,13 @@ export default function SupportTickets() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : filteredTickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Nenhum chamado encontrado
                   </TableCell>
                 </TableRow>
@@ -316,6 +331,9 @@ export default function SupportTickets() {
                   >
                     <TableCell className="font-mono text-sm">#{ticket.ticket_number}</TableCell>
                     <TableCell className="font-medium">{ticket.title}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {profileNames[ticket.created_by] || "—"}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{categoryLabels[ticket.category] || ticket.category}</Badge>
                     </TableCell>
