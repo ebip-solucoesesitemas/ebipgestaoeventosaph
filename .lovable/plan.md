@@ -6,7 +6,7 @@
 | Fase | Melhoria | Status |
 |------|----------|--------|
 | 1 | Dashboard KPIs | ✅ Implementado |
-| 2 | Exportação PDF | 🔜 Pendente |
+| 2 | Exportação PDF | ✅ Implementado |
 | 3 | Histórico Profissional | 🔜 Pendente |
 | 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
 | 5 | Modo Escuro | ✅ Implementado |
