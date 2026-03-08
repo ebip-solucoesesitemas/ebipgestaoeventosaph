@@ -40,6 +40,7 @@ export default function ProfessionalReport() {
   const [generating, setGenerating] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [confirmReport, setConfirmReport] = useState<ReportData | null>(null);
 
   const fetchReport = async () => {
     setIsLoading(true);
