@@ -9,6 +9,8 @@ interface Profile {
   especialidade: "Médico" | "Enfermeiro" | "Técnico" | "Socorrista" | "Gestor" | "Administrador";
   registro_profissional: string;
   cargo: "admin" | "equipe" | "gestor";
+  hidden: boolean;
+  is_account_only: boolean;
 }
 
 interface AuthContextType {

@@ -94,9 +94,10 @@ Deno.serve(async (req) => {
       user_id: userId,
       nome: profileData.nome,
       especialidade: profileData.especialidade,
-      registro_profissional: profileData.registro_profissional,
+      registro_profissional: profileData.registro_profissional || "",
       cargo: profileData.cargo || "equipe",
       telefone: profileData.telefone || null,
+      is_account_only: profileData.is_account_only || false,
     };
     if (profileData.base_id) {
       profileInsert.base_id = profileData.base_id;

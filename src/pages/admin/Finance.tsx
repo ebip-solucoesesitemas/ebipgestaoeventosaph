@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { localDatetimeToISO, isoToLocalDatetime } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -293,8 +294,8 @@ export default function Finance() {
       data_vencimento: budgetForm.data_vencimento || null,
       forma_cobranca: budgetForm.forma_cobranca || null,
       endereco_evento: budgetForm.endereco_evento || null,
-      data_inicio: budgetForm.data_inicio || null,
-      data_fim: budgetForm.data_fim || null,
+      data_inicio: budgetForm.data_inicio ? localDatetimeToISO(budgetForm.data_inicio) : null,
+      data_fim: budgetForm.data_fim ? localDatetimeToISO(budgetForm.data_fim) : null,
       base_id: budgetForm.base_id || null,
       km_estimado: kmEstimado,
       valor_km: valorKm,
@@ -330,8 +331,8 @@ export default function Finance() {
       forma_cobranca: budget.forma_cobranca || '',
       endereco_evento: budget.endereco_evento || '',
       cep: '',
-      data_inicio: budget.data_inicio ? budget.data_inicio.slice(0, 16) : '',
-      data_fim: budget.data_fim ? budget.data_fim.slice(0, 16) : '',
+      data_inicio: budget.data_inicio ? isoToLocalDatetime(budget.data_inicio) : '',
+      data_fim: budget.data_fim ? isoToLocalDatetime(budget.data_fim) : '',
       base_id: budget.base_id || '',
       km_estimado: budget.km_estimado?.toString() || '',
       valor_km: budget.valor_km?.toString() || '',
@@ -356,11 +357,19 @@ export default function Finance() {
 
     setCreatingEvent(budget.id);
 
+    // Convert datetime-local values to proper ISO with timezone
+    const dataInicioISO = budget.data_inicio!.includes('T') && !budget.data_inicio!.endsWith('Z')
+      ? new Date(budget.data_inicio!).toISOString()
+      : budget.data_inicio!;
+    const dataFimISO = budget.data_fim!.includes('T') && !budget.data_fim!.endsWith('Z')
+      ? new Date(budget.data_fim!).toISOString()
+      : budget.data_fim!;
+
     const { data: newEvent, error: eventError } = await supabase.from('events').insert({
       nome_evento: budget.nome_evento || budget.descricao || 'Evento sem nome',
       local: budget.endereco_evento || 'A definir',
-      data_inicio: budget.data_inicio,
-      data_fim: budget.data_fim,
+      data_inicio: dataInicioISO,
+      data_fim: dataFimISO,
       base_id: budget.base_id || null,
     }).select('id').single();
 
