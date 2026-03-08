@@ -82,6 +82,7 @@ export default function AdminUsers() {
       is_account_only: false,
     });
     setEditingUser(null);
+    setNewPassword("");
   };
 
   const openEditDialog = (user: UserProfile) => {
