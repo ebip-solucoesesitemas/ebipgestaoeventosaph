@@ -51,6 +51,7 @@ const especialidades: EspecialidadeTipo[] = [
 
 export default function AdminUsers() {
   const { toast } = useToast();
+  const { isSuperAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
