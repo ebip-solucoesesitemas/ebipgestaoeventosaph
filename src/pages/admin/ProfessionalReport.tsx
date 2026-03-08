@@ -345,7 +345,9 @@ export default function ProfessionalReport() {
                 <p>
                   Profissional: <strong>{confirmReport?.profile_name}</strong><br />
                   Período: <strong>{months[parseInt(selectedMonth)]}/{selectedYear}</strong><br />
-                  Valor: <strong>R$ {confirmReport?.total_calculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                  Total Calculado: R$ {confirmReport?.total_calculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br />
+                  Já gerado (pendente + pago): R$ {((confirmReport?.total_pendente || 0) + (confirmReport?.total_pago || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br />
+                  <strong className="text-primary">Valor deste pagamento: R$ {confirmReport?.saldo_a_pagar.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
                 </p>
                 {confirmReport && confirmReport.total_pendente > 0 && (
                   <Alert variant="destructive">
