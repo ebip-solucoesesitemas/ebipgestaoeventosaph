@@ -47,7 +47,7 @@ export default function ProfessionalReport() {
     const monthEnd = endOfMonth(monthStart);
 
     const [profilesRes, ratesRes, assignmentsRes, paymentsRes] = await Promise.all([
-      supabase.from('profiles').select('id, nome, especialidade').order('nome'),
+      supabase.from('profiles').select('id, nome, especialidade').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('professional_rates').select('profile_id, valor_hora'),
       supabase.from('event_assignments')
         .select('profile_id, checkin_at, checkout_at')
