@@ -34,6 +34,7 @@ interface UserProfile {
   cargo: CargoTipo;
   user_id: string | null;
   base_id: string | null;
+  is_account_only: boolean;
   bases: { sigla: string; nome: string } | null;
 }
 
