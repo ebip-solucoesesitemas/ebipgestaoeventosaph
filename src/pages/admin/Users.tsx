@@ -314,6 +314,18 @@ export default function AdminUsers() {
                   </div>
                 </>
               )}
+              {editingUser && isSuperAdmin && (
+                <div className="space-y-1.5">
+                  <Label>Nova Senha (deixe vazio para não alterar)</Label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mín. 6 caracteres"
+                    maxLength={72}
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Cargo *</Label>
