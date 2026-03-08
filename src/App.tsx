@@ -49,6 +49,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <IdleTimeoutWrapper />
+            <TicketNotifications />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
