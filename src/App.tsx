@@ -81,6 +81,9 @@ const App = () => (
               <Route path="/events" element={<ProtectedRoute><TeamEvents /></ProtectedRoute>} />
               <Route path="/events/:id" element={<ProtectedRoute><TeamEventDetail /></ProtectedRoute>} />
               
+              {/* Support Tickets */}
+              <Route path="/tickets" element={<ProtectedRoute><SupportTickets /></ProtectedRoute>} />
+              
               {/* Report Route (protected, no sidebar) */}
               <Route path="/evento/:id/relatorio" element={<EventReportPage />} />
               
