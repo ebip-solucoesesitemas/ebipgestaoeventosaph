@@ -80,6 +80,7 @@ export default function TeamEvents() {
   const getEventStatus = (event: Event) => {
     if (event.status === 'finalizado') return 'finalizado';
     const now = new Date();
+    if (new Date(event.data_fim) <= now) return 'finalizado';
     if (new Date(event.data_inicio) > now) return 'proximo';
     return 'em_andamento';
   };
