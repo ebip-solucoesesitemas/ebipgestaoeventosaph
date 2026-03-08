@@ -184,6 +184,15 @@ export default function AdminUsers() {
       if (editingUser.cargo !== form.cargo && editingUser.user_id) {
         await (supabase.rpc as any)("toggle_user_role", { p_profile_id: editingUser.id });
       }
+
+      // Reset password if super-admin provided a new one
+      if (newPassword.trim().length >= 6) {
+        const res = await supabase.functions.invoke("reset-user-password", {
+          body: { profileId: editingUser.id, newPassword: newPassword.trim() },
+        });
+        if (res.error) throw new Error(res.error.message);
+        if (res.data?.error) throw new Error(res.data.error);
+      }
     },
     onSuccess: () => {
       toast({ title: "Usuário atualizado com sucesso" });
