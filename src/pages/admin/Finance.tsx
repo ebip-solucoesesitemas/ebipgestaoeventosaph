@@ -246,6 +246,18 @@ export default function Finance() {
   // Calculate valor_total from valor_hora * quantidade_horas
   const valorHoraNum = parseFloat(budgetForm.valor_hora) || 0;
   const qtdHorasNum = parseFloat(budgetForm.quantidade_horas) || 0;
+
+  // Auto-calculate data_fim from data_inicio + quantidade_horas
+  const autoCalcDataFim = useCallback((dataInicio: string, horas: string) => {
+    const h = parseFloat(horas);
+    if (!dataInicio || !h || h <= 0) return;
+    const start = new Date(dataInicio);
+    if (isNaN(start.getTime())) return;
+    const end = new Date(start.getTime() + h * 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const endStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    setBudgetForm((prev) => ({ ...prev, data_fim: endStr }));
+  }, []);
   const valorTotal = valorHoraNum * qtdHorasNum;
 
   // Auto-calculate KM when base and event address change
