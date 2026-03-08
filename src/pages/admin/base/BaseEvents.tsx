@@ -81,6 +81,7 @@ export default function BaseEvents() {
     data_fim: '',
     local: '',
     viatura_id: '',
+    client_id: '',
     equipe_completa: false,
     equipe_minima: 2,
     min_antes_saida_base: '',
@@ -133,7 +134,7 @@ export default function BaseEvents() {
   const resetForm = () => {
     setFormData({
       nome_evento: '', data_inicio: '', data_fim: '', local: '',
-      viatura_id: '', equipe_completa: false, equipe_minima: 2,
+      viatura_id: '', client_id: '', equipe_completa: false, equipe_minima: 2,
       min_antes_saida_base: '', horario_saida_base: '',
       selectedProfiles: [],
     });
@@ -142,13 +143,14 @@ export default function BaseEvents() {
 
   const openEditDialog = async (event: Event) => {
     setEditingEvent(event);
-    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base').eq('id', event.id).single();
+    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base, client_id').eq('id', event.id).single();
     setFormData({
       nome_evento: event.nome_evento,
       data_inicio: isoToLocalDatetime(event.data_inicio),
       data_fim: isoToLocalDatetime(event.data_fim),
       local: event.local,
       viatura_id: event.viatura_id || '',
+      client_id: (data as any)?.client_id || '',
       equipe_completa: event.equipe_completa || false,
       equipe_minima: event.equipe_minima || 2,
       min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || '',
@@ -212,6 +214,7 @@ export default function BaseEvents() {
       data_fim: dataFimISO,
       local: formData.local,
       viatura_id: formData.viatura_id || null,
+      client_id: formData.client_id || null,
       equipe_completa: formData.equipe_completa,
       equipe_minima: formData.equipe_minima,
       min_antes_saida_base: formData.min_antes_saida_base ? parseInt(formData.min_antes_saida_base) : null,
@@ -352,11 +355,14 @@ export default function BaseEvents() {
               <div className="space-y-2">
                 <Label>Cliente</Label>
                 <Select
+                  value={formData.client_id}
                   onValueChange={(clientId) => {
                     const client = clients.find(c => c.id === clientId);
-                    if (client?.endereco) {
-                      setFormData(prev => ({ ...prev, local: client.endereco! }));
-                    }
+                    setFormData(prev => ({
+                      ...prev,
+                      client_id: clientId,
+                      local: client?.endereco || prev.local,
+                    }));
                   }}
                 >
                   <SelectTrigger className="input-touch">
