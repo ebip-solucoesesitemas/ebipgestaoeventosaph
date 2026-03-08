@@ -3,6 +3,8 @@ import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+type HAlignType = "left" | "center" | "right";
+
 interface PDFOptions {
   title: string;
   subtitle?: string;
