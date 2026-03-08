@@ -37,6 +37,7 @@ interface ReportData {
   total_calculado: number;
   total_pendente: number;
   total_pago: number;
+  saldo_a_pagar: number;
 }
 
 const months = [
@@ -98,6 +99,8 @@ export default function ProfessionalReport() {
       const totalCalculado = totalHoras * valorHora;
       
       const profilePayments = payments.filter(p => p.profile_id === profile.id);
+      const totalPendente = profilePayments.filter(p => p.status === 'pendente').reduce((sum, p) => sum + Number(p.valor), 0);
+      const totalPago = profilePayments.filter(p => p.status === 'pago').reduce((sum, p) => sum + Number(p.valor), 0);
       
       return {
         profile_id: profile.id,
@@ -107,8 +110,9 @@ export default function ProfessionalReport() {
         total_horas: totalHoras,
         valor_hora: valorHora,
         total_calculado: totalCalculado,
-        total_pendente: profilePayments.filter(p => p.status === 'pendente').reduce((sum, p) => sum + Number(p.valor), 0),
-        total_pago: profilePayments.filter(p => p.status === 'pago').reduce((sum, p) => sum + Number(p.valor), 0),
+        total_pendente: totalPendente,
+        total_pago: totalPago,
+        saldo_a_pagar: Math.max(0, totalCalculado - totalPendente - totalPago),
       };
     });
 
@@ -129,6 +133,10 @@ export default function ProfessionalReport() {
       toast({ title: 'Configure o valor por hora deste profissional', variant: 'destructive' });
       return;
     }
+    if (report.saldo_a_pagar <= 0) {
+      toast({ title: 'Não há saldo a pagar para este profissional neste período', variant: 'destructive' });
+      return;
+    }
     setConfirmReport(report);
   };
 
@@ -140,10 +148,10 @@ export default function ProfessionalReport() {
 
     const { error } = await supabase.from('professional_payments').insert({
       profile_id: report.profile_id,
-      valor: report.total_calculado,
+      valor: report.saldo_a_pagar,
       tipo_pagamento: 'pix',
       status: 'pendente',
-      descricao: `Pagamento ref. ${months[parseInt(selectedMonth)]}/${selectedYear} - ${report.total_horas.toFixed(1)}h (${report.total_events} eventos)`,
+      descricao: `Pagamento ref. ${months[parseInt(selectedMonth)]}/${selectedYear} - Saldo: R$ ${report.saldo_a_pagar.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${report.total_horas.toFixed(1)}h / ${report.total_events} eventos)`,
     });
 
     if (error) {
@@ -176,6 +184,7 @@ export default function ProfessionalReport() {
       { header: "Total Calculado", dataKey: "total_calc", halign: "right" as const },
       { header: "Pendente", dataKey: "pendente", halign: "right" as const },
       { header: "Pago", dataKey: "pago", halign: "right" as const },
+      { header: "Saldo", dataKey: "saldo", halign: "right" as const },
     ];
 
     const rows = reports.map((r) => ({
@@ -187,6 +196,7 @@ export default function ProfessionalReport() {
       total_calc: `R$ ${r.total_calculado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       pendente: `R$ ${r.total_pendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       pago: `R$ ${r.total_pago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      saldo: `R$ ${r.saldo_a_pagar.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
     }));
 
     generatePDF({
@@ -256,18 +266,18 @@ export default function ProfessionalReport() {
                     )}
                     <Button
                       onClick={() => handleGenerateClick(report)}
-                      disabled={generating === report.profile_id || report.total_horas === 0}
+                      disabled={generating === report.profile_id || report.total_horas === 0 || report.saldo_a_pagar <= 0}
                       variant={report.total_pendente > 0 ? 'outline' : 'default'}
                       className="gap-2"
                     >
                       <Wallet className="w-4 h-4" />
-                      {generating === report.profile_id ? 'Gerando...' : report.total_pendente > 0 ? 'Gerar Novo Pagamento' : 'Gerar Pagamento'}
+                      {generating === report.profile_id ? 'Gerando...' : report.saldo_a_pagar <= 0 ? 'Tudo Gerado' : report.total_pendente > 0 ? 'Gerar Saldo' : 'Gerar Pagamento'}
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
                   <div className="text-center p-3 bg-muted rounded-lg">
                     <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
                       <Calendar className="w-4 h-4" />
@@ -312,6 +322,15 @@ export default function ProfessionalReport() {
                       R$ {report.total_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
+                  <div className="text-center p-3 bg-accent rounded-lg col-span-2 md:col-span-1">
+                    <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
+                      <Wallet className="w-4 h-4" />
+                      Saldo a Pagar
+                    </div>
+                    <p className={`text-xl font-bold ${report.saldo_a_pagar > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                      R$ {report.saldo_a_pagar.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -328,7 +347,9 @@ export default function ProfessionalReport() {
                 <p>
                   Profissional: <strong>{confirmReport?.profile_name}</strong><br />
                   Período: <strong>{months[parseInt(selectedMonth)]}/{selectedYear}</strong><br />
-                  Valor: <strong>R$ {confirmReport?.total_calculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                  Total Calculado: R$ {confirmReport?.total_calculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br />
+                  Já gerado (pendente + pago): R$ {((confirmReport?.total_pendente || 0) + (confirmReport?.total_pago || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br />
+                  <strong className="text-primary">Valor deste pagamento: R$ {confirmReport?.saldo_a_pagar.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
                 </p>
                 {confirmReport && confirmReport.total_pendente > 0 && (
                   <Alert variant="destructive">
