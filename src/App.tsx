@@ -34,6 +34,7 @@ import BaseFinance from "./pages/admin/base/BaseFinance";
 import TeamEvents from "./pages/team/TeamEvents";
 import TeamEventDetail from "./pages/team/EventDetail";
 import EventReportPage from "./pages/EventReportPage";
+import SupportTickets from "./pages/SupportTickets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
