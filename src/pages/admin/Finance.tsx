@@ -356,11 +356,19 @@ export default function Finance() {
 
     setCreatingEvent(budget.id);
 
+    // Convert datetime-local values to proper ISO with timezone
+    const dataInicioISO = budget.data_inicio!.includes('T') && !budget.data_inicio!.endsWith('Z')
+      ? new Date(budget.data_inicio!).toISOString()
+      : budget.data_inicio!;
+    const dataFimISO = budget.data_fim!.includes('T') && !budget.data_fim!.endsWith('Z')
+      ? new Date(budget.data_fim!).toISOString()
+      : budget.data_fim!;
+
     const { data: newEvent, error: eventError } = await supabase.from('events').insert({
       nome_evento: budget.nome_evento || budget.descricao || 'Evento sem nome',
       local: budget.endereco_evento || 'A definir',
-      data_inicio: budget.data_inicio,
-      data_fim: budget.data_fim,
+      data_inicio: dataInicioISO,
+      data_fim: dataFimISO,
       base_id: budget.base_id || null,
     }).select('id').single();
 

@@ -82,7 +82,7 @@ export default function Payroll() {
   const fetchData = async () => {
     setIsLoading(true);
     const [profilesRes, eventsRes, paymentsRes] = await Promise.all([
-      supabase.from('profiles').select('id, nome, especialidade').order('nome'),
+      supabase.from('profiles').select('id, nome, especialidade').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('events').select('id, nome_evento').order('data_inicio', { ascending: false }),
       supabase
         .from('professional_payments')
