@@ -320,6 +320,15 @@ export default function ProfessionalReport() {
                       R$ {report.total_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
+                  <div className="text-center p-3 bg-accent rounded-lg col-span-2 md:col-span-1">
+                    <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
+                      <Wallet className="w-4 h-4" />
+                      Saldo a Pagar
+                    </div>
+                    <p className={`text-xl font-bold ${report.saldo_a_pagar > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                      R$ {report.saldo_a_pagar.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
