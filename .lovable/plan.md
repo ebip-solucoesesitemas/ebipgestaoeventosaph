@@ -1,27 +1,29 @@
 
+# Plano de Melhorias — EBIP Eventos
 
-## Prevenir Pagamentos Duplicados no Relatório por Profissional
+## Status das Fases
 
-### Problema
-Ao clicar "Gerar Pagamento" múltiplas vezes (por engano ou achando que não gerou), cria pagamentos duplicados, gerando risco de pagar em dobro.
+| Fase | Melhoria | Status |
+|------|----------|--------|
+| 1 | Dashboard KPIs | ✅ Implementado |
+| 2 | Exportação PDF | ✅ Implementado |
+| 3 | Histórico Profissional | 🔜 Pendente |
+| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
+| 5 | Modo Escuro | ✅ Implementado |
+| 6 | Variáveis Contrato | ✅ Já existia |
+| — | Nota de oficina na viatura | ✅ Implementado |
 
-### Solução
+## Auditoria de Segurança
 
-**1. Dialog de confirmação antes de gerar pagamento**
-- Ao clicar "Gerar Pagamento", abrir um `AlertDialog` mostrando:
-  - Nome do profissional, mês/ano, valor a ser gerado
-  - Se já existir pagamento pendente para aquele profissional no mês, mostrar **aviso em destaque**: "Já existe um pagamento pendente de R$ X,XX para este profissional neste período. Deseja gerar outro?"
-- Botões: "Cancelar" / "Confirmar Pagamento"
-
-**2. Indicador visual quando já há pagamento pendente**
-- Se `total_pendente > 0`, trocar o botão "Gerar Pagamento" por um visual diferente (outline/warning) com texto "Gerar Novo Pagamento" para deixar claro que já existe um
-- Adicionar badge "Pagamento pendente" junto ao botão
-
-**3. Mudanças em `src/pages/admin/ProfessionalReport.tsx`**
-- Importar `AlertDialog` do shadcn
-- Adicionar estado para controlar o dialog e o report selecionado
-- No `generatePayment`, só executar após confirmação no dialog
-- Condicionar estilo do botão baseado em `report.total_pendente > 0`
-
-### Sem mudanças no banco de dados.
-
+| # | Correção | Status |
+|---|----------|--------|
+| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
+| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
+| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
+| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
+| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
+| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
+| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
+| 8 | Utilitário de validação UUID criado | ✅ Implementado |
+| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
+| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
