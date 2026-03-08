@@ -120,17 +120,22 @@ export default function ProfessionalReport() {
     fetchReport();
   }, [selectedMonth, selectedYear]);
 
-  const generatePayment = async (report: ReportData) => {
+  const handleGenerateClick = (report: ReportData) => {
     if (report.total_horas === 0) {
       toast({ title: 'Nenhuma hora registrada para gerar pagamento', variant: 'destructive' });
       return;
     }
-
     if (report.valor_hora <= 0) {
       toast({ title: 'Configure o valor por hora deste profissional', variant: 'destructive' });
       return;
     }
+    setConfirmReport(report);
+  };
 
+  const confirmGeneratePayment = async () => {
+    if (!confirmReport) return;
+    const report = confirmReport;
+    setConfirmReport(null);
     setGenerating(report.profile_id);
 
     const { error } = await supabase.from('professional_payments').insert({
