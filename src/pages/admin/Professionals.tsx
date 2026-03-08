@@ -64,6 +64,7 @@ export default function AdminProfessionals() {
       .from('profiles')
       .select('*')
       .eq('hidden', false)
+      .eq('is_account_only', false)
       .order('nome');
 
     if (error) {
