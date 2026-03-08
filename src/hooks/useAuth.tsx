@@ -11,6 +11,7 @@ interface Profile {
   cargo: "admin" | "equipe" | "gestor";
   hidden: boolean;
   is_account_only: boolean;
+  accepted_terms_at: string | null;
 }
 
 interface AuthContextType {
@@ -20,6 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   needsProfile: boolean;
+  needsTermsAcceptance: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (
     email: string,
@@ -178,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const needsProfile = !!user && !isLoading && !profile;
+  const needsTermsAcceptance = !!user && !isLoading && !!profile && !profile.accepted_terms_at;
 
   return (
     <AuthContext.Provider
@@ -188,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAdmin,
         needsProfile,
+        needsTermsAcceptance,
         signIn,
         signUp,
         signOut,
