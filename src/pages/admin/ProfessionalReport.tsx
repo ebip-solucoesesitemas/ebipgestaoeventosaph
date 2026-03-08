@@ -37,6 +37,7 @@ interface ReportData {
   total_calculado: number;
   total_pendente: number;
   total_pago: number;
+  saldo_a_pagar: number;
 }
 
 const months = [
