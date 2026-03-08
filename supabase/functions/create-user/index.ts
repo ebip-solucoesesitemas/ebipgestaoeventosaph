@@ -97,6 +97,7 @@ Deno.serve(async (req) => {
       registro_profissional: profileData.registro_profissional || "",
       cargo: profileData.cargo || "equipe",
       telefone: profileData.telefone || null,
+      is_account_only: profileData.is_account_only || false,
     };
     if (profileData.base_id) {
       profileInsert.base_id = profileData.base_id;
