@@ -108,7 +108,7 @@ export default function AdminVehicles() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ modelo: '', placa: '', prefixo: '', status: 'disponivel' });
+    setFormData({ modelo: '', placa: '', prefixo: '', status: 'disponivel', observacao_manutencao: '' });
     setEditingVehicle(null);
   };
 
