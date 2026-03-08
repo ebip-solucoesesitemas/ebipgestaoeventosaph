@@ -21,6 +21,7 @@ import {
 import { Plus, Trash2, Shield, Users as UsersIcon, Edit } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 
 type EspecialidadeTipo = Database["public"]["Enums"]["especialidade_tipo"];
@@ -50,10 +51,12 @@ const especialidades: EspecialidadeTipo[] = [
 
 export default function AdminUsers() {
   const { toast } = useToast();
+  const { isSuperAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [newPassword, setNewPassword] = useState("");
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -79,6 +82,7 @@ export default function AdminUsers() {
       is_account_only: false,
     });
     setEditingUser(null);
+    setNewPassword("");
   };
 
   const openEditDialog = (user: UserProfile) => {
@@ -179,6 +183,15 @@ export default function AdminUsers() {
       // Update role if cargo changed
       if (editingUser.cargo !== form.cargo && editingUser.user_id) {
         await (supabase.rpc as any)("toggle_user_role", { p_profile_id: editingUser.id });
+      }
+
+      // Reset password if super-admin provided a new one
+      if (newPassword.trim().length >= 6) {
+        const res = await supabase.functions.invoke("reset-user-password", {
+          body: { profileId: editingUser.id, newPassword: newPassword.trim() },
+        });
+        if (res.error) throw new Error(res.error.message);
+        if (res.data?.error) throw new Error(res.data.error);
       }
     },
     onSuccess: () => {
@@ -300,6 +313,18 @@ export default function AdminUsers() {
                     />
                   </div>
                 </>
+              )}
+              {editingUser && isSuperAdmin && (
+                <div className="space-y-1.5">
+                  <Label>Nova Senha (deixe vazio para não alterar)</Label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mín. 6 caracteres"
+                    maxLength={72}
+                  />
+                </div>
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
