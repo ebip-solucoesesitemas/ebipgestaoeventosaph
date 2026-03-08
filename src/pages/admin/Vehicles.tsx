@@ -126,11 +126,15 @@ export default function AdminVehicles() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      ...formData,
+      observacao_manutencao: formData.status === 'manutencao' ? (formData.observacao_manutencao || null) : null,
+    };
 
     if (editingVehicle) {
       const { error } = await supabase
         .from('vehicles')
-        .update(formData)
+        .update(payload)
         .eq('id', editingVehicle.id);
 
       if (error) {
@@ -139,7 +143,7 @@ export default function AdminVehicles() {
       }
       toast({ title: 'Viatura atualizada!' });
     } else {
-      const { error } = await supabase.from('vehicles').insert(formData);
+      const { error } = await supabase.from('vehicles').insert(payload);
 
       if (error) {
         if (error.message.includes('duplicate')) {
