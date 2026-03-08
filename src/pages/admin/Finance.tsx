@@ -35,11 +35,13 @@ import {
   Pencil,
   Loader2,
   Route,
+  Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CepInput } from '@/components/CepInput';
 import { calculateDistanceBetweenAddresses } from '@/lib/geo';
+import { generatePDF } from '@/lib/pdf';
 
 interface Base {
   id: string;
@@ -476,11 +478,49 @@ export default function Finance() {
     );
   }
 
+  const handleExportFinancePDF = () => {
+    const columns = [
+      { header: "Evento", dataKey: "evento" },
+      { header: "Cliente", dataKey: "cliente" },
+      { header: "Valor Contrato", dataKey: "valor", halign: "right" as const },
+      { header: "Status", dataKey: "status" },
+      { header: "Forma Cobrança", dataKey: "forma" },
+      { header: "Vencimento", dataKey: "vencimento" },
+    ];
+
+    const rows = budgets.map((b) => ({
+      evento: b.nome_evento || b.events?.nome_evento || "—",
+      cliente: b.clients?.nome || "—",
+      valor: `R$ ${Number(b.valor_contrato).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      status: b.status,
+      forma: b.forma_cobranca ? (formaCobrancaLabels[b.forma_cobranca] || b.forma_cobranca) : "—",
+      vencimento: b.data_vencimento ? format(new Date(b.data_vencimento), "dd/MM/yyyy") : "—",
+    }));
+
+    generatePDF({
+      title: "Relatório Financeiro",
+      subtitle: `Gerado em ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}`,
+      columns,
+      rows,
+      totals: [
+        { label: "Receitas (Pago)", value: `R$ ${totalReceitas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
+        { label: "Pendente", value: `R$ ${totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
+        { label: "Despesas", value: `R$ ${totalDespesas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
+        { label: "Saldo", value: `R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
+      ],
+    });
+  };
+
   return (
     <div className="space-y-6 animate-slide-up">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
-        <p className="text-muted-foreground">Gestão de receitas e despesas</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
+          <p className="text-muted-foreground">Gestão de receitas e despesas</p>
+        </div>
+        <Button onClick={handleExportFinancePDF} className="gap-2">
+          <Download className="w-4 h-4" /> Exportar PDF
+        </Button>
       </div>
 
       {/* Summary Cards */}
