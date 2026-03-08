@@ -9,7 +9,7 @@ import { Calendar, Users, Truck, ClipboardList, Shield, ArrowRight, Building2, D
 import { Link } from 'react-router-dom';
 
 export default function Index() {
-  const { user, profile, isLoading, isAdmin, signOut } = useAuth();
+  const { user, profile, isLoading, isAdmin, signOut, needsTermsAcceptance } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
