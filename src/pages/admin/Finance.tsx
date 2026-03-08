@@ -480,9 +480,14 @@ export default function Finance() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
-        <p className="text-muted-foreground">Gestão de receitas e despesas</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
+          <p className="text-muted-foreground">Gestão de receitas e despesas</p>
+        </div>
+        <Button onClick={handleExportFinancePDF} className="gap-2">
+          <Download className="w-4 h-4" /> Exportar PDF
+        </Button>
       </div>
 
       {/* Summary Cards */}
