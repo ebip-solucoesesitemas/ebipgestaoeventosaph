@@ -279,7 +279,10 @@ export default function AdminProfessionals() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="equipe">Equipe</SelectItem>
+                    <SelectItem value="gestor">Gestor</SelectItem>
                     <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="admin_bnu">Admin BNU</SelectItem>
+                    <SelectItem value="admin_fln">Admin FLN</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
