@@ -97,7 +97,10 @@ export function generatePDF(options: PDFOptions) {
     autoTable(doc, {
       startY,
       tableWidth: 'auto',
-      head: [columns.map((c) => c.header)],
+      head: [columns.map((c) => ({
+        content: c.header,
+        styles: { halign: (c.halign || 'left') as HAlignType },
+      }))],
       body: rows.map((row) => columns.map((c) => String(row[c.dataKey] ?? ""))),
       styles: { fontSize: 8, cellPadding: 2, halign: 'left' as HAlignType },
       headStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
