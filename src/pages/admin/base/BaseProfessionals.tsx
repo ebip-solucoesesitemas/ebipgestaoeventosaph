@@ -91,6 +91,8 @@ export default function BaseProfessionals() {
           assignmentsData.forEach((a: any) => {
             if (!a.profiles) return;
             const p = a.profiles;
+            // Skip hidden (super-admin) and access-only accounts
+            if (p.hidden || p.is_account_only) return;
             if (profMap.has(p.id)) {
               profMap.get(p.id)!.event_count++;
             } else {
