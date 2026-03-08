@@ -19,6 +19,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  MessageSquare,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
