@@ -179,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const needsProfile = !!user && !isLoading && !profile;
+  const needsTermsAcceptance = !!user && !isLoading && !!profile && !profile.accepted_terms_at;
 
   return (
     <AuthContext.Provider
