@@ -959,7 +959,11 @@ export default function Finance() {
                 <Input
                   type="datetime-local"
                   value={budgetForm.data_inicio}
-                  onChange={(e) => setBudgetForm({ ...budgetForm, data_inicio: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBudgetForm((prev) => ({ ...prev, data_inicio: val }));
+                    autoCalcDataFim(val, budgetForm.quantidade_horas);
+                  }}
                 />
               </div>
               <div className="space-y-2">
