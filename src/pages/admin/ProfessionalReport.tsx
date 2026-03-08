@@ -264,12 +264,12 @@ export default function ProfessionalReport() {
                     )}
                     <Button
                       onClick={() => handleGenerateClick(report)}
-                      disabled={generating === report.profile_id || report.total_horas === 0}
+                      disabled={generating === report.profile_id || report.total_horas === 0 || report.saldo_a_pagar <= 0}
                       variant={report.total_pendente > 0 ? 'outline' : 'default'}
                       className="gap-2"
                     >
                       <Wallet className="w-4 h-4" />
-                      {generating === report.profile_id ? 'Gerando...' : report.total_pendente > 0 ? 'Gerar Novo Pagamento' : 'Gerar Pagamento'}
+                      {generating === report.profile_id ? 'Gerando...' : report.saldo_a_pagar <= 0 ? 'Tudo Gerado' : report.total_pendente > 0 ? 'Gerar Saldo' : 'Gerar Pagamento'}
                     </Button>
                   </div>
                 </div>
