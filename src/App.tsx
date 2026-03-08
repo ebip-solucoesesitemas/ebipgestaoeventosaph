@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "next-themes";
+import AdminRoute from "@/components/AdminRoute";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import IdleTimeoutWrapper from "@/components/IdleTimeoutWrapper";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminEvents from "./pages/admin/Events";
@@ -32,19 +35,8 @@ import TeamEvents from "./pages/team/TeamEvents";
 import TeamEventDetail from "./pages/team/EventDetail";
 import EventReportPage from "./pages/EventReportPage";
 import NotFound from "./pages/NotFound";
-import Layout from "@/components/Layout";
 
 const queryClient = new QueryClient();
-
-// Protected route wrapper for admin pages
-const AdminLayout = ({ children }: { children: React.ReactNode }) => (
-  <Layout>{children}</Layout>
-);
-
-// Protected route wrapper for team pages
-const TeamLayout = ({ children }: { children: React.ReactNode }) => (
-  <Layout>{children}</Layout>
-);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -54,40 +46,41 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <IdleTimeoutWrapper />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               
               {/* Admin Routes */}
-              <Route path="/admin/events" element={<AdminLayout><AdminEvents /></AdminLayout>} />
-              <Route path="/admin/events/:id" element={<AdminLayout><AdminEventDetail /></AdminLayout>} />
-              <Route path="/admin/professionals" element={<AdminLayout><AdminProfessionals /></AdminLayout>} />
-              <Route path="/admin/vehicles" element={<AdminLayout><AdminVehicles /></AdminLayout>} />
-              <Route path="/admin/clients" element={<AdminLayout><AdminClients /></AdminLayout>} />
-              <Route path="/admin/finance" element={<AdminLayout><AdminFinance /></AdminLayout>} />
-              <Route path="/admin/payroll" element={<AdminLayout><AdminPayroll /></AdminLayout>} />
-              <Route path="/admin/professional-rates" element={<AdminLayout><AdminProfessionalRates /></AdminLayout>} />
-              <Route path="/admin/professional-report" element={<AdminLayout><AdminProfessionalReport /></AdminLayout>} />
-              <Route path="/admin/bases" element={<AdminLayout><AdminBases /></AdminLayout>} />
-              <Route path="/admin/operational-rates" element={<AdminLayout><AdminOperationalRates /></AdminLayout>} />
-              <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
-              <Route path="/admin/contract-templates" element={<AdminLayout><AdminContractTemplates /></AdminLayout>} />
-              <Route path="/admin/regulation-phones" element={<AdminLayout><AdminRegulationPhones /></AdminLayout>} />
-              <Route path="/admin/permissions" element={<AdminLayout><AdminPermissions /></AdminLayout>} />
-              <Route path="/admin/payroll-report" element={<AdminLayout><AdminPayrollReport /></AdminLayout>} />
-              <Route path="/admin/audit-logs" element={<AdminLayout><AdminAuditLogs /></AdminLayout>} />
+              <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
+              <Route path="/admin/events/:id" element={<AdminRoute><AdminEventDetail /></AdminRoute>} />
+              <Route path="/admin/professionals" element={<AdminRoute><AdminProfessionals /></AdminRoute>} />
+              <Route path="/admin/vehicles" element={<AdminRoute><AdminVehicles /></AdminRoute>} />
+              <Route path="/admin/clients" element={<AdminRoute><AdminClients /></AdminRoute>} />
+              <Route path="/admin/finance" element={<AdminRoute><AdminFinance /></AdminRoute>} />
+              <Route path="/admin/payroll" element={<AdminRoute><AdminPayroll /></AdminRoute>} />
+              <Route path="/admin/professional-rates" element={<AdminRoute><AdminProfessionalRates /></AdminRoute>} />
+              <Route path="/admin/professional-report" element={<AdminRoute><AdminProfessionalReport /></AdminRoute>} />
+              <Route path="/admin/bases" element={<AdminRoute><AdminBases /></AdminRoute>} />
+              <Route path="/admin/operational-rates" element={<AdminRoute><AdminOperationalRates /></AdminRoute>} />
+              <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+              <Route path="/admin/contract-templates" element={<AdminRoute><AdminContractTemplates /></AdminRoute>} />
+              <Route path="/admin/regulation-phones" element={<AdminRoute><AdminRegulationPhones /></AdminRoute>} />
+              <Route path="/admin/permissions" element={<AdminRoute><AdminPermissions /></AdminRoute>} />
+              <Route path="/admin/payroll-report" element={<AdminRoute><AdminPayrollReport /></AdminRoute>} />
+              <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
               
               {/* Base-specific Routes */}
-              <Route path="/admin/base/:baseId/events" element={<AdminLayout><BaseEvents /></AdminLayout>} />
-              <Route path="/admin/base/:baseId/professionals" element={<AdminLayout><BaseProfessionals /></AdminLayout>} />
-              <Route path="/admin/base/:baseId/vehicles" element={<AdminLayout><BaseVehicles /></AdminLayout>} />
-              <Route path="/admin/base/:baseId/finance" element={<AdminLayout><BaseFinance /></AdminLayout>} />
+              <Route path="/admin/base/:baseId/events" element={<AdminRoute><BaseEvents /></AdminRoute>} />
+              <Route path="/admin/base/:baseId/professionals" element={<AdminRoute><BaseProfessionals /></AdminRoute>} />
+              <Route path="/admin/base/:baseId/vehicles" element={<AdminRoute><BaseVehicles /></AdminRoute>} />
+              <Route path="/admin/base/:baseId/finance" element={<AdminRoute><BaseFinance /></AdminRoute>} />
               
               {/* Team Routes */}
-              <Route path="/events" element={<TeamLayout><TeamEvents /></TeamLayout>} />
-              <Route path="/events/:id" element={<TeamLayout><TeamEventDetail /></TeamLayout>} />
+              <Route path="/events" element={<ProtectedRoute><TeamEvents /></ProtectedRoute>} />
+              <Route path="/events/:id" element={<ProtectedRoute><TeamEventDetail /></ProtectedRoute>} />
               
-              {/* Report Route (no layout) */}
+              {/* Report Route (protected, no sidebar) */}
               <Route path="/evento/:id/relatorio" element={<EventReportPage />} />
               
               <Route path="*" element={<NotFound />} />
