@@ -105,7 +105,7 @@ export default function TeamEvents() {
           <Card>
             <CardContent className="py-12 text-center">
               <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Você não está escalado em nenhum evento</p>
+              <p className="text-muted-foreground">Nenhum evento encontrado</p>
             </CardContent>
           </Card>
         ) : (
