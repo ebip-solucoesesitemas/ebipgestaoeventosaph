@@ -190,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAdmin,
         needsProfile,
+        needsTermsAcceptance,
         signIn,
         signUp,
         signOut,
