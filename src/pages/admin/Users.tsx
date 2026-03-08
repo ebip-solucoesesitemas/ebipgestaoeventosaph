@@ -168,6 +168,7 @@ export default function AdminUsers() {
         cargo: form.cargo,
         base_id: form.base_id || null,
         telefone: form.telefone.trim() || null,
+        is_account_only: form.is_account_only,
       };
 
       const { error } = await supabase.from("profiles").update(payload).eq("id", editingUser.id);
