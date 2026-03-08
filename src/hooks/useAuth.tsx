@@ -192,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         isLoading,
         isAdmin,
+        isSuperAdmin: !!profile?.hidden,
         needsProfile,
         needsTermsAcceptance,
         signIn,
