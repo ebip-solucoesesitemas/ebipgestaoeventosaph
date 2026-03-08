@@ -184,6 +184,7 @@ export default function ProfessionalReport() {
       { header: "Total Calculado", dataKey: "total_calc", halign: "right" as const },
       { header: "Pendente", dataKey: "pendente", halign: "right" as const },
       { header: "Pago", dataKey: "pago", halign: "right" as const },
+      { header: "Saldo", dataKey: "saldo", halign: "right" as const },
     ];
 
     const rows = reports.map((r) => ({
@@ -195,6 +196,7 @@ export default function ProfessionalReport() {
       total_calc: `R$ ${r.total_calculado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       pendente: `R$ ${r.total_pendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       pago: `R$ ${r.total_pago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      saldo: `R$ ${r.saldo_a_pagar.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
     }));
 
     generatePDF({
