@@ -149,6 +149,36 @@ export default function ProfessionalReport() {
     );
   }
 
+  const handleExportPDF = () => {
+    const columns = [
+      { header: "Profissional", dataKey: "nome" },
+      { header: "Especialidade", dataKey: "especialidade" },
+      { header: "Eventos", dataKey: "eventos", halign: "center" as const },
+      { header: "Horas", dataKey: "horas", halign: "center" as const },
+      { header: "Valor/Hora", dataKey: "valor_hora", halign: "right" as const },
+      { header: "Total Calculado", dataKey: "total_calc", halign: "right" as const },
+      { header: "Pendente", dataKey: "pendente", halign: "right" as const },
+      { header: "Pago", dataKey: "pago", halign: "right" as const },
+    ];
+
+    const rows = reports.map((r) => ({
+      nome: r.profile_name,
+      especialidade: r.especialidade,
+      eventos: r.total_events.toString(),
+      horas: `${r.total_horas.toFixed(1)}h`,
+      valor_hora: `R$ ${r.valor_hora.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      total_calc: `R$ ${r.total_calculado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      pendente: `R$ ${r.total_pendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      pago: `R$ ${r.total_pago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+    }));
+
+    generatePDF({
+      title: `Relatório por Profissional — ${months[parseInt(selectedMonth)]} / ${selectedYear}`,
+      columns,
+      rows,
+    });
+  };
+
   return (
     <div className="space-y-6 animate-slide-up">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -177,6 +207,9 @@ export default function ProfessionalReport() {
               ))}
             </SelectContent>
           </Select>
+          <Button onClick={handleExportPDF} className="gap-2">
+            <Download className="w-4 h-4" /> Exportar PDF
+          </Button>
         </div>
       </div>
 
