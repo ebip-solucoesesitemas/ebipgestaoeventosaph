@@ -53,6 +53,7 @@ export default function AdminVehicles() {
     placa: '',
     prefixo: '',
     status: 'disponivel' as VehicleStatus,
+    observacao_manutencao: '',
   });
 
   const fetchVehicles = async () => {
