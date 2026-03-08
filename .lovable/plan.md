@@ -1,21 +1,29 @@
 
+# Plano de Melhorias — EBIP Eventos
 
-## Problema
+## Status das Fases
 
-A query de profissionais filtra apenas `hidden = false`, mas não filtra `is_account_only`. Usuários como VTR-01 e VTR-02 (criados apenas para acesso/login) aparecem na listagem.
+| Fase | Melhoria | Status |
+|------|----------|--------|
+| 1 | Dashboard KPIs | ✅ Implementado |
+| 2 | Exportação PDF | ✅ Implementado |
+| 3 | Histórico Profissional | 🔜 Pendente |
+| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
+| 5 | Modo Escuro | ✅ Implementado |
+| 6 | Variáveis Contrato | ✅ Já existia |
+| — | Nota de oficina na viatura | ✅ Implementado |
 
-## Correção
+## Auditoria de Segurança
 
-Adicionar `.eq('is_account_only', false)` na query do `fetchProfiles` em `src/pages/admin/Professionals.tsx`, linha 66:
-
-```typescript
-const { data, error } = await supabase
-  .from('profiles')
-  .select('*')
-  .eq('hidden', false)
-  .eq('is_account_only', false)
-  .order('nome');
-```
-
-Uma linha de código. Sem mudanças no banco de dados.
-
+| # | Correção | Status |
+|---|----------|--------|
+| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
+| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
+| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
+| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
+| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
+| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
+| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
+| 8 | Utilitário de validação UUID criado | ✅ Implementado |
+| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
+| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
