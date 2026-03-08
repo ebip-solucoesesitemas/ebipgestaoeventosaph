@@ -26,3 +26,4 @@
 | 7 | Idle timeout 30min com logout automático | ✅ Implementado |
 | 8 | Utilitário de validação UUID criado | ✅ Implementado |
 | 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
+| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
