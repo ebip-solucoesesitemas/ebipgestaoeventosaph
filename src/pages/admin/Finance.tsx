@@ -876,7 +876,11 @@ export default function Finance() {
                   type="number"
                   step="0.5"
                   value={budgetForm.quantidade_horas}
-                  onChange={(e) => setBudgetForm({ ...budgetForm, quantidade_horas: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBudgetForm((prev) => ({ ...prev, quantidade_horas: val }));
+                    autoCalcDataFim(budgetForm.data_inicio, val);
+                  }}
                   placeholder="0"
                   required={!isEmpenho}
                 />
