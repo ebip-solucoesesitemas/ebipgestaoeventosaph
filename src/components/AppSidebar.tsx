@@ -17,7 +17,10 @@ import {
   ChevronDown,
   Settings,
   LogOut,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import {
   Sidebar,
   SidebarContent,
