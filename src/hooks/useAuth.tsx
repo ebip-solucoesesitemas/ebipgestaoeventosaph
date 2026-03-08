@@ -21,6 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   needsProfile: boolean;
+  needsTermsAcceptance: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (
     email: string,
