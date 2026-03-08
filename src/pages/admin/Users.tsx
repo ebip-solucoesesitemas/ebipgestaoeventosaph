@@ -341,7 +341,7 @@ export default function AdminUsers() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Registro Profissional *</Label>
+                  <Label>Registro Profissional</Label>
                   <Input
                     value={form.registro_profissional}
                     onChange={(e) => setForm((f) => ({ ...f, registro_profissional: e.target.value }))}
