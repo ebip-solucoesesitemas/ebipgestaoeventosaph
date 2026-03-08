@@ -91,7 +91,21 @@ export default function SupportTickets() {
     if (error) {
       toast.error("Erro ao carregar chamados");
     } else {
-      setTickets((data as unknown as Ticket[]) || []);
+      const ticketData = (data as unknown as Ticket[]) || [];
+      setTickets(ticketData);
+      // Load creator names
+      const creatorIds = [...new Set(ticketData.map(t => t.created_by))];
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, nome")
+          .in("user_id", creatorIds);
+        if (profiles) {
+          const map: Record<string, string> = {};
+          profiles.forEach((p: any) => { map[p.user_id] = p.nome; });
+          setProfileNames(prev => ({ ...prev, ...map }));
+        }
+      }
     }
     setLoading(false);
   }, []);
