@@ -11,9 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FileText, DollarSign, Calendar, Check, Wallet, Clock } from 'lucide-react';
+import { FileText, DollarSign, Calendar, Check, Wallet, Clock, Download } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { generatePDF } from '@/lib/pdf';
 
 interface ReportData {
   profile_id: string;
