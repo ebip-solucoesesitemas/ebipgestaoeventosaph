@@ -331,6 +331,9 @@ export default function SupportTickets() {
                   >
                     <TableCell className="font-mono text-sm">#{ticket.ticket_number}</TableCell>
                     <TableCell className="font-medium">{ticket.title}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {profileNames[ticket.created_by] || "—"}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{categoryLabels[ticket.category] || ticket.category}</Badge>
                     </TableCell>
