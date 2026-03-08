@@ -214,6 +214,7 @@ export default function BaseEvents() {
       data_fim: dataFimISO,
       local: formData.local,
       viatura_id: formData.viatura_id || null,
+      client_id: formData.client_id || null,
       equipe_completa: formData.equipe_completa,
       equipe_minima: formData.equipe_minima,
       min_antes_saida_base: formData.min_antes_saida_base ? parseInt(formData.min_antes_saida_base) : null,
