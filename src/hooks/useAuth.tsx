@@ -11,6 +11,7 @@ interface Profile {
   cargo: "admin" | "equipe" | "gestor";
   hidden: boolean;
   is_account_only: boolean;
+  accepted_terms_at: string | null;
 }
 
 interface AuthContextType {
