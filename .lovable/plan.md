@@ -1,38 +1,47 @@
 
 
-# Revisão das Variáveis de Contrato
+## Plano: Termo de Uso com LGPD no Primeiro Acesso
 
-## Situação Atual
+### Resumo
+Criar um Termo de Utilização que o usuário deve aceitar no primeiro login para acessar o sistema. O termo isentará a EBIP Soluções e Sistemas de responsabilidade por mau uso e incluirá cláusulas sobre a LGPD.
 
-As variáveis disponíveis nos modelos de contrato cobrem apenas dados básicos do cliente e datas. Faltam variáveis importantes do contexto do negócio (orçamento, evento, base, valores por hora, etc.).
+### Mudanças no Banco de Dados
 
-## Variáveis Atuais (10)
-`CLIENTE_NOME`, `CLIENTE_DOCUMENTO`, `CLIENTE_EMAIL`, `CLIENTE_TELEFONE`, `CLIENTE_ENDERECO`, `CLIENTE_CEP`, `VALOR_CONTRATO`, `DATA_INICIO`, `DATA_FIM`, `DATA_ATUAL`
+1. **Adicionar coluna `accepted_terms_at`** na tabela `profiles`:
+   - Tipo: `timestamp with time zone`, nullable, default `null`
+   - Quando o usuário aceitar, grava a data/hora da aceitação
 
-## Novas Variáveis a Adicionar (8)
+### Mudanças no Código
 
-| Variável | Descrição |
-|---|---|
-| `{{VALOR_HORA}}` | Valor por hora (R$) |
-| `{{QUANTIDADE_HORAS}}` | Quantidade de horas contratadas |
-| `{{VALOR_TOTAL}}` | Valor total (hora × quantidade) |
-| `{{TIPO_UNIDADE}}` | Tipo de unidade (USB, USA, etc.) |
-| `{{FORMA_COBRANCA}}` | Forma de cobrança (Empenho, PIX, etc.) |
-| `{{NOME_EVENTO}}` | Nome do evento vinculado |
-| `{{ENDERECO_EVENTO}}` | Endereço do evento |
-| `{{BASE_NOME}}` | Nome da base operacional |
+2. **Criar componente `TermsOfUse.tsx`**:
+   - Tela fullscreen com ScrollArea contendo o texto completo do termo
+   - Conteúdo do termo incluindo:
+     - Identificação da EBIP Soluções e Sistemas
+     - Isenção de responsabilidade por mau uso do sistema
+     - Obrigações do usuário
+     - Cláusulas LGPD (coleta, tratamento, finalidade, direitos do titular, base legal)
+     - Segurança dos dados
+   - Checkbox "Li e aceito os termos" + botão "Aceitar e Continuar"
+   - Ao aceitar: atualiza `profiles.accepted_terms_at = now()` e recarrega o perfil
 
-## Alterações
+3. **Atualizar `useAuth.tsx`**:
+   - Adicionar `accepted_terms_at` ao tipo `Profile`
+   - Expor flag `needsTermsAcceptance` (user logado + profile existe + `accepted_terms_at` é null)
 
-### 1. `ContractTemplates.tsx` — Atualizar lista PLACEHOLDERS
-Adicionar as 8 novas variáveis na lista de badges clicáveis, organizadas em categorias visuais (Cliente, Financeiro, Evento).
+4. **Atualizar `Index.tsx`**:
+   - Antes de renderizar o dashboard, verificar `needsTermsAcceptance`
+   - Se true, renderizar o componente `TermsOfUse` em vez do dashboard
+   - Após aceitação, chamar `refreshProfile()` para liberar o acesso
 
-### 2. `GenerateContractDialog.tsx` — Atualizar `replacePlaceholders`
-- Adicionar campos de input para `valor_hora`, `quantidade_horas`, `tipo_unidade`, `forma_cobranca`
-- Adicionar selects para evento e base (opcionais)
-- Expandir a função `replacePlaceholders` para substituir as novas variáveis
-- Calcular `VALOR_TOTAL` automaticamente (valor_hora × quantidade_horas)
+### Conteúdo do Termo (Resumo das Seções)
 
-### 3. Sem alterações no banco de dados
-Todas as novas variáveis são preenchidas no momento da geração do contrato a partir de dados já existentes no sistema.
+- **Objeto**: Acesso ao sistema EBIP Eventos para gestão de atendimento pré-hospitalar
+- **Responsabilidade**: EBIP Soluções e Sistemas não se responsabiliza por uso indevido, dados incorretos inseridos, ou decisões tomadas com base nas informações do sistema
+- **LGPD**: Finalidade do tratamento, dados coletados, base legal (execução de contrato), direitos do titular (acesso, correção, exclusão), compartilhamento, retenção, encarregado de dados
+- **Segurança**: Medidas técnicas adotadas, responsabilidade do usuário sobre credenciais
+- **Disposições Gerais**: Vigência, alterações nos termos
+
+### Segurança
+- A aceitação fica registrada no banco com timestamp
+- Não afeta nenhuma funcionalidade existente — apenas adiciona uma verificação antes do acesso
 
