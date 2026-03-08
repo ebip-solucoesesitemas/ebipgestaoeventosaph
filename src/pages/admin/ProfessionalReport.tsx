@@ -148,10 +148,10 @@ export default function ProfessionalReport() {
 
     const { error } = await supabase.from('professional_payments').insert({
       profile_id: report.profile_id,
-      valor: report.total_calculado,
+      valor: report.saldo_a_pagar,
       tipo_pagamento: 'pix',
       status: 'pendente',
-      descricao: `Pagamento ref. ${months[parseInt(selectedMonth)]}/${selectedYear} - ${report.total_horas.toFixed(1)}h (${report.total_events} eventos)`,
+      descricao: `Pagamento ref. ${months[parseInt(selectedMonth)]}/${selectedYear} - Saldo: R$ ${report.saldo_a_pagar.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${report.total_horas.toFixed(1)}h / ${report.total_events} eventos)`,
     });
 
     if (error) {
