@@ -252,6 +252,18 @@ export default function AdminVehicles() {
                 </Select>
               </div>
 
+              {formData.status === 'manutencao' && (
+                <div className="space-y-2">
+                  <Label>Motivo / Observação da Oficina</Label>
+                  <Input
+                    value={formData.observacao_manutencao}
+                    onChange={(e) => setFormData(prev => ({ ...prev, observacao_manutencao: e.target.value }))}
+                    placeholder="Ex: Motor com superaquecimento, revisão preventiva..."
+                    className="input-touch"
+                  />
+                </div>
+              )
+
               <Button type="submit" className="w-full btn-touch">
                 {editingVehicle ? 'Salvar' : 'Cadastrar'}
               </Button>
