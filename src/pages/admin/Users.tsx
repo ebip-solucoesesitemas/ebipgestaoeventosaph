@@ -408,10 +408,15 @@ export default function AdminUsers() {
             <TableBody>
               {users.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell className="font-medium">{u.nome}</TableCell>
+                  <TableCell className="font-medium">
+                    {u.nome}
+                    {u.is_account_only && (
+                      <Badge variant="outline" className="ml-2 text-xs">Acesso</Badge>
+                    )}
+                  </TableCell>
                   <TableCell>{u.bases?.sigla || "—"}</TableCell>
                   <TableCell>{u.especialidade}</TableCell>
-                  <TableCell>{u.registro_profissional}</TableCell>
+                  <TableCell>{u.registro_profissional || "—"}</TableCell>
                   <TableCell>
                     <Badge variant={u.cargo === "admin" ? "default" : u.cargo === "gestor" ? "outline" : "secondary"} className="gap-1">
                       {u.cargo === "admin" && <Shield className="h-3 w-3" />}
