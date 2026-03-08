@@ -740,8 +740,9 @@ export type Database = {
           especialidade: Database["public"]["Enums"]["especialidade_tipo"]
           hidden: boolean
           id: string
+          is_account_only: boolean
           nome: string
-          registro_profissional: string
+          registro_profissional: string | null
           telefone: string | null
           updated_at: string | null
           user_id: string | null
@@ -753,8 +754,9 @@ export type Database = {
           especialidade: Database["public"]["Enums"]["especialidade_tipo"]
           hidden?: boolean
           id?: string
+          is_account_only?: boolean
           nome: string
-          registro_profissional: string
+          registro_profissional?: string | null
           telefone?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -766,8 +768,9 @@ export type Database = {
           especialidade?: Database["public"]["Enums"]["especialidade_tipo"]
           hidden?: boolean
           id?: string
+          is_account_only?: boolean
           nome?: string
-          registro_profissional?: string
+          registro_profissional?: string | null
           telefone?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -1020,7 +1023,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "equipe"
-      cargo_tipo: "admin" | "equipe" | "gestor"
+      cargo_tipo: "admin" | "equipe" | "gestor" | "admin_bnu" | "admin_fln"
       categoria_despesa:
         | "combustivel"
         | "equipamento"
@@ -1036,6 +1039,7 @@ export type Database = {
         | "Socorrista"
         | "Gestor"
         | "Administrador"
+        | "VTR"
       forma_cobranca:
         | "boleto"
         | "pix"
@@ -1180,7 +1184,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "equipe"],
-      cargo_tipo: ["admin", "equipe", "gestor"],
+      cargo_tipo: ["admin", "equipe", "gestor", "admin_bnu", "admin_fln"],
       categoria_despesa: [
         "combustivel",
         "equipamento",
@@ -1197,6 +1201,7 @@ export const Constants = {
         "Socorrista",
         "Gestor",
         "Administrador",
+        "VTR",
       ],
       forma_cobranca: [
         "boleto",
