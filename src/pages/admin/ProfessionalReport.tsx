@@ -275,7 +275,7 @@ export default function ProfessionalReport() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
                   <div className="text-center p-3 bg-muted rounded-lg">
                     <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-1">
                       <Calendar className="w-4 h-4" />
