@@ -538,6 +538,7 @@ export type Database = {
       events: {
         Row: {
           base_id: string | null
+          client_id: string | null
           consumo_medio_km_litro: number | null
           created_at: string | null
           data_fim: string
@@ -559,6 +560,7 @@ export type Database = {
         }
         Insert: {
           base_id?: string | null
+          client_id?: string | null
           consumo_medio_km_litro?: number | null
           created_at?: string | null
           data_fim: string
@@ -580,6 +582,7 @@ export type Database = {
         }
         Update: {
           base_id?: string | null
+          client_id?: string | null
           consumo_medio_km_litro?: number | null
           created_at?: string | null
           data_fim?: string
@@ -605,6 +608,13 @@ export type Database = {
             columns: ["base_id"]
             isOneToOne: false
             referencedRelation: "bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {
