@@ -10,6 +10,7 @@ interface Profile {
   registro_profissional: string;
   cargo: "admin" | "equipe" | "gestor";
   hidden: boolean;
+  telefone: string | null;
   is_account_only: boolean;
   accepted_terms_at: string | null;
 }
@@ -20,6 +21,7 @@ interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   needsProfile: boolean;
   needsTermsAcceptance: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -190,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         isLoading,
         isAdmin,
+        isSuperAdmin: !!profile?.hidden,
         needsProfile,
         needsTermsAcceptance,
         signIn,
