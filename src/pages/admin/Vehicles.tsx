@@ -18,6 +18,7 @@ interface Vehicle {
   placa: string;
   prefixo: string;
   status: VehicleStatus;
+  observacao_manutencao: string | null;
 }
 
 interface VehicleEvent {
@@ -52,6 +53,7 @@ export default function AdminVehicles() {
     placa: '',
     prefixo: '',
     status: 'disponivel' as VehicleStatus,
+    observacao_manutencao: '',
   });
 
   const fetchVehicles = async () => {
@@ -106,7 +108,7 @@ export default function AdminVehicles() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ modelo: '', placa: '', prefixo: '', status: 'disponivel' });
+    setFormData({ modelo: '', placa: '', prefixo: '', status: 'disponivel', observacao_manutencao: '' });
     setEditingVehicle(null);
   };
 
@@ -117,17 +119,22 @@ export default function AdminVehicles() {
       placa: vehicle.placa,
       prefixo: vehicle.prefixo,
       status: vehicle.status,
+      observacao_manutencao: vehicle.observacao_manutencao || '',
     });
     setDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      ...formData,
+      observacao_manutencao: formData.status === 'manutencao' ? (formData.observacao_manutencao || null) : null,
+    };
 
     if (editingVehicle) {
       const { error } = await supabase
         .from('vehicles')
-        .update(formData)
+        .update(payload)
         .eq('id', editingVehicle.id);
 
       if (error) {
@@ -136,7 +143,7 @@ export default function AdminVehicles() {
       }
       toast({ title: 'Viatura atualizada!' });
     } else {
-      const { error } = await supabase.from('vehicles').insert(formData);
+      const { error } = await supabase.from('vehicles').insert(payload);
 
       if (error) {
         if (error.message.includes('duplicate')) {
@@ -245,6 +252,17 @@ export default function AdminVehicles() {
                 </Select>
               </div>
 
+              {formData.status === 'manutencao' && (
+                <div className="space-y-2">
+                  <Label>Motivo / Observação da Oficina</Label>
+                  <Input
+                    value={formData.observacao_manutencao}
+                    onChange={(e) => setFormData(prev => ({ ...prev, observacao_manutencao: e.target.value }))}
+                    placeholder="Ex: Motor com superaquecimento, revisão preventiva..."
+                    className="input-touch"
+                  />
+                </div>
+              )}
               <Button type="submit" className="w-full btn-touch">
                 {editingVehicle ? 'Salvar' : 'Cadastrar'}
               </Button>
@@ -307,6 +325,12 @@ export default function AdminVehicles() {
                       Fora do horário do evento atual
                     </p>
                   ) : null}
+                  {vehicle.status === 'manutencao' && vehicle.observacao_manutencao && (
+                    <div className="p-2 rounded-lg bg-critical/10 border border-critical/20">
+                      <p className="text-xs font-medium text-critical">Oficina:</p>
+                      <p className="text-sm mt-0.5">{vehicle.observacao_manutencao}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );

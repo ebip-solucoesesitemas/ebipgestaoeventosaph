@@ -901,6 +901,7 @@ export type Database = {
           created_at: string | null
           id: string
           modelo: string
+          observacao_manutencao: string | null
           placa: string
           prefixo: string
           status: Database["public"]["Enums"]["status_viatura"]
@@ -911,6 +912,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           modelo: string
+          observacao_manutencao?: string | null
           placa: string
           prefixo: string
           status?: Database["public"]["Enums"]["status_viatura"]
@@ -921,6 +923,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           modelo?: string
+          observacao_manutencao?: string | null
           placa?: string
           prefixo?: string
           status?: Database["public"]["Enums"]["status_viatura"]

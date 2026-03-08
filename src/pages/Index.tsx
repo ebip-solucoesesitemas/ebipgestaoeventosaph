@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Users, Truck, ClipboardList, Shield, ArrowRight, Building2, DollarSign, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import AdminDashboard from '@/components/AdminDashboard';
 
 export default function Index() {
   const { user, profile, isLoading, isAdmin, signOut, needsTermsAcceptance } = useAuth();
@@ -128,41 +129,36 @@ export default function Index() {
           </div>
         </div>
 
-        {/* Quick Access */}
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Acesso Rápido</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            {cards.map((card) => (
-              <Link key={card.href} to={card.href}>
-                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer group">
-                  <CardHeader className="pb-2">
-                    <div className={`w-12 h-12 ${card.color} rounded-xl flex items-center justify-center mb-2`}>
-                      <card.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <CardTitle className="text-lg flex items-center justify-between">
-                      {card.title}
-                      <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">{card.description}</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Admin Info */}
-        {isAdmin && (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Shield className="w-5 h-5 text-primary" />
-              <p className="text-sm">
-                Você tem acesso de <strong>Administrador</strong>. Gerencie eventos, profissionais e viaturas.
-              </p>
-            </CardContent>
-          </Card>
+        {/* Admin Dashboard with KPIs */}
+        {isAdmin ? (
+          <AdminDashboard />
+        ) : (
+          <>
+            {/* Quick Access for team */}
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Acesso Rápido</h2>
+              <div className="grid gap-4 md:grid-cols-3">
+                {cards.map((card) => (
+                  <Link key={card.href} to={card.href}>
+                    <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer group">
+                      <CardHeader className="pb-2">
+                        <div className={`w-12 h-12 ${card.color} rounded-xl flex items-center justify-center mb-2`}>
+                          <card.icon className="w-6 h-6 text-white" />
+                        </div>
+                        <CardTitle className="text-lg flex items-center justify-between">
+                          {card.title}
+                          <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground">{card.description}</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </>
         )}
       </div>
     </Layout>

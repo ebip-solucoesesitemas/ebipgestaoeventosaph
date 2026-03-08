@@ -17,7 +17,10 @@ import {
   ChevronDown,
   Settings,
   LogOut,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import {
   Sidebar,
   SidebarContent,
@@ -73,6 +76,7 @@ export function AppSidebar() {
   const { profile, signOut, isAdmin } = useAuth();
   const location = useLocation();
   const [bases, setBases] = useState<Base[]>([]);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     if (isAdmin) {
@@ -199,7 +203,7 @@ export function AppSidebar() {
 
       <SidebarSeparator />
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 space-y-2">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-sidebar-foreground truncate">{profile?.nome}</p>
@@ -208,6 +212,15 @@ export function AppSidebar() {
               {profile?.especialidade}
             </p>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 shrink-0"
+            title={theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
