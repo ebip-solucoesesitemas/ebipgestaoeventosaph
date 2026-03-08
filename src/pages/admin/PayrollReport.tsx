@@ -9,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Printer, FileText } from "lucide-react";
+import { Printer, FileText, Download } from "lucide-react";
 import { format, startOfMonth, endOfMonth, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { generatePDF } from "@/lib/pdf";
 
 interface PayrollLine {
   profile_id: string;
