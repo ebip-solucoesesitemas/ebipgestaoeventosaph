@@ -326,6 +326,12 @@ export default function AdminVehicles() {
                       Fora do horário do evento atual
                     </p>
                   ) : null}
+                  {vehicle.status === 'manutencao' && vehicle.observacao_manutencao && (
+                    <div className="p-2 rounded-lg bg-critical/10 border border-critical/20">
+                      <p className="text-xs font-medium text-critical">Oficina:</p>
+                      <p className="text-sm mt-0.5">{vehicle.observacao_manutencao}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
