@@ -143,13 +143,14 @@ export default function BaseEvents() {
 
   const openEditDialog = async (event: Event) => {
     setEditingEvent(event);
-    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base').eq('id', event.id).single();
+    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base, client_id').eq('id', event.id).single();
     setFormData({
       nome_evento: event.nome_evento,
       data_inicio: isoToLocalDatetime(event.data_inicio),
       data_fim: isoToLocalDatetime(event.data_fim),
       local: event.local,
       viatura_id: event.viatura_id || '',
+      client_id: (data as any)?.client_id || '',
       equipe_completa: event.equipe_completa || false,
       equipe_minima: event.equipe_minima || 2,
       min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || '',
