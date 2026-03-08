@@ -1,40 +1,29 @@
 
+# Plano de Melhorias — EBIP Eventos
 
-## Análise dos Alertas de Segurança
+## Status das Fases
 
-### Alerta 1: Todas as policies são RESTRICTIVE — **FALSO POSITIVO**
+| Fase | Melhoria | Status |
+|------|----------|--------|
+| 1 | Dashboard KPIs | ✅ Implementado |
+| 2 | Exportação PDF | ✅ Implementado |
+| 3 | Histórico Profissional | 🔜 Pendente |
+| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
+| 5 | Modo Escuro | ✅ Implementado |
+| 6 | Variáveis Contrato | ✅ Já existia |
+| — | Nota de oficina na viatura | ✅ Implementado |
 
-Consultei diretamente o banco de dados e **todas as 46 policies já são PERMISSIVE**. O scan de segurança está desatualizado. Nenhuma ação necessária aqui.
+## Auditoria de Segurança
 
-### Alerta 2: Escalação de privilégios via UPDATE no profiles — **VULNERABILIDADE REAL**
-
-A policy `"Users can update their own profile"` permite UPDATE sem `WITH CHECK`, ou seja, qualquer usuário autenticado pode alterar os campos `is_account_only` e `cargo` do próprio perfil. Isso permitiria:
-
-- Definir `cargo = 'admin'` e ganhar acesso administrativo
-- Definir `is_account_only = true` (caso a policy de events volte a usar esse campo)
-
-### Correção Proposta
-
-Uma única migração SQL para adicionar `WITH CHECK` na policy de UPDATE do profiles, impedindo que o usuário altere `is_account_only` e `cargo`:
-
-```sql
-DROP POLICY "Users can update their own profile" ON public.profiles;
-
-CREATE POLICY "Users can update their own profile" ON public.profiles
-  AS PERMISSIVE FOR UPDATE TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (
-    user_id = auth.uid()
-    AND is_account_only = (SELECT p.is_account_only FROM public.profiles p WHERE p.user_id = auth.uid() LIMIT 1)
-    AND cargo = (SELECT p.cargo FROM public.profiles p WHERE p.user_id = auth.uid() LIMIT 1)
-  );
-```
-
-Isso garante que ao fazer UPDATE, os valores de `is_account_only` e `cargo` devem permanecer iguais aos atuais. Apenas admins (via policy ALL) podem alterar esses campos.
-
-### Impacto
-
-- Nenhuma mudança no front-end necessária
-- Usuários continuam editando nome, telefone, termos de uso etc.
-- Campos sensíveis (`cargo`, `is_account_only`) ficam protegidos contra auto-modificação
-
+| # | Correção | Status |
+|---|----------|--------|
+| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
+| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
+| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
+| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
+| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
+| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
+| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
+| 8 | Utilitário de validação UUID criado | ✅ Implementado |
+| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
+| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
