@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Users, Truck, ClipboardList, Shield, ArrowRight, Building2, DollarSign, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import AdminDashboard from '@/components/AdminDashboard';
 
 export default function Index() {
   const { user, profile, isLoading, isAdmin, signOut, needsTermsAcceptance } = useAuth();
