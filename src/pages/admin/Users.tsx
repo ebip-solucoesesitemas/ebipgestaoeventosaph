@@ -92,6 +92,7 @@ export default function AdminUsers() {
       registro_profissional: user.registro_profissional,
       base_id: user.base_id || "",
       telefone: (user as any).telefone || "",
+      is_account_only: user.is_account_only || false,
     });
     setOpen(true);
   };
