@@ -1,28 +1,39 @@
+## Problema Identificado
 
-# Plano de Melhorias — EBIP Eventos
+O VTR-02 não tem nenhum evento vinculado a ele como "Conta Responsável" (`user_id`). Os 3 eventos existentes têm `user_id = null` ou `user_id = VTR-01`.
 
-## Status das Fases
+Mas o pedido é claro: **contas "somente para acesso" (`is_account_only`) devem ver TODOS os eventos**, não apenas os que estão vinculados a elas. Essas contas representam viaturas/unidades operacionais e precisam de visibilidade total.
 
-| Fase | Melhoria | Status |
-|------|----------|--------|
-| 1 | Dashboard KPIs | ✅ Implementado |
-| 2 | Exportação PDF | ✅ Implementado |
-| 3 | Histórico Profissional | 🔜 Pendente |
-| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
-| 5 | Modo Escuro | ✅ Implementado |
-| 6 | Variáveis Contrato | ✅ Já existia |
-| — | Nota de oficina na viatura | ✅ Implementado |
+## Plano de Correção
 
-## Auditoria de Segurança
+### 1. Alterar RLS da tabela `events` (migração SQL)
 
-| # | Correção | Status |
-|---|----------|--------|
-| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
-| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
-| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
-| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
-| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
-| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
-| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
-| 8 | Utilitário de validação UUID criado | ✅ Implementado |
-| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
+Atualizar a policy SELECT para incluir contas `is_account_only`:
+
+```sql
+DROP POLICY "Users can view assigned events" ON public.events;
+CREATE POLICY "Users can view assigned events" ON public.events
+  FOR SELECT TO authenticated
+  USING (
+    is_admin()
+    OR is_assigned_to_event(id)
+    OR (user_id = auth.uid())
+    OR (EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.user_id = auth.uid()
+      AND profiles.is_account_only = true
+    ))
+  );
+```
+
+### 2. Atualizar o texto da tela `TeamEvents.tsx`
+
+Mudar a mensagem vazia de "Você não está escalado em nenhum evento" para "Nenhum evento encontrado" (já que contas de acesso veem todos os eventos, a mensagem anterior não faz sentido).
+
+### Impacto
+
+- **Sem risco de quebra** — apenas adiciona uma condição OR à policy existente
+- Contas `is_account_only` (VTR-01, VTR-02) passarão a ver todos os eventos não finalizados
+- Usuários normais da equipe continuam vendo apenas seus eventos atribuídos  
+  
+Se eu coloquei a como responsavel ela so verá os eventos em que ela esta como rresponsável né?  
