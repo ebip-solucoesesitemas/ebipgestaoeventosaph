@@ -84,13 +84,15 @@ export default function BaseProfessionals() {
 
         const { data: assignmentsData } = await supabase
           .from('event_assignments')
-          .select('profile_id, profiles(id, nome, especialidade, cargo)')
+          .select('profile_id, profiles(id, nome, especialidade, cargo, hidden, is_account_only)')
           .in('event_id', eventIds);
 
         if (assignmentsData) {
           assignmentsData.forEach((a: any) => {
             if (!a.profiles) return;
             const p = a.profiles;
+            // Skip hidden (super-admin) and access-only accounts
+            if (p.hidden || p.is_account_only) return;
             if (profMap.has(p.id)) {
               profMap.get(p.id)!.event_count++;
             } else {
