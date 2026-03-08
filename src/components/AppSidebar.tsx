@@ -19,6 +19,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  MessageSquare,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -61,9 +62,13 @@ const configLinks = [
   { href: "/admin/payroll", label: "Pagamentos", icon: Wallet },
   { href: "/admin/payroll-report", label: "Folha de Pagamento", icon: ClipboardList },
   { href: "/admin/audit-logs", label: "Logs de Auditoria", icon: Shield },
+  { href: "/tickets", label: "Chamados", icon: MessageSquare },
 ];
 
-const teamLinks = [{ href: "/events", label: "Meus Eventos", icon: Calendar }];
+const teamLinks = [
+  { href: "/events", label: "Meus Eventos", icon: Calendar },
+  { href: "/tickets", label: "Chamados", icon: MessageSquare },
+];
 
 const getBaseLinks = (baseId: string) => [
   { href: `/admin/base/${baseId}/events`, label: "Eventos", icon: Calendar },

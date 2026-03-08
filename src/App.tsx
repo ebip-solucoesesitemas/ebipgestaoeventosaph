@@ -34,6 +34,7 @@ import BaseFinance from "./pages/admin/base/BaseFinance";
 import TeamEvents from "./pages/team/TeamEvents";
 import TeamEventDetail from "./pages/team/EventDetail";
 import EventReportPage from "./pages/EventReportPage";
+import SupportTickets from "./pages/SupportTickets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,9 @@ const App = () => (
               {/* Team Routes */}
               <Route path="/events" element={<ProtectedRoute><TeamEvents /></ProtectedRoute>} />
               <Route path="/events/:id" element={<ProtectedRoute><TeamEventDetail /></ProtectedRoute>} />
+              
+              {/* Support Tickets */}
+              <Route path="/tickets" element={<ProtectedRoute><SupportTickets /></ProtectedRoute>} />
               
               {/* Report Route (protected, no sidebar) */}
               <Route path="/evento/:id/relatorio" element={<EventReportPage />} />
