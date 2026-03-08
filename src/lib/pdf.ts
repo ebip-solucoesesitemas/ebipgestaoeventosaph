@@ -47,10 +47,11 @@ export function generatePDF(options: PDFOptions) {
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.text(group.label, 14, currentY);
-      currentY += 2;
+      currentY += 6;
 
       autoTable(doc, {
         startY: currentY,
+        tableWidth: 'auto',
         head: [columns.map((c) => c.header)],
         body: [
           ...group.rows.map((row) => columns.map((c) => String(row[c.dataKey] ?? ""))),
@@ -61,10 +62,10 @@ export function generatePDF(options: PDFOptions) {
             return "";
           }),
         ],
-        styles: { fontSize: 8, cellPadding: 2 },
+        styles: { fontSize: 8, cellPadding: 2, halign: 'left' as HAlignType },
         headStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
         columnStyles: columns.reduce((acc, col, i) => {
-          if (col.halign) acc[i] = { halign: col.halign as HAlignType };
+          acc[i] = { halign: (col.halign || 'left') as HAlignType };
           return acc;
         }, {} as Record<number, { halign: HAlignType }>),
         didParseCell: (data: any) => {
@@ -92,12 +93,13 @@ export function generatePDF(options: PDFOptions) {
   } else {
     autoTable(doc, {
       startY,
+      tableWidth: 'auto',
       head: [columns.map((c) => c.header)],
       body: rows.map((row) => columns.map((c) => String(row[c.dataKey] ?? ""))),
-      styles: { fontSize: 8, cellPadding: 2 },
+      styles: { fontSize: 8, cellPadding: 2, halign: 'left' as HAlignType },
       headStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
       columnStyles: columns.reduce((acc, col, i) => {
-        if (col.halign) acc[i] = { halign: col.halign as HAlignType };
+        acc[i] = { halign: (col.halign || 'left') as HAlignType };
         return acc;
       }, {} as Record<number, { halign: HAlignType }>),
       margin: { left: 14, right: 14 },
