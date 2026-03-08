@@ -10,6 +10,7 @@ interface Profile {
   registro_profissional: string;
   cargo: "admin" | "equipe" | "gestor";
   hidden: boolean;
+  telefone: string | null;
   is_account_only: boolean;
   accepted_terms_at: string | null;
 }
