@@ -370,6 +370,16 @@ export default function AdminUsers() {
                   </Select>
                 </div>
               </div>
+              <div className="flex items-center gap-2 py-2">
+                <Checkbox
+                  id="is_account_only"
+                  checked={form.is_account_only}
+                  onCheckedChange={(checked) => setForm((f) => ({ ...f, is_account_only: !!checked }))}
+                />
+                <Label htmlFor="is_account_only" className="text-sm cursor-pointer">
+                  Conta apenas para acesso (não contabilizar em relatórios financeiros)
+                </Label>
+              </div>
               <Button className="w-full" disabled={!isFormValid || isPending} onClick={handleSubmit}>
                 {isPending ? "Processando..." : editingUser ? "Salvar Alterações" : "Cadastrar"}
               </Button>
