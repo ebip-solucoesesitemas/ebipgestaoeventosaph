@@ -76,6 +76,7 @@ export function AppSidebar() {
   const { profile, signOut, isAdmin } = useAuth();
   const location = useLocation();
   const [bases, setBases] = useState<Base[]>([]);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     if (isAdmin) {
