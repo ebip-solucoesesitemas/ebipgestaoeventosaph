@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const allowedOrigins = [
-  "https://aphaid-quickcare.lovable.app",
-  "https://id-preview--2200ae23-748b-4d29-98e8-fc570ecea26b.lovable.app",
+  "https://ebipgestaoeventosaph.lovable.app",
+  "https://id-preview--a5144428-c06d-43e5-bd87-819b0c1e4023.lovable.app",
 ];
 
 function getCorsHeaders(req: Request) {
