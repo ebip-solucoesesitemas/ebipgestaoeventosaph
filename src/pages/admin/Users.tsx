@@ -76,6 +76,7 @@ export default function AdminUsers() {
       registro_profissional: "",
       base_id: "",
       telefone: "",
+      is_account_only: false,
     });
     setEditingUser(null);
   };
