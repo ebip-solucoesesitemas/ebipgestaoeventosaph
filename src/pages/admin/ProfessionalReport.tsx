@@ -247,14 +247,23 @@ export default function ProfessionalReport() {
                     <CardTitle className="text-lg">{report.profile_name}</CardTitle>
                     <Badge variant="outline" className="mt-1">{report.especialidade}</Badge>
                   </div>
-                  <Button
-                    onClick={() => generatePayment(report)}
-                    disabled={generating === report.profile_id || report.total_horas === 0}
-                    className="gap-2"
-                  >
-                    <Wallet className="w-4 h-4" />
-                    {generating === report.profile_id ? 'Gerando...' : 'Gerar Pagamento'}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {report.total_pendente > 0 && (
+                      <Badge variant="secondary" className="bg-warning/15 text-warning border-warning/30">
+                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        Pagamento pendente
+                      </Badge>
+                    )}
+                    <Button
+                      onClick={() => handleGenerateClick(report)}
+                      disabled={generating === report.profile_id || report.total_horas === 0}
+                      variant={report.total_pendente > 0 ? 'outline' : 'default'}
+                      className="gap-2"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      {generating === report.profile_id ? 'Gerando...' : report.total_pendente > 0 ? 'Gerar Novo Pagamento' : 'Gerar Pagamento'}
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
