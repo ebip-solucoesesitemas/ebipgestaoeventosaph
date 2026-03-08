@@ -28,6 +28,10 @@ export default function Index() {
 
   if (!user) return null;
 
+  if (needsTermsAcceptance) {
+    return <TermsOfUse />;
+  }
+
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
