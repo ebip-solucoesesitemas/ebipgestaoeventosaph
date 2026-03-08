@@ -2,13 +2,14 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/Layout';
+import TermsOfUse from '@/components/TermsOfUse';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Users, Truck, ClipboardList, Shield, ArrowRight, Building2, DollarSign, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Index() {
-  const { user, profile, isLoading, isAdmin, signOut } = useAuth();
+  const { user, profile, isLoading, isAdmin, signOut, needsTermsAcceptance } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +27,10 @@ export default function Index() {
   }
 
   if (!user) return null;
+
+  if (needsTermsAcceptance) {
+    return <TermsOfUse />;
+  }
 
   if (!profile) {
     return (
