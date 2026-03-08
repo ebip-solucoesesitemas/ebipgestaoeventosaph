@@ -260,12 +260,11 @@ export default function AdminProfessionals() {
               </div>
 
               <div className="space-y-2">
-                <Label>Registro Profissional *</Label>
+                <Label>Registro Profissional</Label>
                 <Input
                   value={formData.registro_profissional}
                   onChange={(e) => setFormData(prev => ({ ...prev, registro_profissional: e.target.value }))}
                   placeholder="Ex: CRM 12345"
-                  required
                 />
               </div>
 
