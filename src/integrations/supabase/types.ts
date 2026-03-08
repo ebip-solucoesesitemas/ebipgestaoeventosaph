@@ -734,6 +734,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accepted_terms_at: string | null
           base_id: string | null
           cargo: Database["public"]["Enums"]["cargo_tipo"]
           created_at: string | null
@@ -748,6 +749,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          accepted_terms_at?: string | null
           base_id?: string | null
           cargo?: Database["public"]["Enums"]["cargo_tipo"]
           created_at?: string | null
@@ -762,6 +764,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          accepted_terms_at?: string | null
           base_id?: string | null
           cargo?: Database["public"]["Enums"]["cargo_tipo"]
           created_at?: string | null
