@@ -39,7 +39,7 @@ const especialidadeIcons: Record<string, typeof Stethoscope> = {
   'Socorrista': Ambulance,
 };
 
-const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista'];
+const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR'];
 
 export default function AdminProfessionals() {
   const { toast } = useToast();
@@ -260,12 +260,11 @@ export default function AdminProfessionals() {
               </div>
 
               <div className="space-y-2">
-                <Label>Registro Profissional *</Label>
+                <Label>Registro Profissional</Label>
                 <Input
                   value={formData.registro_profissional}
                   onChange={(e) => setFormData(prev => ({ ...prev, registro_profissional: e.target.value }))}
                   placeholder="Ex: CRM 12345"
-                  required
                 />
               </div>
 
@@ -280,7 +279,10 @@ export default function AdminProfessionals() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="equipe">Equipe</SelectItem>
+                    <SelectItem value="gestor">Gestor</SelectItem>
                     <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="admin_bnu">Admin BNU</SelectItem>
+                    <SelectItem value="admin_fln">Admin FLN</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

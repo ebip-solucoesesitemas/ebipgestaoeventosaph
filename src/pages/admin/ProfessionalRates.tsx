@@ -30,7 +30,7 @@ export default function ProfessionalRates() {
   const fetchData = async () => {
     setIsLoading(true);
     const [profilesRes, ratesRes] = await Promise.all([
-      supabase.from('profiles').select('id, nome, especialidade').order('nome'),
+      supabase.from('profiles').select('id, nome, especialidade').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('professional_rates').select('*'),
     ]);
 

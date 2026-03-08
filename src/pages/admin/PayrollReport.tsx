@@ -56,7 +56,7 @@ export default function PayrollReport() {
         .not("checkin_at", "is", null)
         .gte("checkout_at", monthStart.toISOString())
         .lte("checkout_at", monthEnd.toISOString()),
-      supabase.from("profiles").select("id, nome, especialidade").eq("hidden", false).order("nome"),
+      supabase.from("profiles").select("id, nome, especialidade").eq("hidden", false).eq("is_account_only", false).order("nome"),
       supabase.from("professional_rates").select("profile_id, valor_hora, valor_evento"),
       supabase.from("events").select("id, nome_evento, data_inicio"),
     ]);

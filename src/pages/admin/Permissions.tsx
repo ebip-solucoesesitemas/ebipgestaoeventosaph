@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -14,6 +15,9 @@ interface Permission {
   permission_key: string;
   enabled: boolean;
 }
+
+// Permissions only visible to super admin (hidden profiles)
+const superAdminOnlyKeys = new Set(["audit_logs.view", "settings.manage"]);
 
 const permissionLabels: Record<string, { label: string; group: string }> = {
   "events.view": { label: "Visualizar Eventos", group: "Eventos" },
@@ -47,8 +51,11 @@ const roleLabels: Record<string, string> = {
 
 export default function Permissions() {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("gestor");
+  const [activeTab, setActiveTab] = useState("admin");
+
+  const isSuperAdmin = profile?.hidden === true;
 
   const { data: permissions = [], isLoading } = useQuery({
     queryKey: ["role-permissions"],
@@ -81,16 +88,28 @@ export default function Permissions() {
 
   const rolePermissions = permissions.filter((p) => p.role === activeTab);
 
+  // Filter out super-admin-only permissions for non-super-admins
+  const visiblePermissions = isSuperAdmin
+    ? rolePermissions
+    : rolePermissions.filter((p) => !superAdminOnlyKeys.has(p.permission_key));
+
   // Group by category
-  const grouped = rolePermissions.reduce<Record<string, Permission[]>>((acc, perm) => {
+  const grouped = visiblePermissions.reduce<Record<string, Permission[]>>((acc, perm) => {
     const group = permissionLabels[perm.permission_key]?.group || "Outros";
     if (!acc[group]) acc[group] = [];
     acc[group].push(perm);
     return acc;
   }, {});
 
-  const enabledCount = rolePermissions.filter((p) => p.enabled).length;
-  const totalCount = rolePermissions.length;
+  const enabledCount = visiblePermissions.filter((p) => p.enabled).length;
+  const totalCount = visiblePermissions.length;
+
+  // Admin can edit permissions, Gestor is locked
+  const isEditable = (role: string) => {
+    if (role === "gestor" || role === "equipe") return true; // admin users can edit gestor/equipe
+    if (role === "admin" && isSuperAdmin) return true; // only super admin can edit admin
+    return false;
+  };
 
   return (
     <div className="space-y-6">
@@ -154,7 +173,7 @@ export default function Permissions() {
                           onCheckedChange={(checked) =>
                             toggleMutation.mutate({ id: perm.id, enabled: checked })
                           }
-                          disabled={role === "admin"}
+                          disabled={!isEditable(role)}
                         />
                       </div>
                     ))}
@@ -163,9 +182,9 @@ export default function Permissions() {
               ))
             )}
 
-            {role === "admin" && (
+            {role === "admin" && !isSuperAdmin && (
               <p className="text-sm text-muted-foreground italic">
-                ⚠️ Permissões do Administrador não podem ser alteradas.
+                ⚠️ Permissões do Administrador só podem ser alteradas pelo super admin.
               </p>
             )}
           </TabsContent>

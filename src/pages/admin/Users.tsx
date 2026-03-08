@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Trash2, Shield, Users as UsersIcon, Edit } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -33,6 +34,7 @@ interface UserProfile {
   cargo: CargoTipo;
   user_id: string | null;
   base_id: string | null;
+  is_account_only: boolean;
   bases: { sigla: string; nome: string } | null;
 }
 
@@ -43,6 +45,7 @@ const especialidades: EspecialidadeTipo[] = [
   "Socorrista",
   "Gestor",
   "Administrador",
+  "VTR" as EspecialidadeTipo,
 ];
 
 export default function AdminUsers() {
@@ -60,6 +63,7 @@ export default function AdminUsers() {
     registro_profissional: "",
     base_id: "",
     telefone: "",
+    is_account_only: false,
   });
 
   const resetForm = () => {
@@ -72,6 +76,7 @@ export default function AdminUsers() {
       registro_profissional: "",
       base_id: "",
       telefone: "",
+      is_account_only: false,
     });
     setEditingUser(null);
   };
@@ -87,6 +92,7 @@ export default function AdminUsers() {
       registro_profissional: user.registro_profissional,
       base_id: user.base_id || "",
       telefone: (user as any).telefone || "",
+      is_account_only: user.is_account_only || false,
     });
     setOpen(true);
   };
@@ -131,6 +137,7 @@ export default function AdminUsers() {
             registro_profissional: form.registro_profissional.trim(),
             cargo: form.cargo,
             telefone: form.telefone.trim() || null,
+            is_account_only: form.is_account_only,
             ...(form.base_id ? { base_id: form.base_id } : {}),
           },
         },
@@ -162,6 +169,7 @@ export default function AdminUsers() {
         cargo: form.cargo,
         base_id: form.base_id || null,
         telefone: form.telefone.trim() || null,
+        is_account_only: form.is_account_only,
       };
 
       const { error } = await supabase.from("profiles").update(payload).eq("id", editingUser.id);
@@ -223,8 +231,8 @@ export default function AdminUsers() {
   });
 
   const isFormValid = editingUser
-    ? form.nome.trim() && form.registro_profissional.trim()
-    : form.nome.trim() && form.email.trim() && form.password.length >= 6 && form.registro_profissional.trim();
+    ? form.nome.trim()
+    : form.nome.trim() && form.email.trim() && form.password.length >= 6;
 
   const handleSubmit = () => {
     if (editingUser) {
@@ -304,6 +312,8 @@ export default function AdminUsers() {
                       <SelectItem value="equipe">Equipe</SelectItem>
                       <SelectItem value="gestor">Gestor</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value={"admin_bnu" as CargoTipo}>Admin BNU</SelectItem>
+                      <SelectItem value={"admin_fln" as CargoTipo}>Admin FLN</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -338,7 +348,7 @@ export default function AdminUsers() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Registro Profissional *</Label>
+                  <Label>Registro Profissional</Label>
                   <Input
                     value={form.registro_profissional}
                     onChange={(e) => setForm((f) => ({ ...f, registro_profissional: e.target.value }))}
@@ -360,6 +370,16 @@ export default function AdminUsers() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="flex items-center gap-2 py-2">
+                <Checkbox
+                  id="is_account_only"
+                  checked={form.is_account_only}
+                  onCheckedChange={(checked) => setForm((f) => ({ ...f, is_account_only: !!checked }))}
+                />
+                <Label htmlFor="is_account_only" className="text-sm cursor-pointer">
+                  Conta apenas para acesso (não contabilizar em relatórios financeiros)
+                </Label>
               </div>
               <Button className="w-full" disabled={!isFormValid || isPending} onClick={handleSubmit}>
                 {isPending ? "Processando..." : editingUser ? "Salvar Alterações" : "Cadastrar"}
@@ -389,10 +409,15 @@ export default function AdminUsers() {
             <TableBody>
               {users.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell className="font-medium">{u.nome}</TableCell>
+                  <TableCell className="font-medium">
+                    {u.nome}
+                    {u.is_account_only && (
+                      <Badge variant="outline" className="ml-2 text-xs">Acesso</Badge>
+                    )}
+                  </TableCell>
                   <TableCell>{u.bases?.sigla || "—"}</TableCell>
                   <TableCell>{u.especialidade}</TableCell>
-                  <TableCell>{u.registro_profissional}</TableCell>
+                  <TableCell>{u.registro_profissional || "—"}</TableCell>
                   <TableCell>
                     <Badge variant={u.cargo === "admin" ? "default" : u.cargo === "gestor" ? "outline" : "secondary"} className="gap-1">
                       {u.cargo === "admin" && <Shield className="h-3 w-3" />}

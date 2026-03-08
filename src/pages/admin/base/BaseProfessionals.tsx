@@ -57,7 +57,9 @@ export default function BaseProfessionals() {
       const { data: linkedProfiles } = await supabase
         .from('profiles')
         .select('id, nome, especialidade, cargo')
-        .eq('base_id', baseId);
+        .eq('base_id', baseId)
+        .eq('hidden', false)
+        .eq('is_account_only', false);
 
       if (linkedProfiles) {
         linkedProfiles.forEach((p: any) => {
