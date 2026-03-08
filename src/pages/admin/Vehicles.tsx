@@ -18,6 +18,7 @@ interface Vehicle {
   placa: string;
   prefixo: string;
   status: VehicleStatus;
+  observacao_manutencao: string | null;
 }
 
 interface VehicleEvent {
