@@ -224,8 +224,8 @@ export default function AdminUsers() {
   });
 
   const isFormValid = editingUser
-    ? form.nome.trim() && form.registro_profissional.trim()
-    : form.nome.trim() && form.email.trim() && form.password.length >= 6 && form.registro_profissional.trim();
+    ? form.nome.trim()
+    : form.nome.trim() && form.email.trim() && form.password.length >= 6;
 
   const handleSubmit = () => {
     if (editingUser) {
