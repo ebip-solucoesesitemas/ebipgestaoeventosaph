@@ -99,6 +99,8 @@ export default function ProfessionalReport() {
       const totalCalculado = totalHoras * valorHora;
       
       const profilePayments = payments.filter(p => p.profile_id === profile.id);
+      const totalPendente = profilePayments.filter(p => p.status === 'pendente').reduce((sum, p) => sum + Number(p.valor), 0);
+      const totalPago = profilePayments.filter(p => p.status === 'pago').reduce((sum, p) => sum + Number(p.valor), 0);
       
       return {
         profile_id: profile.id,
@@ -108,8 +110,9 @@ export default function ProfessionalReport() {
         total_horas: totalHoras,
         valor_hora: valorHora,
         total_calculado: totalCalculado,
-        total_pendente: profilePayments.filter(p => p.status === 'pendente').reduce((sum, p) => sum + Number(p.valor), 0),
-        total_pago: profilePayments.filter(p => p.status === 'pago').reduce((sum, p) => sum + Number(p.valor), 0),
+        total_pendente: totalPendente,
+        total_pago: totalPago,
+        saldo_a_pagar: Math.max(0, totalCalculado - totalPendente - totalPago),
       };
     });
 
