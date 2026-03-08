@@ -262,8 +262,7 @@ export default function AdminVehicles() {
                     className="input-touch"
                   />
                 </div>
-              )
-
+              )}
               <Button type="submit" className="w-full btn-touch">
                 {editingVehicle ? 'Salvar' : 'Cadastrar'}
               </Button>
