@@ -318,6 +318,37 @@ export default function ProfessionalReport() {
           ))
         )}
       </div>
+
+      <AlertDialog open={!!confirmReport} onOpenChange={(open) => !open && setConfirmReport(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Geração de Pagamento</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Profissional: <strong>{confirmReport?.profile_name}</strong><br />
+                  Período: <strong>{months[parseInt(selectedMonth)]}/{selectedYear}</strong><br />
+                  Valor: <strong>R$ {confirmReport?.total_calculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                </p>
+                {confirmReport && confirmReport.total_pendente > 0 && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Já existe um pagamento pendente de <strong>R$ {confirmReport.total_pendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> para este profissional neste período. Deseja gerar outro?
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmGeneratePayment}>
+              Confirmar Pagamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
