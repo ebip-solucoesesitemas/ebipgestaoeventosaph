@@ -1,29 +1,22 @@
 
-# Plano de Melhorias — EBIP Eventos
 
-## Status das Fases
+# Toast no Canto Superior Direito + Título do Chamado nas Mensagens
 
-| Fase | Melhoria | Status |
-|------|----------|--------|
-| 1 | Dashboard KPIs | ✅ Implementado |
-| 2 | Exportação PDF | ✅ Implementado |
-| 3 | Histórico Profissional | 🔜 Pendente |
-| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
-| 5 | Modo Escuro | ✅ Implementado |
-| 6 | Variáveis Contrato | ✅ Já existia |
-| — | Nota de oficina na viatura | ✅ Implementado |
+## Problema
+1. Os toasts do Sonner aparecem no canto inferior (padrão) — precisam aparecer no canto **superior direito**
+2. A notificação de nova mensagem mostra "Nova mensagem em um chamado" genérico — precisa mostrar o **título do chamado**
 
-## Auditoria de Segurança
+## Mudanças
 
-| # | Correção | Status |
-|---|----------|--------|
-| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
-| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
-| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
-| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
-| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
-| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
-| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
-| 8 | Utilitário de validação UUID criado | ✅ Implementado |
-| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
-| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
+### 1. `src/components/ui/sonner.tsx`
+- Adicionar `position="top-right"` no componente `<Sonner>`
+
+### 2. `src/components/TicketNotifications.tsx`
+- No handler de `ticket_messages`, buscar o ticket correspondente (`ticket_id`) para obter o `title` e `ticket_number`
+- Alterar a mensagem para: `"Nova mensagem no chamado #X: {título}"`
+
+| Arquivo | Ação |
+|---------|------|
+| `src/components/ui/sonner.tsx` | Adicionar `position="top-right"` |
+| `src/components/TicketNotifications.tsx` | Buscar título do ticket na notificação de mensagem |
+
