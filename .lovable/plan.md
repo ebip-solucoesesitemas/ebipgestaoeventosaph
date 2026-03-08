@@ -1,38 +1,94 @@
+## Plano de Melhorias — EBIP Eventos
+
+Baseado na análise completa do sistema, aqui estão as melhorias organizadas por prioridade e impacto:
+
+---
+
+### Fase 1 — Dashboard com KPIs (Alto Impacto)
+
+Substituir a tela inicial do admin por um dashboard visual com indicadores em tempo real:
+
+- **Cards de resumo**: Eventos ativos, eventos este mês, receita do mês, viaturas disponíveis, profissionais escalados hoje
+- **Gráfico de receita mensal** (últimos 6 meses) usando Recharts
+- **Lista de próximos eventos** (próximos 7 dias)
+- **Status de orçamentos pendentes** (aguardando aprovação/pagamento)
+
+Dados vêm das tabelas existentes: `events`, `event_budgets`, `vehicles`, `event_assignments`. Sem alterações no banco.
+
+---
+
+### Fase 2 — Exportação de Relatórios em PDF
+
+Adicionar botão de exportação nas telas existentes:
+
+- **Folha de Pagamento** (`PayrollReport.tsx`) — exportar tabela completa em PDF
+- **Relatório de Profissional** (`ProfessionalReport.tsx`) — histórico individual em PDF
+- **Relatório Financeiro** — resumo de receitas/despesas por período
+
+Usar biblioteca `jspdf` + `jspdf-autotable` para gerar PDFs no client-side. Sem alterações no banco.
+
+---
+
+### Fase 3 — Histórico do Profissional
+
+Criar uma tela acessível ao clicar no profissional mostrando:
+
+- Total de eventos participados
+- Total de horas trabalhadas (baseado em check-in/check-out)
+- Valores recebidos (da tabela `professional_payments`)
+- Lista de eventos com datas e status
+
+Dados já existem nas tabelas `event_assignments` e `professional_payments`. Sem alterações no banco.
+
+---
+
+### Fase 4 — Controle de Manutenção de Viaturas
+
+Novo módulo para gerenciar manutenção da frota:
+
+- **Nova tabela `vehicle_maintenance**`: id, vehicle_id, tipo (preventiva/corretiva), descricao, data_manutencao, km_manutencao, custo, proxima_revisao_km, status
+- Tela de registro de manutenções por viatura
+- Alertas visuais quando km atual se aproxima da próxima revisão
+- Histórico de gastos por viatura
+
+Requer: 1 nova tabela + RLS policies + nova página.
+
+---
+
+### Fase 5 — Modo Escuro
+
+- Adicionar toggle no footer do sidebar
+- Usar `next-themes` (já instalado) para gerenciar tema
+- As variáveis CSS do Tailwind já suportam dark mode — ajustar onde necessário
+
+Sem alterações no banco.
+
+---
+
+### Fase 6 — Variáveis Expandidas nos Contratos
+
+Conforme o plano já documentado em `.lovable/plan.md`:
+
+- Adicionar 8 novas variáveis aos modelos de contrato (`VALOR_HORA`, `QUANTIDADE_HORAS`, `VALOR_TOTAL`, `TIPO_UNIDADE`, `FORMA_COBRANCA`, `NOME_EVENTO`, `ENDERECO_EVENTO`, `BASE_NOME`)
+- Atualizar `ContractTemplates.tsx` e `GenerateContractDialog.tsx`
+
+Sem alterações no banco.
+
+---
+
+### Resumo de Prioridades
 
 
-# Revisão das Variáveis de Contrato
+| Fase | Melhoria               | Banco         | Complexidade |
+| ---- | ---------------------- | ------------- | ------------ |
+| 1    | Dashboard KPIs         | Nenhuma       | Média        |
+| 2    | Exportação PDF         | Nenhuma       | Média        |
+| 3    | Histórico Profissional | Nenhuma       | Baixa        |
+| 4    | Manutenção Viaturas    | 1 tabela nova | Alta         |
+| 5    | Modo Escuro            | Nenhuma       | Baixa        |
+| 6    | Variáveis Contrato     | Nenhuma       | Baixa        |
 
-## Situação Atual
 
-As variáveis disponíveis nos modelos de contrato cobrem apenas dados básicos do cliente e datas. Faltam variáveis importantes do contexto do negócio (orçamento, evento, base, valores por hora, etc.).
-
-## Variáveis Atuais (10)
-`CLIENTE_NOME`, `CLIENTE_DOCUMENTO`, `CLIENTE_EMAIL`, `CLIENTE_TELEFONE`, `CLIENTE_ENDERECO`, `CLIENTE_CEP`, `VALOR_CONTRATO`, `DATA_INICIO`, `DATA_FIM`, `DATA_ATUAL`
-
-## Novas Variáveis a Adicionar (8)
-
-| Variável | Descrição |
-|---|---|
-| `{{VALOR_HORA}}` | Valor por hora (R$) |
-| `{{QUANTIDADE_HORAS}}` | Quantidade de horas contratadas |
-| `{{VALOR_TOTAL}}` | Valor total (hora × quantidade) |
-| `{{TIPO_UNIDADE}}` | Tipo de unidade (USB, USA, etc.) |
-| `{{FORMA_COBRANCA}}` | Forma de cobrança (Empenho, PIX, etc.) |
-| `{{NOME_EVENTO}}` | Nome do evento vinculado |
-| `{{ENDERECO_EVENTO}}` | Endereço do evento |
-| `{{BASE_NOME}}` | Nome da base operacional |
-
-## Alterações
-
-### 1. `ContractTemplates.tsx` — Atualizar lista PLACEHOLDERS
-Adicionar as 8 novas variáveis na lista de badges clicáveis, organizadas em categorias visuais (Cliente, Financeiro, Evento).
-
-### 2. `GenerateContractDialog.tsx` — Atualizar `replacePlaceholders`
-- Adicionar campos de input para `valor_hora`, `quantidade_horas`, `tipo_unidade`, `forma_cobranca`
-- Adicionar selects para evento e base (opcionais)
-- Expandir a função `replacePlaceholders` para substituir as novas variáveis
-- Calcular `VALOR_TOTAL` automaticamente (valor_hora × quantidade_horas)
-
-### 3. Sem alterações no banco de dados
-Todas as novas variáveis são preenchidas no momento da geração do contrato a partir de dados já existentes no sistema.
-
+Qual fase deseja implementar primeiro?  
+O de Manutenção de viaturas pode retirar  
+So acrescente um modo  de informar se a viatura estiver baixada para Oficina
