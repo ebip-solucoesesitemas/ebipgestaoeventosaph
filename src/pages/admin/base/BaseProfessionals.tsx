@@ -84,7 +84,7 @@ export default function BaseProfessionals() {
 
         const { data: assignmentsData } = await supabase
           .from('event_assignments')
-          .select('profile_id, profiles(id, nome, especialidade, cargo)')
+          .select('profile_id, profiles(id, nome, especialidade, cargo, hidden, is_account_only)')
           .in('event_id', eventIds);
 
         if (assignmentsData) {
