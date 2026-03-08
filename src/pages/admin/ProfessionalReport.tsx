@@ -133,6 +133,10 @@ export default function ProfessionalReport() {
       toast({ title: 'Configure o valor por hora deste profissional', variant: 'destructive' });
       return;
     }
+    if (report.saldo_a_pagar <= 0) {
+      toast({ title: 'Não há saldo a pagar para este profissional neste período', variant: 'destructive' });
+      return;
+    }
     setConfirmReport(report);
   };
 
