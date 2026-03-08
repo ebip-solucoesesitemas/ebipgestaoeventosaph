@@ -302,6 +302,7 @@ export default function SupportTickets() {
               <TableRow>
                 <TableHead className="w-[80px]">Nº</TableHead>
                 <TableHead>Título</TableHead>
+                <TableHead>Solicitante</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Prioridade</TableHead>
                 <TableHead>Status</TableHead>
