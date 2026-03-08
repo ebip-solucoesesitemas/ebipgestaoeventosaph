@@ -52,7 +52,10 @@ export function generatePDF(options: PDFOptions) {
       autoTable(doc, {
         startY: currentY,
         tableWidth: 'auto',
-        head: [columns.map((c) => c.header)],
+        head: [columns.map((c) => ({
+          content: c.header,
+          styles: { halign: (c.halign || 'left') as HAlignType },
+        }))],
         body: [
           ...group.rows.map((row) => columns.map((c) => String(row[c.dataKey] ?? ""))),
           // Subtotal row
