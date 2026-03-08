@@ -28,10 +28,20 @@ export default function TicketNotifications() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "ticket_messages" },
-        (payload) => {
+        async (payload) => {
           const msg = payload.new as any;
           if (msg.user_id !== user.id) {
-            toast.info("Nova mensagem em um chamado", {
+            const { data: ticket } = await supabase
+              .from("support_tickets")
+              .select("ticket_number, title")
+              .eq("id", msg.ticket_id)
+              .maybeSingle();
+
+            const label = ticket
+              ? `Nova mensagem no chamado #${ticket.ticket_number}: ${ticket.title}`
+              : "Nova mensagem em um chamado";
+
+            toast.info(label, {
               icon: <MessageSquare className="h-4 w-4" />,
               duration: 5000,
             });
