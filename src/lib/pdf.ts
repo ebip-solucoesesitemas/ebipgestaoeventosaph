@@ -97,9 +97,9 @@ export function generatePDF(options: PDFOptions) {
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
       columnStyles: columns.reduce((acc, col, i) => {
-        if (col.halign) acc[i] = { halign: col.halign };
+        if (col.halign) acc[i] = { halign: col.halign as HAlignType };
         return acc;
-      }, {} as Record<number, { halign: string }>),
+      }, {} as Record<number, { halign: HAlignType }>),
       margin: { left: 14, right: 14 },
     });
 
