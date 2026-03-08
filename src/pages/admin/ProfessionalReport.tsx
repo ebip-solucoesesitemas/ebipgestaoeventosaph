@@ -11,7 +11,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FileText, DollarSign, Calendar, Check, Wallet, Clock, Download } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileText, DollarSign, Calendar, Check, Wallet, Clock, Download, AlertTriangle } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { generatePDF } from '@/lib/pdf';
@@ -40,6 +51,7 @@ export default function ProfessionalReport() {
   const [generating, setGenerating] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [confirmReport, setConfirmReport] = useState<ReportData | null>(null);
 
   const fetchReport = async () => {
     setIsLoading(true);
@@ -108,17 +120,22 @@ export default function ProfessionalReport() {
     fetchReport();
   }, [selectedMonth, selectedYear]);
 
-  const generatePayment = async (report: ReportData) => {
+  const handleGenerateClick = (report: ReportData) => {
     if (report.total_horas === 0) {
       toast({ title: 'Nenhuma hora registrada para gerar pagamento', variant: 'destructive' });
       return;
     }
-
     if (report.valor_hora <= 0) {
       toast({ title: 'Configure o valor por hora deste profissional', variant: 'destructive' });
       return;
     }
+    setConfirmReport(report);
+  };
 
+  const confirmGeneratePayment = async () => {
+    if (!confirmReport) return;
+    const report = confirmReport;
+    setConfirmReport(null);
     setGenerating(report.profile_id);
 
     const { error } = await supabase.from('professional_payments').insert({
@@ -230,14 +247,23 @@ export default function ProfessionalReport() {
                     <CardTitle className="text-lg">{report.profile_name}</CardTitle>
                     <Badge variant="outline" className="mt-1">{report.especialidade}</Badge>
                   </div>
-                  <Button
-                    onClick={() => generatePayment(report)}
-                    disabled={generating === report.profile_id || report.total_horas === 0}
-                    className="gap-2"
-                  >
-                    <Wallet className="w-4 h-4" />
-                    {generating === report.profile_id ? 'Gerando...' : 'Gerar Pagamento'}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {report.total_pendente > 0 && (
+                      <Badge variant="secondary" className="bg-warning/15 text-warning border-warning/30">
+                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        Pagamento pendente
+                      </Badge>
+                    )}
+                    <Button
+                      onClick={() => handleGenerateClick(report)}
+                      disabled={generating === report.profile_id || report.total_horas === 0}
+                      variant={report.total_pendente > 0 ? 'outline' : 'default'}
+                      className="gap-2"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      {generating === report.profile_id ? 'Gerando...' : report.total_pendente > 0 ? 'Gerar Novo Pagamento' : 'Gerar Pagamento'}
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -292,6 +318,37 @@ export default function ProfessionalReport() {
           ))
         )}
       </div>
+
+      <AlertDialog open={!!confirmReport} onOpenChange={(open) => !open && setConfirmReport(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Geração de Pagamento</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Profissional: <strong>{confirmReport?.profile_name}</strong><br />
+                  Período: <strong>{months[parseInt(selectedMonth)]}/{selectedYear}</strong><br />
+                  Valor: <strong>R$ {confirmReport?.total_calculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                </p>
+                {confirmReport && confirmReport.total_pendente > 0 && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Já existe um pagamento pendente de <strong>R$ {confirmReport.total_pendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> para este profissional neste período. Deseja gerar outro?
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmGeneratePayment}>
+              Confirmar Pagamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
