@@ -35,11 +35,13 @@ import {
   Pencil,
   Loader2,
   Route,
+  Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CepInput } from '@/components/CepInput';
 import { calculateDistanceBetweenAddresses } from '@/lib/geo';
+import { generatePDF } from '@/lib/pdf';
 
 interface Base {
   id: string;
