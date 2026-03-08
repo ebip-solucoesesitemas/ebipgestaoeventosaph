@@ -146,6 +146,15 @@ export default function SupportTickets() {
     return () => { supabase.removeChannel(channel); };
   }, [selectedTicket, loadMessages]);
 
+  // Polling fallback every 5s when detail dialog is open
+  useEffect(() => {
+    if (!selectedTicket) return;
+    const interval = setInterval(() => {
+      loadMessages(selectedTicket.id);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedTicket, loadMessages]);
+
   const handleCreate = async () => {
     if (!user || !newTitle.trim() || !newDescription.trim()) return;
     setCreating(true);

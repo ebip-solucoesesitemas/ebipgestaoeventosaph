@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import AdminRoute from "@/components/AdminRoute";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import IdleTimeoutWrapper from "@/components/IdleTimeoutWrapper";
+import TicketNotifications from "@/components/TicketNotifications";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminEvents from "./pages/admin/Events";
@@ -48,6 +49,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <IdleTimeoutWrapper />
+            <TicketNotifications />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
