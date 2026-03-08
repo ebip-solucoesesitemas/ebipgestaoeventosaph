@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminEvents from "./pages/admin/Events";
@@ -47,52 +48,54 @@ const TeamLayout = ({ children }: { children: React.ReactNode }) => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            
-            {/* Admin Routes */}
-            <Route path="/admin/events" element={<AdminLayout><AdminEvents /></AdminLayout>} />
-            <Route path="/admin/events/:id" element={<AdminLayout><AdminEventDetail /></AdminLayout>} />
-            <Route path="/admin/professionals" element={<AdminLayout><AdminProfessionals /></AdminLayout>} />
-            <Route path="/admin/vehicles" element={<AdminLayout><AdminVehicles /></AdminLayout>} />
-            <Route path="/admin/clients" element={<AdminLayout><AdminClients /></AdminLayout>} />
-            <Route path="/admin/finance" element={<AdminLayout><AdminFinance /></AdminLayout>} />
-            <Route path="/admin/payroll" element={<AdminLayout><AdminPayroll /></AdminLayout>} />
-            <Route path="/admin/professional-rates" element={<AdminLayout><AdminProfessionalRates /></AdminLayout>} />
-            <Route path="/admin/professional-report" element={<AdminLayout><AdminProfessionalReport /></AdminLayout>} />
-            <Route path="/admin/bases" element={<AdminLayout><AdminBases /></AdminLayout>} />
-            <Route path="/admin/operational-rates" element={<AdminLayout><AdminOperationalRates /></AdminLayout>} />
-            <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
-            <Route path="/admin/contract-templates" element={<AdminLayout><AdminContractTemplates /></AdminLayout>} />
-            <Route path="/admin/regulation-phones" element={<AdminLayout><AdminRegulationPhones /></AdminLayout>} />
-            <Route path="/admin/permissions" element={<AdminLayout><AdminPermissions /></AdminLayout>} />
-            <Route path="/admin/payroll-report" element={<AdminLayout><AdminPayrollReport /></AdminLayout>} />
-            <Route path="/admin/audit-logs" element={<AdminLayout><AdminAuditLogs /></AdminLayout>} />
-            
-            {/* Base-specific Routes */}
-            <Route path="/admin/base/:baseId/events" element={<AdminLayout><BaseEvents /></AdminLayout>} />
-            <Route path="/admin/base/:baseId/professionals" element={<AdminLayout><BaseProfessionals /></AdminLayout>} />
-            <Route path="/admin/base/:baseId/vehicles" element={<AdminLayout><BaseVehicles /></AdminLayout>} />
-            <Route path="/admin/base/:baseId/finance" element={<AdminLayout><BaseFinance /></AdminLayout>} />
-            
-            {/* Team Routes */}
-            <Route path="/events" element={<TeamLayout><TeamEvents /></TeamLayout>} />
-            <Route path="/events/:id" element={<TeamLayout><TeamEventDetail /></TeamLayout>} />
-            
-            {/* Report Route (no layout) */}
-            <Route path="/evento/:id/relatorio" element={<EventReportPage />} />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin/events" element={<AdminLayout><AdminEvents /></AdminLayout>} />
+              <Route path="/admin/events/:id" element={<AdminLayout><AdminEventDetail /></AdminLayout>} />
+              <Route path="/admin/professionals" element={<AdminLayout><AdminProfessionals /></AdminLayout>} />
+              <Route path="/admin/vehicles" element={<AdminLayout><AdminVehicles /></AdminLayout>} />
+              <Route path="/admin/clients" element={<AdminLayout><AdminClients /></AdminLayout>} />
+              <Route path="/admin/finance" element={<AdminLayout><AdminFinance /></AdminLayout>} />
+              <Route path="/admin/payroll" element={<AdminLayout><AdminPayroll /></AdminLayout>} />
+              <Route path="/admin/professional-rates" element={<AdminLayout><AdminProfessionalRates /></AdminLayout>} />
+              <Route path="/admin/professional-report" element={<AdminLayout><AdminProfessionalReport /></AdminLayout>} />
+              <Route path="/admin/bases" element={<AdminLayout><AdminBases /></AdminLayout>} />
+              <Route path="/admin/operational-rates" element={<AdminLayout><AdminOperationalRates /></AdminLayout>} />
+              <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
+              <Route path="/admin/contract-templates" element={<AdminLayout><AdminContractTemplates /></AdminLayout>} />
+              <Route path="/admin/regulation-phones" element={<AdminLayout><AdminRegulationPhones /></AdminLayout>} />
+              <Route path="/admin/permissions" element={<AdminLayout><AdminPermissions /></AdminLayout>} />
+              <Route path="/admin/payroll-report" element={<AdminLayout><AdminPayrollReport /></AdminLayout>} />
+              <Route path="/admin/audit-logs" element={<AdminLayout><AdminAuditLogs /></AdminLayout>} />
+              
+              {/* Base-specific Routes */}
+              <Route path="/admin/base/:baseId/events" element={<AdminLayout><BaseEvents /></AdminLayout>} />
+              <Route path="/admin/base/:baseId/professionals" element={<AdminLayout><BaseProfessionals /></AdminLayout>} />
+              <Route path="/admin/base/:baseId/vehicles" element={<AdminLayout><BaseVehicles /></AdminLayout>} />
+              <Route path="/admin/base/:baseId/finance" element={<AdminLayout><BaseFinance /></AdminLayout>} />
+              
+              {/* Team Routes */}
+              <Route path="/events" element={<TeamLayout><TeamEvents /></TeamLayout>} />
+              <Route path="/events/:id" element={<TeamLayout><TeamEventDetail /></TeamLayout>} />
+              
+              {/* Report Route (no layout) */}
+              <Route path="/evento/:id/relatorio" element={<EventReportPage />} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
