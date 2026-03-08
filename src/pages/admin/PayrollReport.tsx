@@ -139,6 +139,46 @@ export default function PayrollReport() {
     return acc;
   }, {});
 
+  const handleExportPDF = () => {
+    const columns = [
+      { header: "Evento", dataKey: "event_name" },
+      { header: "Data", dataKey: "event_date" },
+      { header: "Check-in", dataKey: "checkin_at" },
+      { header: "Check-out", dataKey: "checkout_at" },
+      { header: "Duração", dataKey: "minutes_display" },
+      { header: "Valor/Hora", dataKey: "valor_hora_fmt", halign: "right" as const },
+      { header: "Valor/Evento", dataKey: "valor_evento_fmt", halign: "right" as const },
+      { header: "Total", dataKey: "line_total_fmt", halign: "right" as const },
+    ];
+
+    const groups = Object.entries(profileGroups).map(([, groupLines]) => {
+      const subtotal = groupLines.reduce((s, l) => s + l.line_total, 0);
+      return {
+        label: `${groupLines[0].profile_name} — ${groupLines[0].especialidade}`,
+        rows: groupLines.map((l) => ({
+          event_name: l.event_name,
+          event_date: l.event_date,
+          checkin_at: l.checkin_at,
+          checkout_at: l.checkout_at,
+          minutes_display: l.minutes_display,
+          valor_hora_fmt: l.valor_hora > 0 ? `R$ ${l.valor_hora.toFixed(2)}` : "—",
+          valor_evento_fmt: l.valor_evento > 0 ? `R$ ${l.valor_evento.toFixed(2)}` : "—",
+          line_total_fmt: `R$ ${l.line_total.toFixed(2)}`,
+        })),
+        subtotalLabel: `Subtotal — ${groupLines[0].profile_name}`,
+        subtotalValue: `R$ ${subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      };
+    });
+
+    generatePDF({
+      title: `Folha de Pagamento — ${months[parseInt(selectedMonth)]} / ${selectedYear}`,
+      columns,
+      rows: [],
+      groups,
+      totals: [{ label: "TOTAL GERAL", value: `R$ ${grandTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` }],
+    });
+  };
+
   const handlePrint = () => {
     if (!printRef.current) return;
     const printWindow = window.open("", "_blank");
