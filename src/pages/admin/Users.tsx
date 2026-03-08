@@ -43,6 +43,7 @@ const especialidades: EspecialidadeTipo[] = [
   "Socorrista",
   "Gestor",
   "Administrador",
+  "VTR" as EspecialidadeTipo,
 ];
 
 export default function AdminUsers() {
