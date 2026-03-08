@@ -1,0 +1,1 @@
+ALTER TABLE public.vehicles ADD COLUMN observacao_manutencao text DEFAULT NULL;
