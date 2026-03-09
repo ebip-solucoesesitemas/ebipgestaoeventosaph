@@ -711,6 +711,15 @@ export default function Finance() {
                           <Button
                             variant="outline"
                             size="sm"
+                            className="gap-1 text-xs text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteBudget(budget.id)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Excluir
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="gap-1 text-xs"
                             onClick={async () => {
                               const newStatus = budget.status === 'pago' ? 'pendente' : 'pago';
