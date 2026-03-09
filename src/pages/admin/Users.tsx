@@ -331,12 +331,39 @@ export default function AdminUsers() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Senha * (mín. 6 caracteres)</Label>
-                    <Input
-                      type="password"
-                      value={form.password}
-                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                      maxLength={72}
-                    />
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={form.password}
+                          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                          maxLength={72}
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-10 w-10"
+                          onClick={() => setShowPassword((s) => !s)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        title="Gerar senha automática"
+                        onClick={() => {
+                          const pwd = generatePassword();
+                          setForm((f) => ({ ...f, password: pwd }));
+                          setShowPassword(true);
+                        }}
+                      >
+                        <Dices className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </>
               )}
