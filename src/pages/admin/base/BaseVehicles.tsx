@@ -159,7 +159,7 @@ export default function BaseVehicles() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              Viaturas — {base?.sigla} {base?.nome}
+              Viaturas — {base?.nome}
             </h1>
             <p className="text-muted-foreground">Viaturas estacionadas nesta base</p>
           </div>
