@@ -53,12 +53,30 @@ export default function TermsOfUse() {
               O presente Termo de Utilização regula o acesso e uso do sistema <strong>EBIP Eventos</strong>, desenvolvido e mantido pela <strong>EBIP Soluções e Sistemas</strong>, destinado à gestão de atendimento pré-hospitalar, controle de eventos, escalas de equipes, registros clínicos e operações administrativas correlatas.
             </p>
 
-            <h2 className="text-lg font-bold text-foreground">2. ACEITAÇÃO DOS TERMOS</h2>
+            <h2 className="text-lg font-bold text-foreground">2. DIREITO DE USO DO SISTEMA</h2>
+            <p className="text-muted-foreground">
+              O usuário adquire exclusivamente o <strong>direito de uso</strong> do sistema, nos termos da <strong>Lei de Software (Lei nº 9.609/1998)</strong> e demais disposições legais aplicáveis.
+            </p>
+            <ul className="text-muted-foreground list-disc pl-5 space-y-1">
+              <li>Não há transferência de propriedade, licença de redistribuição, acesso ao código-fonte ou qualquer outro direito além do uso permitido conforme este termo;</li>
+              <li>O direito de uso é pessoal, intransferível e vinculado às credenciais do usuário.</li>
+            </ul>
+
+            <h2 className="text-lg font-bold text-foreground">3. ABERTURA DE CHAMADOS E SUPORTE TÉCNICO</h2>
+            <p className="text-muted-foreground">
+              Todo e qualquer pedido de suporte, dúvida técnica, solicitação de melhoria ou reporte de problema <strong>deve ser registrado exclusivamente pelo módulo de Chamados</strong> disponível no sistema.
+            </p>
+            <ul className="text-muted-foreground list-disc pl-5 space-y-1">
+              <li>Solicitações realizadas por outros meios (mensagens informais, e-mail, ligação, aplicativos de mensagens, etc.) <strong>não terão prioridade de atendimento</strong> e poderão não ser processadas;</li>
+              <li>Apenas chamados registrados no sistema possuem rastreabilidade, SLA e garantia de resposta pela equipe da EBIP Soluções e Sistemas.</li>
+            </ul>
+
+            <h2 className="text-lg font-bold text-foreground">4. ACEITAÇÃO DOS TERMOS</h2>
             <p className="text-muted-foreground">
               Ao acessar e utilizar o sistema, o usuário declara ter lido, compreendido e aceito integralmente os termos aqui dispostos. O uso do sistema está condicionado à aceitação deste Termo de Utilização.
             </p>
 
-            <h2 className="text-lg font-bold text-foreground">3. RESPONSABILIDADES DO USUÁRIO</h2>
+            <h2 className="text-lg font-bold text-foreground">5. RESPONSABILIDADES DO USUÁRIO</h2>
             <p className="text-muted-foreground">O usuário se compromete a:</p>
             <ul className="text-muted-foreground list-disc pl-5 space-y-1">
               <li>Utilizar o sistema de forma ética, legal e em conformidade com as normas vigentes;</li>
@@ -68,7 +86,7 @@ export default function TermsOfUse() {
               <li>Comunicar imediatamente qualquer uso não autorizado de sua conta ou qualquer violação de segurança.</li>
             </ul>
 
-            <h2 className="text-lg font-bold text-foreground">4. ISENÇÃO DE RESPONSABILIDADE</h2>
+            <h2 className="text-lg font-bold text-foreground">6. ISENÇÃO DE RESPONSABILIDADE</h2>
             <p className="text-muted-foreground">
               A <strong>EBIP Soluções e Sistemas</strong> não se responsabiliza por:
             </p>
@@ -83,12 +101,12 @@ export default function TermsOfUse() {
               O sistema é uma ferramenta de apoio à gestão e <strong>não substitui o julgamento profissional</strong> do usuário em suas atividades.
             </p>
 
-            <h2 className="text-lg font-bold text-foreground">5. PROTEÇÃO DE DADOS PESSOAIS (LGPD)</h2>
+            <h2 className="text-lg font-bold text-foreground">7. PROTEÇÃO DE DADOS PESSOAIS (LGPD)</h2>
             <p className="text-muted-foreground">
               Em conformidade com a <strong>Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD)</strong>, informamos:
             </p>
 
-            <h3 className="text-base font-semibold text-foreground">5.1 Finalidade do Tratamento</h3>
+            <h3 className="text-base font-semibold text-foreground">7.1 Finalidade do Tratamento</h3>
             <p className="text-muted-foreground">
               Os dados pessoais coletados são utilizados exclusivamente para:
             </p>
@@ -100,7 +118,7 @@ export default function TermsOfUse() {
               <li>Comunicação entre os membros da equipe.</li>
             </ul>
 
-            <h3 className="text-base font-semibold text-foreground">5.2 Dados Coletados</h3>
+            <h3 className="text-base font-semibold text-foreground">7.2 Dados Coletados</h3>
             <p className="text-muted-foreground">
               O sistema poderá coletar e tratar os seguintes dados pessoais:
             </p>
@@ -111,7 +129,7 @@ export default function TermsOfUse() {
               <li>Dados financeiros relacionados a pagamentos e orçamentos.</li>
             </ul>
 
-            <h3 className="text-base font-semibold text-foreground">5.3 Base Legal</h3>
+            <h3 className="text-base font-semibold text-foreground">7.3 Base Legal</h3>
             <p className="text-muted-foreground">
               O tratamento dos dados é realizado com base em:
             </p>
@@ -121,7 +139,7 @@ export default function TermsOfUse() {
               <li><strong>Proteção da vida</strong> do titular ou de terceiro (Art. 7º, VII e Art. 11, II, "e", LGPD) — aplicável aos dados de saúde dos pacientes.</li>
             </ul>
 
-            <h3 className="text-base font-semibold text-foreground">5.4 Direitos do Titular</h3>
+            <h3 className="text-base font-semibold text-foreground">7.4 Direitos do Titular</h3>
             <p className="text-muted-foreground">
               Conforme a LGPD, o titular dos dados tem direito a:
             </p>
@@ -137,7 +155,7 @@ export default function TermsOfUse() {
               Para exercer seus direitos, o titular poderá entrar em contato com o Encarregado de Dados da EBIP Soluções e Sistemas através dos canais oficiais de comunicação da empresa.
             </p>
 
-            <h3 className="text-base font-semibold text-foreground">5.5 Compartilhamento de Dados</h3>
+            <h3 className="text-base font-semibold text-foreground">7.5 Compartilhamento de Dados</h3>
             <p className="text-muted-foreground">
               Os dados pessoais poderão ser compartilhados apenas com:
             </p>
@@ -147,12 +165,12 @@ export default function TermsOfUse() {
               <li>Prestadores de serviço de infraestrutura tecnológica, sob obrigação de confidencialidade.</li>
             </ul>
 
-            <h3 className="text-base font-semibold text-foreground">5.6 Retenção dos Dados</h3>
+            <h3 className="text-base font-semibold text-foreground">7.6 Retenção dos Dados</h3>
             <p className="text-muted-foreground">
               Os dados serão mantidos pelo período necessário ao cumprimento das finalidades para as quais foram coletados, respeitando os prazos legais de retenção aplicáveis.
             </p>
 
-            <h2 className="text-lg font-bold text-foreground">6. SEGURANÇA DA INFORMAÇÃO</h2>
+            <h2 className="text-lg font-bold text-foreground">8. SEGURANÇA DA INFORMAÇÃO</h2>
             <p className="text-muted-foreground">
               A EBIP Soluções e Sistemas adota medidas técnicas e administrativas adequadas para proteger os dados pessoais contra acessos não autorizados, destruição, perda, alteração ou qualquer forma de tratamento inadequado, incluindo:
             </p>
@@ -166,12 +184,12 @@ export default function TermsOfUse() {
               O usuário é responsável por manter a segurança de suas credenciais de acesso e por não compartilhar sua senha com terceiros.
             </p>
 
-            <h2 className="text-lg font-bold text-foreground">7. PROPRIEDADE INTELECTUAL</h2>
+            <h2 className="text-lg font-bold text-foreground">9. PROPRIEDADE INTELECTUAL</h2>
             <p className="text-muted-foreground">
               O sistema EBIP Eventos, incluindo sua interface, código-fonte, funcionalidades, logotipos e documentação, é de propriedade exclusiva da <strong>EBIP Soluções e Sistemas</strong>, sendo protegido pelas leis de propriedade intelectual vigentes.
             </p>
 
-            <h2 className="text-lg font-bold text-foreground">8. DISPOSIÇÕES GERAIS</h2>
+            <h2 className="text-lg font-bold text-foreground">10. DISPOSIÇÕES GERAIS</h2>
             <ul className="text-muted-foreground list-disc pl-5 space-y-1">
               <li>Este Termo de Utilização poderá ser atualizado a qualquer momento, sendo o usuário notificado sobre alterações relevantes;</li>
               <li>O uso continuado do sistema após a alteração dos termos constitui aceitação das modificações;</li>
