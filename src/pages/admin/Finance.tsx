@@ -363,6 +363,17 @@ export default function Finance() {
     setBudgetForm({ ...emptyBudgetForm });
   };
 
+  const handleDeleteBudget = async (budgetId: string) => {
+    if (!confirm('Deseja excluir este orçamento?')) return;
+    const { error } = await supabase.from('event_budgets').delete().eq('id', budgetId);
+    if (error) {
+      toast({ title: 'Erro ao excluir orçamento', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Orçamento excluído!' });
+      fetchData();
+    }
+  };
+
   const handleCreateEventFromBudget = async (budget: Budget) => {
     if (!budget.data_inicio || !budget.data_fim) {
       toast({ title: 'Preencha as datas de início e fim no orçamento', variant: 'destructive' });
