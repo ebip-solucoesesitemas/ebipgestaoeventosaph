@@ -36,6 +36,7 @@ import {
   Loader2,
   Route,
   Download,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -361,6 +362,17 @@ export default function Finance() {
     setBudgetDialogOpen(false);
     setEditingBudgetId(null);
     setBudgetForm({ ...emptyBudgetForm });
+  };
+
+  const handleDeleteBudget = async (budgetId: string) => {
+    if (!confirm('Deseja excluir este orçamento?')) return;
+    const { error } = await supabase.from('event_budgets').delete().eq('id', budgetId);
+    if (error) {
+      toast({ title: 'Erro ao excluir orçamento', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Orçamento excluído!' });
+      fetchData();
+    }
   };
 
   const handleCreateEventFromBudget = async (budget: Budget) => {
@@ -695,6 +707,15 @@ export default function Finance() {
                           >
                             <Pencil className="w-3 h-3" />
                             Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 text-xs text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteBudget(budget.id)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Excluir
                           </Button>
                           <Button
                             variant="outline"
