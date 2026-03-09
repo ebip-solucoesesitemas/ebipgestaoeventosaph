@@ -69,6 +69,32 @@ export default function AdminUsers() {
     is_account_only: false,
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+
+  const generatePassword = () => {
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lower = 'abcdefghijklmnopqrstuvwxyz';
+    const digits = '0123456789';
+    const special = '!@#$%&*';
+    const all = upper + lower + digits + special;
+    const arr = new Uint32Array(12);
+    crypto.getRandomValues(arr);
+    // Ensure at least one of each type
+    let pwd = [
+      upper[arr[0] % upper.length],
+      lower[arr[1] % lower.length],
+      digits[arr[2] % digits.length],
+      special[arr[3] % special.length],
+    ];
+    for (let i = 4; i < 12; i++) pwd.push(all[arr[i] % all.length]);
+    // Shuffle
+    for (let i = pwd.length - 1; i > 0; i--) {
+      const j = arr[i] % (i + 1);
+      [pwd[i], pwd[j]] = [pwd[j], pwd[i]];
+    }
+    return pwd.join('');
+  };
+
   const resetForm = () => {
     setForm({
       nome: "",
