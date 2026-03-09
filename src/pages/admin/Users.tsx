@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Shield, Users as UsersIcon, Edit } from "lucide-react";
+import { Plus, Trash2, Shield, Users as UsersIcon, Edit, Dices, Eye, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,6 +68,32 @@ export default function AdminUsers() {
     telefone: "",
     is_account_only: false,
   });
+
+  const [showPassword, setShowPassword] = useState(false);
+
+  const generatePassword = () => {
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lower = 'abcdefghijklmnopqrstuvwxyz';
+    const digits = '0123456789';
+    const special = '!@#$%&*';
+    const all = upper + lower + digits + special;
+    const arr = new Uint32Array(12);
+    crypto.getRandomValues(arr);
+    // Ensure at least one of each type
+    let pwd = [
+      upper[arr[0] % upper.length],
+      lower[arr[1] % lower.length],
+      digits[arr[2] % digits.length],
+      special[arr[3] % special.length],
+    ];
+    for (let i = 4; i < 12; i++) pwd.push(all[arr[i] % all.length]);
+    // Shuffle
+    for (let i = pwd.length - 1; i > 0; i--) {
+      const j = arr[i] % (i + 1);
+      [pwd[i], pwd[j]] = [pwd[j], pwd[i]];
+    }
+    return pwd.join('');
+  };
 
   const resetForm = () => {
     setForm({
@@ -305,12 +331,39 @@ export default function AdminUsers() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Senha * (mín. 6 caracteres)</Label>
-                    <Input
-                      type="password"
-                      value={form.password}
-                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                      maxLength={72}
-                    />
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={form.password}
+                          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                          maxLength={72}
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-10 w-10"
+                          onClick={() => setShowPassword((s) => !s)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        title="Gerar senha automática"
+                        onClick={() => {
+                          const pwd = generatePassword();
+                          setForm((f) => ({ ...f, password: pwd }));
+                          setShowPassword(true);
+                        }}
+                      >
+                        <Dices className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </>
               )}
