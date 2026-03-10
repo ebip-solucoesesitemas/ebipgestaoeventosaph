@@ -139,7 +139,7 @@ export default function Permissions() {
           </TabsTrigger>
         </TabsList>
 
-        {["admin", "gestor", "equipe"].map((role) => (
+        {["admin", "gestor", "equipe", "operacional"].map((role) => (
           <TabsContent key={role} value={role} className="space-y-4 mt-4">
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="text-sm px-3 py-1">
