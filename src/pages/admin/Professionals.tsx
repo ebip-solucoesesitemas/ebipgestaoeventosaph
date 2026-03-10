@@ -84,7 +84,7 @@ export default function AdminProfessionals() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', email: '', password: '' });
+    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', chave_pix: '', email: '', password: '' });
     setEditingProfile(null);
   };
 
