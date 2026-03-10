@@ -46,6 +46,8 @@ interface TeamMember {
   profile_id: string;
   checkin_at: string | null;
   checkout_at: string | null;
+  km_inicial: number | null;
+  km_final: number | null;
   profiles: { id: string; nome: string; especialidade: string };
 }
 

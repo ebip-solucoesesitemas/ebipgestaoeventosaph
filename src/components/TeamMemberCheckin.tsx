@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, LogOut, CheckCircle2, Clock } from 'lucide-react';
+import { LogIn, LogOut, CheckCircle2, Clock, Gauge } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -12,6 +14,8 @@ interface TeamMember {
   profile_id: string;
   checkin_at: string | null;
   checkout_at: string | null;
+  km_inicial: number | null;
+  km_final: number | null;
   profiles: {
     id: string;
     nome: string;
@@ -31,9 +35,11 @@ interface TeamMemberCheckinProps {
 export default function TeamMemberCheckin({ member, eventName, onUpdate, checkoutEnabled = false, horarioSaidaBase, minAntesSaidaBase }: TeamMemberCheckinProps) {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [kmInicial, setKmInicial] = useState('');
+  const [kmFinal, setKmFinal] = useState('');
 
   const isCheckinWindowOpen = () => {
-    if (!horarioSaidaBase || !minAntesSaidaBase) return true; // No restriction configured
+    if (!horarioSaidaBase || !minAntesSaidaBase) return true;
     const saida = new Date(horarioSaidaBase);
     const windowStart = new Date(saida.getTime() - minAntesSaidaBase * 60 * 1000);
     const now = new Date();
@@ -58,9 +64,11 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
       return;
     }
     setIsProcessing(true);
-    const { data, error } = await (supabase.rpc as any)('handle_team_checkin', {
-      p_assignment_id: member.id,
-    });
+    const rpcParams: Record<string, unknown> = { p_assignment_id: member.id };
+    if (kmInicial.trim()) {
+      rpcParams.p_km_inicial = parseFloat(kmInicial);
+    }
+    const { data, error } = await (supabase.rpc as any)('handle_team_checkin', rpcParams);
 
     if (error) {
       toast({ title: 'Erro ao fazer check-in', description: error.message, variant: 'destructive' });
@@ -75,9 +83,11 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
 
   const handleCheckout = async () => {
     setIsProcessing(true);
-    const { data, error } = await (supabase.rpc as any)('handle_team_checkout', {
-      p_assignment_id: member.id,
-    });
+    const rpcParams: Record<string, unknown> = { p_assignment_id: member.id };
+    if (kmFinal.trim()) {
+      rpcParams.p_km_final = parseFloat(kmFinal);
+    }
+    const { data, error } = await (supabase.rpc as any)('handle_team_checkout', rpcParams);
 
     if (error) {
       toast({ title: 'Erro ao fazer checkout', description: error.message, variant: 'destructive' });
@@ -132,7 +142,7 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
         {getStatusBadge()}
       </div>
 
-      {/* Time info */}
+      {/* Time & KM info */}
       {(member.checkin_at || member.checkout_at) && (
         <div className="grid grid-cols-2 gap-2 text-sm">
           {member.checkin_at && (
@@ -147,6 +157,18 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
               <span>Checkout: {format(new Date(member.checkout_at), "HH:mm", { locale: ptBR })}</span>
             </div>
           )}
+          {member.km_inicial != null && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Gauge className="w-3.5 h-3.5" />
+              <span>KM Inicial: {member.km_inicial.toLocaleString('pt-BR')}</span>
+            </div>
+          )}
+          {member.km_final != null && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Gauge className="w-3.5 h-3.5" />
+              <span>KM Final: {member.km_final.toLocaleString('pt-BR')}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -155,6 +177,17 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
         <>
           {!member.checkin_at ? (
             <>
+              <div className="space-y-1">
+                <Label htmlFor={`km-inicial-${member.id}`} className="text-xs text-muted-foreground">KM Inicial</Label>
+                <Input
+                  id={`km-inicial-${member.id}`}
+                  type="number"
+                  placeholder="Ex: 12500"
+                  value={kmInicial}
+                  onChange={(e) => setKmInicial(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
               <Button
                 onClick={handleCheckin}
                 disabled={isProcessing || !isCheckinWindowOpen()}
@@ -175,19 +208,32 @@ export default function TeamMemberCheckin({ member, eventName, onUpdate, checkou
               )}
             </>
           ) : (
-            <Button
-              onClick={handleCheckout}
-              disabled={isProcessing || !checkoutEnabled}
-              size="sm"
-              className={`w-full ${checkoutEnabled ? 'bg-warning hover:bg-warning/90' : ''}`}
-            >
-              {isProcessing ? 'Processando...' : (
-                <>
-                  <LogOut className="w-4 h-4 mr-1" />
-                  Fazer Checkout
-                </>
-              )}
-            </Button>
+            <>
+              <div className="space-y-1">
+                <Label htmlFor={`km-final-${member.id}`} className="text-xs text-muted-foreground">KM Final</Label>
+                <Input
+                  id={`km-final-${member.id}`}
+                  type="number"
+                  placeholder="Ex: 12650"
+                  value={kmFinal}
+                  onChange={(e) => setKmFinal(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <Button
+                onClick={handleCheckout}
+                disabled={isProcessing || !checkoutEnabled}
+                size="sm"
+                className={`w-full ${checkoutEnabled ? 'bg-warning hover:bg-warning/90' : ''}`}
+              >
+                {isProcessing ? 'Processando...' : (
+                  <>
+                    <LogOut className="w-4 h-4 mr-1" />
+                    Fazer Checkout
+                  </>
+                )}
+              </Button>
+            </>
           )}
         </>
       )}
