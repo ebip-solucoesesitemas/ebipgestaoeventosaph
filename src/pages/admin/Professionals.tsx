@@ -95,6 +95,8 @@ export default function AdminProfessionals() {
       especialidade: profile.especialidade,
       registro_profissional: profile.registro_profissional,
       cargo: profile.cargo,
+      cpf: profile.cpf || '',
+      chave_pix: profile.chave_pix || '',
       email: '',
       password: '',
     });
