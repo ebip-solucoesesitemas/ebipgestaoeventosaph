@@ -182,6 +182,8 @@ export default function ProfessionalReport() {
     const columns = [
       { header: "Profissional", dataKey: "nome" },
       { header: "Especialidade", dataKey: "especialidade" },
+      { header: "CPF", dataKey: "cpf" },
+      { header: "Chave PIX", dataKey: "chave_pix" },
       { header: "Eventos", dataKey: "eventos", halign: "center" as const },
       { header: "Horas", dataKey: "horas", halign: "center" as const },
       { header: "Valor/Hora", dataKey: "valor_hora", halign: "right" as const },
@@ -194,6 +196,8 @@ export default function ProfessionalReport() {
     const rows = reports.map((r) => ({
       nome: r.profile_name,
       especialidade: r.especialidade,
+      cpf: r.cpf || '—',
+      chave_pix: r.chave_pix || '—',
       eventos: r.total_events.toString(),
       horas: `${r.total_horas.toFixed(1)}h`,
       valor_hora: `R$ ${r.valor_hora.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
