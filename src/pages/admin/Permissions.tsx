@@ -107,8 +107,8 @@ export default function Permissions() {
 
   // Admin can edit permissions, Gestor is locked
   const isEditable = (role: string) => {
-    if (role === "gestor" || role === "equipe") return true; // admin users can edit gestor/equipe
-    if (role === "admin" && isSuperAdmin) return true; // only super admin can edit admin
+    if (role === "gestor" || role === "equipe" || role === "operacional") return true;
+    if (role === "admin" && isSuperAdmin) return true;
     return false;
   };
 
