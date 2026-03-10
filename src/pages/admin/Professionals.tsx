@@ -416,6 +416,12 @@ export default function AdminProfessionals() {
                   <p className="text-sm text-muted-foreground">
                     {profile.registro_profissional}
                   </p>
+                  {profile.cpf && (
+                    <p className="text-sm text-muted-foreground">CPF: {profile.cpf}</p>
+                  )}
+                  {profile.chave_pix && (
+                    <p className="text-sm text-muted-foreground">PIX: {profile.chave_pix}</p>
+                  )}
                   {profile.telefone && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Phone className="w-3 h-3" /> {profile.telefone}
