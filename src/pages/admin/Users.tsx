@@ -207,9 +207,17 @@ export default function AdminUsers() {
 
       if (error) throw new Error(error.message);
 
-      // Update role if cargo changed
+      // Update role if cargo changed between admin and non-admin types
       if (editingUser.cargo !== form.cargo && editingUser.user_id) {
-        await (supabase.rpc as any)("toggle_user_role", { p_profile_id: editingUser.id });
+        const adminCargos = ["admin", "admin_bnu", "admin_fln"];
+        const wasAdmin = adminCargos.includes(editingUser.cargo);
+        const isNowAdmin = adminCargos.includes(form.cargo);
+        
+        // For operacional/gestor: they need admin role for RLS, so don't remove it
+        // Only toggle when switching between admin and equipe
+        if (wasAdmin !== isNowAdmin && form.cargo !== "operacional" && form.cargo !== "gestor") {
+          await (supabase.rpc as any)("toggle_user_role", { p_profile_id: editingUser.id });
+        }
       }
 
       // Reset password if super-admin provided a new one
