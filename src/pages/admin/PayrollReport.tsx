@@ -301,9 +301,9 @@ export default function PayrollReport() {
                   {profile.especialidade}
                 </span>
                 {(() => {
-                  const pData = profileMap.get(profileId);
-                  const cpf = (pData as any)?.cpf;
-                  const pix = (pData as any)?.chave_pix;
+                  const pData = profileDataMap.get(profileId);
+                  const cpf = pData?.cpf;
+                  const pix = pData?.chave_pix;
                   return (cpf || pix) ? (
                     <span style={{ marginLeft: 12, fontSize: "11px", color: "#666" }}>
                       {cpf ? `| CPF: ${cpf}` : ''} {pix ? `| PIX: ${pix}` : ''}
