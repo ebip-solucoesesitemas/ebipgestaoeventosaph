@@ -34,8 +34,8 @@ export function usePermissions() {
   }, [cargo]);
 
   const hasPermission = (key: string): boolean => {
-    // Super admin and admin cargo always have all permissions
-    if (cargo === "admin" || cargo === "admin_bnu" || cargo === "admin_fln" || profile?.hidden) {
+    const adminCargos = ["admin", "admin_bnu", "admin_fln"];
+    if ((cargo && adminCargos.includes(cargo)) || profile?.hidden) {
       return true;
     }
     const perm = permissions.find((p) => p.permission_key === key);
