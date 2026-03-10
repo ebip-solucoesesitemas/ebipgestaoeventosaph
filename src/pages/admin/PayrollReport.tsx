@@ -155,9 +155,9 @@ export default function PayrollReport() {
 
     const groups = Object.entries(profileGroups).map(([profileId, groupLines]) => {
       const subtotal = groupLines.reduce((s, l) => s + l.line_total, 0);
-      const profileData = profileMap.get(profileId);
-      const cpf = (profileData as any)?.cpf || '';
-      const chavePix = (profileData as any)?.chave_pix || '';
+      const profileData = profileDataMap.get(profileId);
+      const cpf = profileData?.cpf || '';
+      const chavePix = profileData?.chave_pix || '';
       const cpfPixInfo = [cpf ? `CPF: ${cpf}` : '', chavePix ? `PIX: ${chavePix}` : ''].filter(Boolean).join(' | ');
       return {
         label: `${groupLines[0].profile_name} — ${groupLines[0].especialidade}${cpfPixInfo ? ` — ${cpfPixInfo}` : ''}`,
