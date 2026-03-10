@@ -21,10 +21,11 @@ export function usePermissions() {
       return;
     }
 
+    const cargoTyped = cargo as "admin" | "equipe" | "gestor" | "admin_bnu" | "admin_fln" | "operacional";
     supabase
       .from("role_permissions")
       .select("permission_key, enabled")
-      .eq("role", cargo)
+      .eq("role", cargoTyped)
       .then(({ data, error }) => {
         if (!error && data) {
           setPermissions(data);
