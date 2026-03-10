@@ -56,6 +56,8 @@ export default function AdminProfessionals() {
     especialidade: '',
     registro_profissional: '',
     cargo: 'equipe',
+    cpf: '',
+    chave_pix: '',
     email: '',
     password: '',
   });
