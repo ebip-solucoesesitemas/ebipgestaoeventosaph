@@ -39,7 +39,7 @@ const especialidadeIcons: Record<string, typeof Stethoscope> = {
   'Socorrista': Ambulance,
 };
 
-const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR'];
+const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR', 'Operacional'];
 
 export default function AdminProfessionals() {
   const { toast } = useToast();
