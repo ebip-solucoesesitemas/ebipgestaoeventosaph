@@ -1,29 +1,37 @@
 
-# Plano de Melhorias — EBIP Eventos
 
-## Status das Fases
+# Adicionar Campos CPF e Chave PIX
 
-| Fase | Melhoria | Status |
-|------|----------|--------|
-| 1 | Dashboard KPIs | ✅ Implementado |
-| 2 | Exportação PDF | ✅ Implementado |
-| 3 | Histórico Profissional | 🔜 Pendente |
-| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
-| 5 | Modo Escuro | ✅ Implementado |
-| 6 | Variáveis Contrato | ✅ Já existia |
-| — | Nota de oficina na viatura | ✅ Implementado |
+## 1. Migration — Novos campos na tabela `profiles`
 
-## Auditoria de Segurança
+```sql
+ALTER TABLE public.profiles ADD COLUMN cpf text;
+ALTER TABLE public.profiles ADD COLUMN chave_pix text;
+```
 
-| # | Correção | Status |
-|---|----------|--------|
-| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
-| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
-| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
-| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
-| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
-| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
-| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
-| 8 | Utilitário de validação UUID criado | ✅ Implementado |
-| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
-| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
+## 2. Cadastro de Profissionais (`src/pages/admin/Professionals.tsx`)
+
+- Adicionar `cpf` e `chave_pix` à interface `Profile` e ao `formData`
+- Adicionar inputs no formulário (CPF e Chave PIX)
+- Incluir os campos no payload de insert e update
+- Exibir CPF e Chave PIX nos cards da listagem
+- Preencher os campos ao abrir edição (`openEditDialog`)
+
+## 3. Relatório por Profissional (`src/pages/admin/ProfessionalReport.tsx`)
+
+- Buscar `cpf` e `chave_pix` junto com os profiles
+- Adicionar colunas "CPF" e "Chave PIX" na tabela visual e no PDF exportado
+
+## 4. Folha de Pagamento (`src/pages/admin/PayrollReport.tsx`)
+
+- Buscar `cpf` e `chave_pix` dos profiles
+- Adicionar CPF e Chave PIX no cabeçalho de cada grupo de profissional (label do grupo)
+- Incluir no PDF e na impressão
+
+| Arquivo | Ação |
+|---------|------|
+| Migration SQL | Adicionar colunas `cpf` e `chave_pix` em `profiles` |
+| `src/pages/admin/Professionals.tsx` | Campos no form + exibição nos cards |
+| `src/pages/admin/ProfessionalReport.tsx` | Colunas CPF/PIX na tabela e PDF |
+| `src/pages/admin/PayrollReport.tsx` | CPF/PIX no grupo do profissional e PDF |
+
