@@ -24,7 +24,7 @@ export function usePermissions() {
     supabase
       .from("role_permissions")
       .select("permission_key, enabled")
-      .eq("role", cargo as string)
+      .eq("role", cargo)
       .then(({ data, error }) => {
         if (!error && data) {
           setPermissions(data);
