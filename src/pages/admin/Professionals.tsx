@@ -114,6 +114,8 @@ export default function AdminProfessionals() {
         especialidade: formData.especialidade as 'Médico' | 'Enfermeiro' | 'Técnico' | 'Socorrista',
         registro_profissional: formData.registro_profissional,
         cargo: formData.cargo as 'admin' | 'equipe',
+        cpf: formData.cpf || null,
+        chave_pix: formData.chave_pix || null,
       };
 
       const { error } = await supabase
