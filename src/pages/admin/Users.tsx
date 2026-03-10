@@ -393,6 +393,7 @@ export default function AdminUsers() {
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value={"admin_bnu" as CargoTipo}>Admin BNU</SelectItem>
                       <SelectItem value={"admin_fln" as CargoTipo}>Admin FLN</SelectItem>
+                      <SelectItem value={"operacional" as CargoTipo}>Operacional</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
