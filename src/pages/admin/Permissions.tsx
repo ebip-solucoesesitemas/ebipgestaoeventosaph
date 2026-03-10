@@ -47,6 +47,7 @@ const roleLabels: Record<string, string> = {
   admin: "Administrador",
   gestor: "Gestor",
   equipe: "Equipe",
+  operacional: "Operacional",
 };
 
 export default function Permissions() {
@@ -106,8 +107,8 @@ export default function Permissions() {
 
   // Admin can edit permissions, Gestor is locked
   const isEditable = (role: string) => {
-    if (role === "gestor" || role === "equipe") return true; // admin users can edit gestor/equipe
-    if (role === "admin" && isSuperAdmin) return true; // only super admin can edit admin
+    if (role === "gestor" || role === "equipe" || role === "operacional") return true;
+    if (role === "admin" && isSuperAdmin) return true;
     return false;
   };
 
@@ -123,7 +124,7 @@ export default function Permissions() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="admin" className="gap-1.5">
             <Shield className="h-3.5 w-3.5" /> Admin
           </TabsTrigger>
@@ -133,9 +134,12 @@ export default function Permissions() {
           <TabsTrigger value="equipe" className="gap-1.5">
             <Users className="h-3.5 w-3.5" /> Equipe
           </TabsTrigger>
+          <TabsTrigger value="operacional" className="gap-1.5">
+            <Users className="h-3.5 w-3.5" /> Operacional
+          </TabsTrigger>
         </TabsList>
 
-        {["admin", "gestor", "equipe"].map((role) => (
+        {["admin", "gestor", "equipe", "operacional"].map((role) => (
           <TabsContent key={role} value={role} className="space-y-4 mt-4">
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="text-sm px-3 py-1">
