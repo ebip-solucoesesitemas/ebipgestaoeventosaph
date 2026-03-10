@@ -108,6 +108,8 @@ export default function ProfessionalReport() {
         profile_id: profile.id,
         profile_name: profile.nome,
         especialidade: profile.especialidade,
+        cpf: (profile as any).cpf || '',
+        chave_pix: (profile as any).chave_pix || '',
         total_events: eventCount,
         total_horas: totalHoras,
         valor_hora: valorHora,
