@@ -172,6 +172,8 @@ export default function AdminProfessionals() {
           especialidade: formData.especialidade as any,
           registro_profissional: formData.registro_profissional || '',
           cargo: formData.cargo as any,
+          cpf: formData.cpf || null,
+          chave_pix: formData.chave_pix || null,
         });
 
         if (error) {
