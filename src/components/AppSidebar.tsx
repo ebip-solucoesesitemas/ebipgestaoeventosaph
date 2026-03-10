@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -45,46 +46,60 @@ interface Base {
   sigla: string;
 }
 
-const commercialLinks = [
-  { href: "/admin/clients", label: "Clientes", icon: Building2 },
-  { href: "/admin/contract-templates", label: "Modelos de Contrato", icon: ClipboardList },
-  { href: "/admin/finance", label: "Financeiro", icon: DollarSign },
+interface MenuLink {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  permissionKey?: string; // permission_key required to see this link
+}
+
+const commercialLinks: MenuLink[] = [
+  { href: "/admin/clients", label: "Clientes", icon: Building2, permissionKey: "clients.view" },
+  { href: "/admin/contract-templates", label: "Modelos de Contrato", icon: ClipboardList, permissionKey: "contracts.view" },
+  { href: "/admin/finance", label: "Financeiro", icon: DollarSign, permissionKey: "finance.view" },
 ];
 
-const configLinks = [
-  { href: "/admin/users", label: "Usuários", icon: Users },
-  { href: "/admin/permissions", label: "Permissões", icon: Shield },
-  { href: "/admin/bases", label: "Bases", icon: MapPin },
-  { href: "/admin/professional-rates", label: "Valores Profissionais", icon: DollarSign },
-  { href: "/admin/operational-rates", label: "Valores Operacionais", icon: Settings },
-  { href: "/admin/regulation-phones", label: "Tel. Regulação", icon: Shield },
-  { href: "/admin/professional-report", label: "Relatórios", icon: ClipboardList },
-  { href: "/admin/payroll", label: "Pagamentos", icon: Wallet },
-  { href: "/admin/payroll-report", label: "Folha de Pagamento", icon: ClipboardList },
-  { href: "/admin/audit-logs", label: "Logs de Auditoria", icon: Shield },
+const configLinks: MenuLink[] = [
+  { href: "/admin/users", label: "Usuários", icon: Users, permissionKey: "users.view" },
+  { href: "/admin/permissions", label: "Permissões", icon: Shield, permissionKey: "users.manage" },
+  { href: "/admin/bases", label: "Bases", icon: MapPin, permissionKey: "bases.view" },
+  { href: "/admin/professional-rates", label: "Valores Profissionais", icon: DollarSign, permissionKey: "professionals.manage" },
+  { href: "/admin/operational-rates", label: "Valores Operacionais", icon: Settings, permissionKey: "finance.manage" },
+  { href: "/admin/regulation-phones", label: "Tel. Regulação", icon: Shield, permissionKey: "bases.view" },
+  { href: "/admin/professional-report", label: "Relatórios", icon: ClipboardList, permissionKey: "professionals.view" },
+  { href: "/admin/payroll", label: "Pagamentos", icon: Wallet, permissionKey: "payroll.view" },
+  { href: "/admin/payroll-report", label: "Folha de Pagamento", icon: ClipboardList, permissionKey: "payroll.view" },
+  { href: "/admin/audit-logs", label: "Logs de Auditoria", icon: Shield, permissionKey: "audit_logs.view" },
   { href: "/tickets", label: "Chamados", icon: MessageSquare },
 ];
 
-const teamLinks = [
+const teamLinks: MenuLink[] = [
   { href: "/events", label: "Meus Eventos", icon: Calendar },
   { href: "/tickets", label: "Chamados", icon: MessageSquare },
 ];
 
-const getBaseLinks = (baseId: string) => [
-  { href: `/admin/base/${baseId}/events`, label: "Eventos", icon: Calendar },
-  { href: `/admin/base/${baseId}/professionals`, label: "Profissionais", icon: Users },
-  { href: `/admin/base/${baseId}/vehicles`, label: "Viaturas", icon: Truck },
-  { href: `/admin/base/${baseId}/finance`, label: "Financeiro", icon: DollarSign },
+const getBaseLinks = (baseId: string): MenuLink[] => [
+  { href: `/admin/base/${baseId}/events`, label: "Eventos", icon: Calendar, permissionKey: "events.view" },
+  { href: `/admin/base/${baseId}/professionals`, label: "Profissionais", icon: Users, permissionKey: "professionals.view" },
+  { href: `/admin/base/${baseId}/vehicles`, label: "Viaturas", icon: Truck, permissionKey: "vehicles.view" },
+  { href: `/admin/base/${baseId}/finance`, label: "Financeiro", icon: DollarSign, permissionKey: "finance.view" },
 ];
 
 export function AppSidebar() {
   const { profile, signOut, isAdmin } = useAuth();
+  const { hasPermission } = usePermissions();
   const location = useLocation();
   const [bases, setBases] = useState<Base[]>([]);
   const { theme, setTheme } = useTheme();
 
+  const cargo = profile?.cargo;
+  const isAdminCargo = cargo === "admin" || cargo === "admin_bnu" || cargo === "admin_fln" || profile?.hidden;
+  const isOperacional = cargo === "operacional";
+  const isGestor = cargo === "gestor";
+  const showAdminMenu = isAdmin || isOperacional || isGestor;
+
   useEffect(() => {
-    if (isAdmin) {
+    if (showAdminMenu) {
       supabase
         .from("bases")
         .select("id, nome, sigla")
@@ -93,11 +108,17 @@ export function AppSidebar() {
           setBases(data || []);
         });
     }
-  }, [isAdmin]);
+  }, [showAdminMenu]);
 
-  const renderMenuItems = (
-    links: Array<{ href: string; label: string; icon: React.ComponentType<{ className?: string }> }>,
-  ) => (
+  const filterLinks = (links: MenuLink[]) => {
+    if (isAdminCargo) return links;
+    return links.filter((link) => {
+      if (!link.permissionKey) return true;
+      return hasPermission(link.permissionKey);
+    });
+  };
+
+  const renderMenuItems = (links: MenuLink[]) => (
     <SidebarMenu>
       {links.map((link) => (
         <SidebarMenuItem key={link.href}>
@@ -116,6 +137,9 @@ export function AppSidebar() {
     </SidebarMenu>
   );
 
+  const filteredCommercial = filterLinks(commercialLinks);
+  const filteredConfig = filterLinks(configLinks);
+
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="p-4">
@@ -133,64 +157,72 @@ export function AppSidebar() {
       <SidebarSeparator />
 
       <SidebarContent>
-        {isAdmin ? (
+        {showAdminMenu ? (
           <>
             {/* Comercial */}
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-wider font-semibold">
-                Comercial
-              </SidebarGroupLabel>
-              <SidebarGroupContent>{renderMenuItems(commercialLinks)}</SidebarGroupContent>
-            </SidebarGroup>
+            {filteredCommercial.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-wider font-semibold">
+                  Comercial
+                </SidebarGroupLabel>
+                <SidebarGroupContent>{renderMenuItems(filteredCommercial)}</SidebarGroupContent>
+              </SidebarGroup>
+            )}
 
             {/* Configurações */}
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-wider font-semibold">
-                Configurações
-              </SidebarGroupLabel>
-              <SidebarGroupContent>{renderMenuItems(configLinks)}</SidebarGroupContent>
-            </SidebarGroup>
+            {filteredConfig.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-wider font-semibold">
+                  Configurações
+                </SidebarGroupLabel>
+                <SidebarGroupContent>{renderMenuItems(filteredConfig)}</SidebarGroupContent>
+              </SidebarGroup>
+            )}
 
             {/* Bases Descentralizadas */}
-            {bases.length > 0 && (
+            {bases.length > 0 && hasPermission("bases.view") && (
               <SidebarGroup>
                 <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-wider font-semibold">
                   Bases
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {bases.map((base) => (
-                      <SidebarMenuItem key={base.id}>
-                        <Collapsible defaultOpen={location.pathname.includes(`/base/${base.id}`)}>
-                          <CollapsibleTrigger asChild>
-                            <SidebarMenuButton className="w-full justify-between">
-                              <span className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 shrink-0" />
-                                <span className="truncate">
-                                  {base.sigla} - {base.nome}
+                    {bases.map((base) => {
+                      const baseLinks = filterLinks(getBaseLinks(base.id));
+                      if (baseLinks.length === 0) return null;
+                      return (
+                        <SidebarMenuItem key={base.id}>
+                          <Collapsible defaultOpen={location.pathname.includes(`/base/${base.id}`)}>
+                            <CollapsibleTrigger asChild>
+                              <SidebarMenuButton className="w-full justify-between">
+                                <span className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">
+                                    {base.sigla} - {base.nome}
+                                  </span>
                                 </span>
-                              </span>
-                              <ChevronDown className="h-3 w-3 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                            </SidebarMenuButton>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="pl-6 mt-1 space-y-0.5">
-                              {getBaseLinks(base.id).map((bl) => (
-                                <NavLink
-                                  key={bl.href}
-                                  to={bl.href}
-                                  className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 transition-colors"
-                                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                >
-                                  <bl.icon className="h-3.5 w-3.5 shrink-0" />
-                                  <span>{bl.label}</span>
-                                </NavLink>
-                              ))}
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      </SidebarMenuItem>
-                    ))}
+                                <ChevronDown className="h-3 w-3 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                              </SidebarMenuButton>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="pl-6 mt-1 space-y-0.5">
+                                {baseLinks.map((bl) => (
+                                  <NavLink
+                                    key={bl.href}
+                                    to={bl.href}
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 transition-colors"
+                                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                  >
+                                    <bl.icon className="h-3.5 w-3.5 shrink-0" />
+                                    <span>{bl.label}</span>
+                                  </NavLink>
+                                ))}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        </SidebarMenuItem>
+                      );
+                    })}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>

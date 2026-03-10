@@ -2,8 +2,10 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
 
+const OPERACIONAL_LIKE_CARGOS = ["operacional", "gestor"];
+
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, isLoading } = useAuth();
+  const { user, isAdmin, isLoading, profile } = useAuth();
 
   if (isLoading) {
     return (
@@ -14,7 +16,11 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
   }
 
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return <Navigate to="/events" replace />;
+
+  const cargo = profile?.cargo;
+  const hasAdminAccess = isAdmin || (cargo && OPERACIONAL_LIKE_CARGOS.includes(cargo));
+
+  if (!hasAdminAccess) return <Navigate to="/events" replace />;
 
   return <Layout>{children}</Layout>;
 }
