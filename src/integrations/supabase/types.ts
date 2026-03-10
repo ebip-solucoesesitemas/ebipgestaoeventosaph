@@ -747,6 +747,8 @@ export type Database = {
           accepted_terms_at: string | null
           base_id: string | null
           cargo: Database["public"]["Enums"]["cargo_tipo"]
+          chave_pix: string | null
+          cpf: string | null
           created_at: string | null
           especialidade: Database["public"]["Enums"]["especialidade_tipo"]
           hidden: boolean
@@ -762,6 +764,8 @@ export type Database = {
           accepted_terms_at?: string | null
           base_id?: string | null
           cargo?: Database["public"]["Enums"]["cargo_tipo"]
+          chave_pix?: string | null
+          cpf?: string | null
           created_at?: string | null
           especialidade: Database["public"]["Enums"]["especialidade_tipo"]
           hidden?: boolean
@@ -777,6 +781,8 @@ export type Database = {
           accepted_terms_at?: string | null
           base_id?: string | null
           cargo?: Database["public"]["Enums"]["cargo_tipo"]
+          chave_pix?: string | null
+          cpf?: string | null
           created_at?: string | null
           especialidade?: Database["public"]["Enums"]["especialidade_tipo"]
           hidden?: boolean

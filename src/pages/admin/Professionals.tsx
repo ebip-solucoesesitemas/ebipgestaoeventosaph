@@ -30,6 +30,8 @@ interface Profile {
   cargo: string;
   user_id: string | null;
   telefone: string | null;
+  cpf: string | null;
+  chave_pix: string | null;
 }
 
 const especialidadeIcons: Record<string, typeof Stethoscope> = {
@@ -54,6 +56,8 @@ export default function AdminProfessionals() {
     especialidade: '',
     registro_profissional: '',
     cargo: 'equipe',
+    cpf: '',
+    chave_pix: '',
     email: '',
     password: '',
   });
@@ -80,7 +84,7 @@ export default function AdminProfessionals() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', email: '', password: '' });
+    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', chave_pix: '', email: '', password: '' });
     setEditingProfile(null);
   };
 
@@ -91,6 +95,8 @@ export default function AdminProfessionals() {
       especialidade: profile.especialidade,
       registro_profissional: profile.registro_profissional,
       cargo: profile.cargo,
+      cpf: profile.cpf || '',
+      chave_pix: profile.chave_pix || '',
       email: '',
       password: '',
     });
@@ -108,6 +114,8 @@ export default function AdminProfessionals() {
         especialidade: formData.especialidade as 'Médico' | 'Enfermeiro' | 'Técnico' | 'Socorrista',
         registro_profissional: formData.registro_profissional,
         cargo: formData.cargo as 'admin' | 'equipe',
+        cpf: formData.cpf || null,
+        chave_pix: formData.chave_pix || null,
       };
 
       const { error } = await supabase
@@ -164,6 +172,8 @@ export default function AdminProfessionals() {
           especialidade: formData.especialidade as any,
           registro_profissional: formData.registro_profissional || '',
           cargo: formData.cargo as any,
+          cpf: formData.cpf || null,
+          chave_pix: formData.chave_pix || null,
         });
 
         if (error) {
@@ -283,6 +293,24 @@ export default function AdminProfessionals() {
               </div>
 
               <div className="space-y-2">
+                <Label>CPF</Label>
+                <Input
+                  value={formData.cpf}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cpf: e.target.value }))}
+                  placeholder="000.000.000-00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Chave PIX</Label>
+                <Input
+                  value={formData.chave_pix}
+                  onChange={(e) => setFormData(prev => ({ ...prev, chave_pix: e.target.value }))}
+                  placeholder="CPF, email, telefone ou chave aleatória"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label>Cargo</Label>
                 <Select
                   value={formData.cargo}
@@ -388,6 +416,12 @@ export default function AdminProfessionals() {
                   <p className="text-sm text-muted-foreground">
                     {profile.registro_profissional}
                   </p>
+                  {profile.cpf && (
+                    <p className="text-sm text-muted-foreground">CPF: {profile.cpf}</p>
+                  )}
+                  {profile.chave_pix && (
+                    <p className="text-sm text-muted-foreground">PIX: {profile.chave_pix}</p>
+                  )}
                   {profile.telefone && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Phone className="w-3 h-3" /> {profile.telefone}

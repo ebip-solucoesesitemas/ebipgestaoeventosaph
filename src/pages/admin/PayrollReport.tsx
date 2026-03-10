@@ -41,6 +41,7 @@ export default function PayrollReport() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedProfile, setSelectedProfile] = useState("all");
   const [profiles, setProfiles] = useState<{id: string;nome: string;}[]>([]);
+  const [profileDataMap, setProfileDataMap] = useState<Map<string, any>>(new Map());
   const printRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
@@ -57,7 +58,7 @@ export default function PayrollReport() {
     not("checkin_at", "is", null).
     gte("checkout_at", monthStart.toISOString()).
     lte("checkout_at", monthEnd.toISOString()),
-    supabase.from("profiles").select("id, nome, especialidade").eq("hidden", false).eq("is_account_only", false).order("nome"),
+    supabase.from("profiles").select("id, nome, especialidade, cpf, chave_pix").eq("hidden", false).eq("is_account_only", false).order("nome"),
     supabase.from("professional_rates").select("profile_id, valor_hora, valor_evento"),
     supabase.from("events").select("id, nome_evento, data_inicio")]
     );
@@ -70,6 +71,7 @@ export default function PayrollReport() {
     setProfiles(allProfiles.map((p) => ({ id: p.id, nome: p.nome })));
 
     const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
+    setProfileDataMap(profileMap);
     const ratesMap = new Map(rates.map((r) => [r.profile_id, r]));
     const eventsMap = new Map(events.map((e) => [e.id, e]));
 
@@ -151,10 +153,14 @@ export default function PayrollReport() {
     { header: "Total", dataKey: "line_total_fmt", halign: "right" as const }];
 
 
-    const groups = Object.entries(profileGroups).map(([, groupLines]) => {
+    const groups = Object.entries(profileGroups).map(([profileId, groupLines]) => {
       const subtotal = groupLines.reduce((s, l) => s + l.line_total, 0);
+      const profileData = profileDataMap.get(profileId);
+      const cpf = profileData?.cpf || '';
+      const chavePix = profileData?.chave_pix || '';
+      const cpfPixInfo = [cpf ? `CPF: ${cpf}` : '', chavePix ? `PIX: ${chavePix}` : ''].filter(Boolean).join(' | ');
       return {
-        label: `${groupLines[0].profile_name} — ${groupLines[0].especialidade}`,
+        label: `${groupLines[0].profile_name} — ${groupLines[0].especialidade}${cpfPixInfo ? ` — ${cpfPixInfo}` : ''}`,
         rows: groupLines.map((l) => ({
           event_name: l.event_name,
           event_date: l.event_date,
@@ -294,6 +300,16 @@ export default function PayrollReport() {
                 <span style={{ marginLeft: 12, fontSize: "11px", color: "#666" }}>
                   {profile.especialidade}
                 </span>
+                {(() => {
+                  const pData = profileDataMap.get(profileId);
+                  const cpf = pData?.cpf;
+                  const pix = pData?.chave_pix;
+                  return (cpf || pix) ? (
+                    <span style={{ marginLeft: 12, fontSize: "11px", color: "#666" }}>
+                      {cpf ? `| CPF: ${cpf}` : ''} {pix ? `| PIX: ${pix}` : ''}
+                    </span>
+                  ) : null;
+                })()}
               </div>
               <table className="payroll-table">
                 <thead>
