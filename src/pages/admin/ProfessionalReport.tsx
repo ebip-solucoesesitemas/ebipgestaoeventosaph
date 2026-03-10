@@ -31,6 +31,8 @@ interface ReportData {
   profile_id: string;
   profile_name: string;
   especialidade: string;
+  cpf: string;
+  chave_pix: string;
   total_events: number;
   total_horas: number;
   valor_hora: number;
@@ -61,7 +63,7 @@ export default function ProfessionalReport() {
     const monthEnd = endOfMonth(monthStart);
 
     const [profilesRes, ratesRes, assignmentsRes, paymentsRes] = await Promise.all([
-      supabase.from('profiles').select('id, nome, especialidade').eq('hidden', false).eq('is_account_only', false).order('nome'),
+      supabase.from('profiles').select('id, nome, especialidade, cpf, chave_pix').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('professional_rates').select('profile_id, valor_hora'),
       supabase.from('event_assignments')
         .select('profile_id, checkin_at, checkout_at')
@@ -106,6 +108,8 @@ export default function ProfessionalReport() {
         profile_id: profile.id,
         profile_name: profile.nome,
         especialidade: profile.especialidade,
+        cpf: (profile as any).cpf || '',
+        chave_pix: (profile as any).chave_pix || '',
         total_events: eventCount,
         total_horas: totalHoras,
         valor_hora: valorHora,
@@ -178,6 +182,8 @@ export default function ProfessionalReport() {
     const columns = [
       { header: "Profissional", dataKey: "nome" },
       { header: "Especialidade", dataKey: "especialidade" },
+      { header: "CPF", dataKey: "cpf" },
+      { header: "Chave PIX", dataKey: "chave_pix" },
       { header: "Eventos", dataKey: "eventos", halign: "center" as const },
       { header: "Horas", dataKey: "horas", halign: "center" as const },
       { header: "Valor/Hora", dataKey: "valor_hora", halign: "right" as const },
@@ -190,6 +196,8 @@ export default function ProfessionalReport() {
     const rows = reports.map((r) => ({
       nome: r.profile_name,
       especialidade: r.especialidade,
+      cpf: r.cpf || '—',
+      chave_pix: r.chave_pix || '—',
       eventos: r.total_events.toString(),
       horas: `${r.total_horas.toFixed(1)}h`,
       valor_hora: `R$ ${r.valor_hora.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
