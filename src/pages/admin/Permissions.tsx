@@ -124,7 +124,7 @@ export default function Permissions() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="admin" className="gap-1.5">
             <Shield className="h-3.5 w-3.5" /> Admin
           </TabsTrigger>
@@ -133,6 +133,9 @@ export default function Permissions() {
           </TabsTrigger>
           <TabsTrigger value="equipe" className="gap-1.5">
             <Users className="h-3.5 w-3.5" /> Equipe
+          </TabsTrigger>
+          <TabsTrigger value="operacional" className="gap-1.5">
+            <Users className="h-3.5 w-3.5" /> Operacional
           </TabsTrigger>
         </TabsList>
 
