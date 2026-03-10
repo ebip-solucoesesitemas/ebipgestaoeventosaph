@@ -71,8 +71,8 @@ export default function PayrollReport() {
     setProfiles(allProfiles.map((p) => ({ id: p.id, nome: p.nome })));
 
     const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
+    setProfileDataMap(profileMap);
     const ratesMap = new Map(rates.map((r) => [r.profile_id, r]));
-    const eventsMap = new Map(events.map((e) => [e.id, e]));
     const eventsMap = new Map(events.map((e) => [e.id, e]));
 
     const payrollLines: PayrollLine[] = assignments.map((a) => {
