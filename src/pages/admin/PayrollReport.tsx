@@ -7,8 +7,8 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from
+"@/components/ui/select";
 import { Printer, FileText, Download } from "lucide-react";
 import { format, startOfMonth, endOfMonth, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -30,9 +30,9 @@ interface PayrollLine {
 }
 
 const months = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
+"Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+"Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
 
 export default function PayrollReport() {
   const [lines, setLines] = useState<PayrollLine[]>([]);
@@ -40,7 +40,7 @@ export default function PayrollReport() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedProfile, setSelectedProfile] = useState("all");
-  const [profiles, setProfiles] = useState<{ id: string; nome: string }[]>([]);
+  const [profiles, setProfiles] = useState<{id: string;nome: string;}[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
@@ -50,17 +50,17 @@ export default function PayrollReport() {
     const monthEnd = endOfMonth(monthStart);
 
     const [assignmentsRes, profilesRes, ratesRes, eventsRes] = await Promise.all([
-      supabase
-        .from("event_assignments")
-        .select("profile_id, event_id, checkin_at, checkout_at")
-        .not("checkout_at", "is", null)
-        .not("checkin_at", "is", null)
-        .gte("checkout_at", monthStart.toISOString())
-        .lte("checkout_at", monthEnd.toISOString()),
-      supabase.from("profiles").select("id, nome, especialidade").eq("hidden", false).eq("is_account_only", false).order("nome"),
-      supabase.from("professional_rates").select("profile_id, valor_hora, valor_evento"),
-      supabase.from("events").select("id, nome_evento, data_inicio"),
-    ]);
+    supabase.
+    from("event_assignments").
+    select("profile_id, event_id, checkin_at, checkout_at").
+    not("checkout_at", "is", null).
+    not("checkin_at", "is", null).
+    gte("checkout_at", monthStart.toISOString()).
+    lte("checkout_at", monthEnd.toISOString()),
+    supabase.from("profiles").select("id, nome, especialidade").eq("hidden", false).eq("is_account_only", false).order("nome"),
+    supabase.from("professional_rates").select("profile_id, valor_hora, valor_evento"),
+    supabase.from("events").select("id, nome_evento, data_inicio")]
+    );
 
     const assignments = assignmentsRes.data || [];
     const allProfiles = profilesRes.data || [];
@@ -82,11 +82,11 @@ export default function PayrollReport() {
       const hours = totalMin / 60;
       const displayH = Math.floor(totalMin / 60);
       const displayM = totalMin % 60;
-      const minutesDisplay = displayH > 0 && displayM > 0
-        ? `${displayH}h ${displayM}min`
-        : displayH > 0
-          ? `${displayH}h`
-          : `${displayM}min`;
+      const minutesDisplay = displayH > 0 && displayM > 0 ?
+      `${displayH}h ${displayM}min` :
+      displayH > 0 ?
+      `${displayH}h` :
+      `${displayM}min`;
 
       const valorHora = rate?.valor_hora || 0;
       const valorEvento = rate?.valor_evento || 0;
@@ -102,16 +102,16 @@ export default function PayrollReport() {
         profile_name: profile?.nome || "—",
         especialidade: profile?.especialidade || "—",
         event_name: event?.nome_evento || "—",
-        event_date: event?.data_inicio
-          ? format(new Date(event.data_inicio), "dd/MM/yyyy", { locale: ptBR })
-          : "—",
+        event_date: event?.data_inicio ?
+        format(new Date(event.data_inicio), "dd/MM/yyyy", { locale: ptBR }) :
+        "—",
         checkin_at: format(new Date(a.checkin_at!), "dd/MM HH:mm"),
         checkout_at: format(new Date(a.checkout_at!), "dd/MM HH:mm"),
         hours_worked: hours,
         minutes_display: minutesDisplay,
         valor_hora: valorHora,
         valor_evento: valorEvento,
-        line_total: lineTotal,
+        line_total: lineTotal
       };
     });
 
@@ -126,9 +126,9 @@ export default function PayrollReport() {
     fetchData();
   }, [selectedMonth, selectedYear]);
 
-  const filteredLines = selectedProfile === "all"
-    ? lines
-    : lines.filter((l) => l.profile_id === selectedProfile);
+  const filteredLines = selectedProfile === "all" ?
+  lines :
+  lines.filter((l) => l.profile_id === selectedProfile);
 
   const grandTotal = filteredLines.reduce((s, l) => s + l.line_total, 0);
 
@@ -141,15 +141,15 @@ export default function PayrollReport() {
 
   const handleExportPDF = () => {
     const columns = [
-      { header: "Evento", dataKey: "event_name" },
-      { header: "Data", dataKey: "event_date" },
-      { header: "Check-in", dataKey: "checkin_at" },
-      { header: "Check-out", dataKey: "checkout_at" },
-      { header: "Duração", dataKey: "minutes_display" },
-      { header: "Valor/Hora", dataKey: "valor_hora_fmt", halign: "right" as const },
-      { header: "Valor/Evento", dataKey: "valor_evento_fmt", halign: "right" as const },
-      { header: "Total", dataKey: "line_total_fmt", halign: "right" as const },
-    ];
+    { header: "Evento", dataKey: "event_name" },
+    { header: "Data", dataKey: "event_date" },
+    { header: "Check-in", dataKey: "checkin_at" },
+    { header: "Check-out", dataKey: "checkout_at" },
+    { header: "Duração", dataKey: "minutes_display" },
+    { header: "Valor/Hora", dataKey: "valor_hora_fmt", halign: "right" as const },
+    { header: "Valor/Evento", dataKey: "valor_evento_fmt", halign: "right" as const },
+    { header: "Total", dataKey: "line_total_fmt", halign: "right" as const }];
+
 
     const groups = Object.entries(profileGroups).map(([, groupLines]) => {
       const subtotal = groupLines.reduce((s, l) => s + l.line_total, 0);
@@ -163,10 +163,10 @@ export default function PayrollReport() {
           minutes_display: l.minutes_display,
           valor_hora_fmt: l.valor_hora > 0 ? `R$ ${l.valor_hora.toFixed(2)}` : "—",
           valor_evento_fmt: l.valor_evento > 0 ? `R$ ${l.valor_evento.toFixed(2)}` : "—",
-          line_total_fmt: `R$ ${l.line_total.toFixed(2)}`,
+          line_total_fmt: `R$ ${l.line_total.toFixed(2)}`
         })),
         subtotalLabel: `Subtotal — ${groupLines[0].profile_name}`,
-        subtotalValue: `R$ ${subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+        subtotalValue: `R$ ${subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
       };
     });
 
@@ -175,7 +175,7 @@ export default function PayrollReport() {
       columns,
       rows: [],
       groups,
-      totals: [{ label: "TOTAL GERAL", value: `R$ ${grandTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` }],
+      totals: [{ label: "TOTAL GERAL", value: `R$ ${grandTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` }]
     });
   };
 
@@ -201,7 +201,7 @@ export default function PayrollReport() {
   .payroll-footer { margin-top: 20px; text-align: center; font-size: 10px; color: #888; }
 </style></head><body>${printRef.current.innerHTML}</body></html>`);
     printWindow.document.close();
-    printWindow.onload = () => { printWindow.print(); };
+    printWindow.onload = () => {printWindow.print();};
   };
 
   const currentYear = new Date().getFullYear();
@@ -224,9 +224,9 @@ export default function PayrollReport() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Profissionais</SelectItem>
-              {profiles.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-              ))}
+              {profiles.map((p) =>
+              <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+              )}
             </SelectContent>
           </Select>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -234,9 +234,9 @@ export default function PayrollReport() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {months.map((m, i) => (
-                <SelectItem key={i} value={i.toString()}>{m}</SelectItem>
-              ))}
+              {months.map((m, i) =>
+              <SelectItem key={i} value={i.toString()}>{m}</SelectItem>
+              )}
             </SelectContent>
           </Select>
           <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -244,9 +244,9 @@ export default function PayrollReport() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {years.map((y) => (
-                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-              ))}
+              {years.map((y) =>
+              <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+              )}
             </SelectContent>
           </Select>
           <Button onClick={handlePrint} className="gap-2" variant="outline">
@@ -258,21 +258,21 @@ export default function PayrollReport() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20 print:hidden">
+      {isLoading ?
+      <div className="flex items-center justify-center py-20 print:hidden">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </div>
-      ) : filteredLines.length === 0 ? (
-        <Card className="print:hidden">
+        </div> :
+      filteredLines.length === 0 ?
+      <Card className="print:hidden">
           <CardContent className="py-12 text-center">
             <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">Nenhum registro encontrado para o período</p>
           </CardContent>
-        </Card>
-      ) : null}
+        </Card> :
+      null}
 
       {/* Printable area */}
-      <div ref={printRef} className="payroll-report">
+      <div ref={printRef} className="payroll-report text-muted bg-primary-foreground">
         {/* Header */}
         <div className="payroll-header">
           <h1 style={{ fontSize: "18px", fontWeight: "bold", margin: 0 }}>Anjos da Vida Saúde</h1>
@@ -309,8 +309,8 @@ export default function PayrollReport() {
                   </tr>
                 </thead>
                 <tbody>
-                  {groupLines.map((line, idx) => (
-                    <tr key={idx}>
+                  {groupLines.map((line, idx) =>
+                  <tr key={idx}>
                       <td>{line.event_name}</td>
                       <td>{line.event_date}</td>
                       <td>{line.checkin_at}</td>
@@ -326,7 +326,7 @@ export default function PayrollReport() {
                         R$ {line.line_total.toFixed(2)}
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
                 <tfoot>
                   <tr className="payroll-subtotal">
@@ -341,22 +341,22 @@ export default function PayrollReport() {
                   </tr>
                 </tfoot>
               </table>
-            </div>
-          );
+            </div>);
+
         })}
 
         {/* Grand Total */}
-        {filteredLines.length > 0 && (
-          <div className="payroll-grand-total">
+        {filteredLines.length > 0 &&
+        <div className="payroll-grand-total">
             <span>TOTAL GERAL</span>
             <span>R$ {grandTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
           </div>
-        )}
+        }
 
         <div className="payroll-footer">
           <p>Documento gerado em {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }
