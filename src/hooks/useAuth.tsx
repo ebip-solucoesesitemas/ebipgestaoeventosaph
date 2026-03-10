@@ -6,9 +6,9 @@ interface Profile {
   id: string;
   user_id: string;
   nome: string;
-  especialidade: "Médico" | "Enfermeiro" | "Técnico" | "Socorrista" | "Gestor" | "Administrador";
+  especialidade: string;
   registro_profissional: string;
-  cargo: "admin" | "equipe" | "gestor";
+  cargo: string;
   hidden: boolean;
   telefone: string | null;
   is_account_only: boolean;
