@@ -306,30 +306,31 @@ export default function AdminProfessionals() {
                   <div className="border-t pt-4 mt-4">
                     <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
                       <Key className="w-4 h-4" />
-                      Credenciais de Acesso
+                      Credenciais de Acesso (opcional)
                     </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Preencha apenas se o profissional precisar de login no sistema
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Email de Login *</Label>
+                    <Label>Email de Login</Label>
                     <Input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                       placeholder="profissional@email.com"
-                      required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Senha *</Label>
+                    <Label>Senha</Label>
                     <Input
                       type="password"
                       value={formData.password}
                       onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                       placeholder="Mínimo 6 caracteres"
                       minLength={6}
-                      required
                     />
                     <p className="text-xs text-muted-foreground">
                       Informe esta senha ao profissional para ele fazer login
