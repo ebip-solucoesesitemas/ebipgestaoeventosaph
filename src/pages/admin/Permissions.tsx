@@ -47,6 +47,7 @@ const roleLabels: Record<string, string> = {
   admin: "Administrador",
   gestor: "Gestor",
   equipe: "Equipe",
+  operacional: "Operacional",
 };
 
 export default function Permissions() {
