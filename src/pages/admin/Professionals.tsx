@@ -122,45 +122,58 @@ export default function AdminProfessionals() {
       }
       toast({ title: 'Profissional atualizado!' });
     } else {
-      // Create new user with profile via edge function
-      if (!formData.email || !formData.password) {
-        toast({ title: 'Preencha email e senha', variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
-      }
+      // If email and password provided, create user + profile via edge function
+      if (formData.email && formData.password) {
+        if (formData.password.length < 6) {
+          toast({ title: 'Senha deve ter no mínimo 6 caracteres', variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
 
-      if (formData.password.length < 6) {
-        toast({ title: 'Senha deve ter no mínimo 6 caracteres', variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: {
-          email: formData.email,
-          password: formData.password,
-          profileData: {
-            nome: formData.nome,
-            especialidade: formData.especialidade,
-            registro_profissional: formData.registro_profissional,
-            cargo: formData.cargo,
+        const { data, error } = await supabase.functions.invoke('create-user', {
+          body: {
+            email: formData.email,
+            password: formData.password,
+            profileData: {
+              nome: formData.nome,
+              especialidade: formData.especialidade,
+              registro_profissional: formData.registro_profissional,
+              cargo: formData.cargo,
+            },
           },
-        },
-      });
+        });
 
-      if (error) {
-        toast({ title: 'Erro ao criar usuário', description: error.message, variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
+        if (error) {
+          toast({ title: 'Erro ao criar usuário', description: error.message, variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (data?.error) {
+          toast({ title: 'Erro ao criar usuário', description: data.error, variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
+
+        toast({ title: 'Profissional cadastrado com sucesso!', description: `Login: ${formData.email}` });
+      } else {
+        // Insert profile directly without auth user
+        const { error } = await supabase.from('profiles').insert({
+          user_id: null,
+          nome: formData.nome,
+          especialidade: formData.especialidade as any,
+          registro_profissional: formData.registro_profissional || '',
+          cargo: formData.cargo as any,
+        });
+
+        if (error) {
+          toast({ title: 'Erro ao cadastrar', description: error.message, variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
+
+        toast({ title: 'Profissional cadastrado com sucesso!' });
       }
-
-      if (data?.error) {
-        toast({ title: 'Erro ao criar usuário', description: data.error, variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
-      }
-
-      toast({ title: 'Profissional cadastrado com sucesso!', description: `Login: ${formData.email}` });
     }
 
     setDialogOpen(false);
