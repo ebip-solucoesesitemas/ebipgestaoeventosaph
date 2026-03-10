@@ -293,6 +293,24 @@ export default function AdminProfessionals() {
               </div>
 
               <div className="space-y-2">
+                <Label>CPF</Label>
+                <Input
+                  value={formData.cpf}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cpf: e.target.value }))}
+                  placeholder="000.000.000-00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Chave PIX</Label>
+                <Input
+                  value={formData.chave_pix}
+                  onChange={(e) => setFormData(prev => ({ ...prev, chave_pix: e.target.value }))}
+                  placeholder="CPF, email, telefone ou chave aleatória"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label>Cargo</Label>
                 <Select
                   value={formData.cargo}
