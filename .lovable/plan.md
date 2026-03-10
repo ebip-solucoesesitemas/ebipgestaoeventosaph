@@ -1,47 +1,29 @@
 
+# Plano de Melhorias — EBIP Eventos
 
-# Fix: Erro ao cadastrar profissional sem login
+## Status das Fases
 
-## Problema
-O trigger `handle_profile_role_provisioning` dispara em todo INSERT na tabela `profiles` e tenta inserir em `user_roles` usando `NEW.user_id`. Quando o profissional não tem login (`user_id = null`), a coluna `user_id` da tabela `user_roles` tem constraint NOT NULL, causando o erro.
+| Fase | Melhoria | Status |
+|------|----------|--------|
+| 1 | Dashboard KPIs | ✅ Implementado |
+| 2 | Exportação PDF | ✅ Implementado |
+| 3 | Histórico Profissional | 🔜 Pendente |
+| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
+| 5 | Modo Escuro | ✅ Implementado |
+| 6 | Variáveis Contrato | ✅ Já existia |
+| — | Nota de oficina na viatura | ✅ Implementado |
 
-## Solução
+## Auditoria de Segurança
 
-**Migration SQL** — Alterar o trigger function para ignorar profiles sem `user_id`:
-
-```sql
-CREATE OR REPLACE FUNCTION public.handle_profile_role_provisioning()
-  RETURNS trigger
-  LANGUAGE plpgsql
-  SECURITY DEFINER
-  SET search_path TO 'public'
-AS $$
-DECLARE
-  _has_any_admin boolean;
-BEGIN
-  -- Skip if profile has no auth user
-  IF NEW.user_id IS NULL THEN
-    RETURN NEW;
-  END IF;
-
-  INSERT INTO public.user_roles (user_id, role)
-  VALUES (NEW.user_id, 'equipe'::public.app_role)
-  ON CONFLICT DO NOTHING;
-
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles WHERE role = 'admin'::public.app_role
-  ) INTO _has_any_admin;
-
-  IF NOT _has_any_admin THEN
-    INSERT INTO public.user_roles (user_id, role)
-    VALUES (NEW.user_id, 'admin'::public.app_role)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
-  RETURN NEW;
-END;
-$$;
-```
-
-Apenas uma migration. Nenhuma alteração de código frontend necessária.
-
+| # | Correção | Status |
+|---|----------|--------|
+| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
+| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
+| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
+| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
+| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
+| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
+| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
+| 8 | Utilitário de validação UUID criado | ✅ Implementado |
+| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
+| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
