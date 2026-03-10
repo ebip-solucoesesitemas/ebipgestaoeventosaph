@@ -39,7 +39,7 @@ const especialidadeIcons: Record<string, typeof Stethoscope> = {
   'Socorrista': Ambulance,
 };
 
-const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR'];
+const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR', 'Operacional'];
 
 export default function AdminProfessionals() {
   const { toast } = useToast();
@@ -122,45 +122,58 @@ export default function AdminProfessionals() {
       }
       toast({ title: 'Profissional atualizado!' });
     } else {
-      // Create new user with profile via edge function
-      if (!formData.email || !formData.password) {
-        toast({ title: 'Preencha email e senha', variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
-      }
+      // If email and password provided, create user + profile via edge function
+      if (formData.email && formData.password) {
+        if (formData.password.length < 6) {
+          toast({ title: 'Senha deve ter no mínimo 6 caracteres', variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
 
-      if (formData.password.length < 6) {
-        toast({ title: 'Senha deve ter no mínimo 6 caracteres', variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: {
-          email: formData.email,
-          password: formData.password,
-          profileData: {
-            nome: formData.nome,
-            especialidade: formData.especialidade,
-            registro_profissional: formData.registro_profissional,
-            cargo: formData.cargo,
+        const { data, error } = await supabase.functions.invoke('create-user', {
+          body: {
+            email: formData.email,
+            password: formData.password,
+            profileData: {
+              nome: formData.nome,
+              especialidade: formData.especialidade,
+              registro_profissional: formData.registro_profissional,
+              cargo: formData.cargo,
+            },
           },
-        },
-      });
+        });
 
-      if (error) {
-        toast({ title: 'Erro ao criar usuário', description: error.message, variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
+        if (error) {
+          toast({ title: 'Erro ao criar usuário', description: error.message, variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (data?.error) {
+          toast({ title: 'Erro ao criar usuário', description: data.error, variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
+
+        toast({ title: 'Profissional cadastrado com sucesso!', description: `Login: ${formData.email}` });
+      } else {
+        // Insert profile directly without auth user
+        const { error } = await supabase.from('profiles').insert({
+          user_id: null,
+          nome: formData.nome,
+          especialidade: formData.especialidade as any,
+          registro_profissional: formData.registro_profissional || '',
+          cargo: formData.cargo as any,
+        });
+
+        if (error) {
+          toast({ title: 'Erro ao cadastrar', description: error.message, variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
+
+        toast({ title: 'Profissional cadastrado com sucesso!' });
       }
-
-      if (data?.error) {
-        toast({ title: 'Erro ao criar usuário', description: data.error, variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
-      }
-
-      toast({ title: 'Profissional cadastrado com sucesso!', description: `Login: ${formData.email}` });
     }
 
     setDialogOpen(false);
@@ -293,30 +306,31 @@ export default function AdminProfessionals() {
                   <div className="border-t pt-4 mt-4">
                     <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
                       <Key className="w-4 h-4" />
-                      Credenciais de Acesso
+                      Credenciais de Acesso (opcional)
                     </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Preencha apenas se o profissional precisar de login no sistema
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Email de Login *</Label>
+                    <Label>Email de Login</Label>
                     <Input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                       placeholder="profissional@email.com"
-                      required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Senha *</Label>
+                    <Label>Senha</Label>
                     <Input
                       type="password"
                       value={formData.password}
                       onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                       placeholder="Mínimo 6 caracteres"
                       minLength={6}
-                      required
                     />
                     <p className="text-xs text-muted-foreground">
                       Informe esta senha ao profissional para ele fazer login
