@@ -41,6 +41,7 @@ export default function PayrollReport() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedProfile, setSelectedProfile] = useState("all");
   const [profiles, setProfiles] = useState<{id: string;nome: string;}[]>([]);
+  const [profileDataMap, setProfileDataMap] = useState<Map<string, any>>(new Map());
   const printRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
