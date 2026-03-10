@@ -31,6 +31,8 @@ interface ReportData {
   profile_id: string;
   profile_name: string;
   especialidade: string;
+  cpf: string;
+  chave_pix: string;
   total_events: number;
   total_horas: number;
   valor_hora: number;
