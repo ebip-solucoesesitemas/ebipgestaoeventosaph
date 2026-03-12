@@ -47,9 +47,18 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!adminCheck) {
-      return new Response(JSON.stringify({ error: "Apenas administradores podem excluir usuários" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const { data: gestorProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("cargo")
+        .eq("user_id", requestingUser.id)
+        .eq("cargo", "gestor")
+        .maybeSingle();
+
+      if (!gestorProfile) {
+        return new Response(JSON.stringify({ error: "Apenas administradores podem excluir usuários" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { profileId } = await req.json();
