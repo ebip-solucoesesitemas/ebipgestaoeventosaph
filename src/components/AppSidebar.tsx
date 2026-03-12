@@ -93,7 +93,7 @@ export function AppSidebar() {
   const { theme, setTheme } = useTheme();
 
   const cargo = profile?.cargo;
-  const isAdminCargo = cargo === "admin" || cargo === "admin_bnu" || cargo === "admin_fln" || profile?.hidden;
+  const isAdminCargo = cargo === "admin" || cargo === "admin_bnu" || cargo === "admin_fln" || cargo === "gestor" || profile?.hidden;
   const isOperacional = cargo === "operacional";
   const isGestor = cargo === "gestor";
   const showAdminMenu = isAdmin || isOperacional || isGestor;

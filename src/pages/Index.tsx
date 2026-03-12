@@ -107,7 +107,8 @@ export default function Index() {
     },
   ];
 
-  const cards = isAdmin ? adminCards : teamCards;
+  const isAdminLike = isAdmin || profile?.cargo === 'gestor';
+  const cards = isAdminLike ? adminCards : teamCards;
 
   return (
     <Layout>
