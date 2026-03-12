@@ -66,6 +66,7 @@ export default function AdminProfessionals() {
     cargo: 'equipe',
     cpf: '',
     chave_pix: '',
+    base_id: '',
     email: '',
     password: '',
   });
