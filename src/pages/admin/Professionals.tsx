@@ -463,6 +463,11 @@ export default function AdminProfessionals() {
                       <Phone className="w-3 h-3" /> {profile.telefone}
                     </p>
                   )}
+                  {profile.base_id && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> {bases.find(b => b.id === profile.base_id)?.nome || 'Base'}
+                    </p>
+                  )}
                   <div className="flex items-center gap-2">
                     {profile.user_id ? (
                       <Badge variant="outline" className="text-xs">
