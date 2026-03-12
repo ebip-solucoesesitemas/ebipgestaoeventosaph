@@ -32,6 +32,13 @@ interface Profile {
   telefone: string | null;
   cpf: string | null;
   chave_pix: string | null;
+  base_id: string | null;
+}
+
+interface Base {
+  id: string;
+  nome: string;
+  sigla: string;
 }
 
 const especialidadeIcons: Record<string, typeof Stethoscope> = {
