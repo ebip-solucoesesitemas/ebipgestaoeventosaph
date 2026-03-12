@@ -347,6 +347,24 @@ export default function AdminProfessionals() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>Base</Label>
+                <Select
+                  value={formData.base_id}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, base_id: v === '_none' ? '' : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a base (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Nenhuma</SelectItem>
+                    {bases.map((base) => (
+                      <SelectItem key={base.id} value={base.id}>{base.nome} ({base.sigla})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {!editingProfile && (
                 <>
                   <div className="border-t pt-4 mt-4">
