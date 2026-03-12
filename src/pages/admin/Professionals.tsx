@@ -132,6 +132,7 @@ export default function AdminProfessionals() {
         cargo: formData.cargo as 'admin' | 'equipe',
         cpf: formData.cpf || null,
         chave_pix: formData.chave_pix || null,
+        base_id: formData.base_id || null,
       };
 
       const { error } = await supabase
