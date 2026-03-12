@@ -35,7 +35,7 @@ export function usePermissions() {
   }, [cargo]);
 
   const hasPermission = (key: string): boolean => {
-    const adminCargos = ["admin", "admin_bnu", "admin_fln"];
+    const adminCargos = ["admin", "admin_bnu", "admin_fln", "gestor"];
     if ((cargo && adminCargos.includes(cargo)) || profile?.hidden) {
       return true;
     }
