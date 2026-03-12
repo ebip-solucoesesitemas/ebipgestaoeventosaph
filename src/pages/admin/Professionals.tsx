@@ -88,6 +88,11 @@ export default function AdminProfessionals() {
     setIsLoading(false);
   };
 
+  const fetchBases = async () => {
+    const { data } = await supabase.from('bases').select('id, nome, sigla').order('nome');
+    setBases(data || []);
+  };
+
   useEffect(() => {
     fetchProfiles();
   }, []);
