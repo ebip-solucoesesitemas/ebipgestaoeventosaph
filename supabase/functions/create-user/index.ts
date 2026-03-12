@@ -45,9 +45,18 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!adminRole) {
-      return new Response(JSON.stringify({ error: "Forbidden: Admin only" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const { data: gestorProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("cargo")
+        .eq("user_id", userData.user.id)
+        .eq("cargo", "gestor")
+        .maybeSingle();
+
+      if (!gestorProfile) {
+        return new Response(JSON.stringify({ error: "Forbidden: Admin only" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { email, password, profileData } = await req.json();
