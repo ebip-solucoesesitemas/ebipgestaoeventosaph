@@ -131,7 +131,7 @@ export default function Index() {
         </div>
 
         {/* Admin Dashboard with KPIs */}
-        {isAdmin ? (
+        {isAdminLike ? (
           <AdminDashboard />
         ) : (
           <>
