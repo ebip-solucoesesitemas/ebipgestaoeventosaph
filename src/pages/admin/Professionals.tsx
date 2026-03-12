@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2, Key, Phone } from 'lucide-react';
+import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2, Key, Phone, MapPin } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -32,6 +32,13 @@ interface Profile {
   telefone: string | null;
   cpf: string | null;
   chave_pix: string | null;
+  base_id: string | null;
+}
+
+interface Base {
+  id: string;
+  nome: string;
+  sigla: string;
 }
 
 const especialidadeIcons: Record<string, typeof Stethoscope> = {
@@ -46,6 +53,7 @@ const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR'
 export default function AdminProfessionals() {
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [bases, setBases] = useState<Base[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
@@ -58,6 +66,7 @@ export default function AdminProfessionals() {
     cargo: 'equipe',
     cpf: '',
     chave_pix: '',
+    base_id: '',
     email: '',
     password: '',
   });
@@ -79,12 +88,18 @@ export default function AdminProfessionals() {
     setIsLoading(false);
   };
 
+  const fetchBases = async () => {
+    const { data } = await supabase.from('bases').select('id, nome, sigla').order('nome');
+    setBases(data || []);
+  };
+
   useEffect(() => {
     fetchProfiles();
+    fetchBases();
   }, []);
 
   const resetForm = () => {
-    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', chave_pix: '', email: '', password: '' });
+    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', chave_pix: '', base_id: '', email: '', password: '' });
     setEditingProfile(null);
   };
 
@@ -97,6 +112,7 @@ export default function AdminProfessionals() {
       cargo: profile.cargo,
       cpf: profile.cpf || '',
       chave_pix: profile.chave_pix || '',
+      base_id: profile.base_id || '',
       email: '',
       password: '',
     });
@@ -116,6 +132,7 @@ export default function AdminProfessionals() {
         cargo: formData.cargo as 'admin' | 'equipe',
         cpf: formData.cpf || null,
         chave_pix: formData.chave_pix || null,
+        base_id: formData.base_id || null,
       };
 
       const { error } = await supabase
@@ -174,6 +191,7 @@ export default function AdminProfessionals() {
           cargo: formData.cargo as any,
           cpf: formData.cpf || null,
           chave_pix: formData.chave_pix || null,
+          base_id: formData.base_id || null,
         });
 
         if (error) {
@@ -329,6 +347,24 @@ export default function AdminProfessionals() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>Base</Label>
+                <Select
+                  value={formData.base_id}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, base_id: v === '_none' ? '' : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a base (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Nenhuma</SelectItem>
+                    {bases.map((base) => (
+                      <SelectItem key={base.id} value={base.id}>{base.nome} ({base.sigla})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {!editingProfile && (
                 <>
                   <div className="border-t pt-4 mt-4">
@@ -425,6 +461,11 @@ export default function AdminProfessionals() {
                   {profile.telefone && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Phone className="w-3 h-3" /> {profile.telefone}
+                    </p>
+                  )}
+                  {profile.base_id && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> {bases.find(b => b.id === profile.base_id)?.nome || 'Base'}
                     </p>
                   )}
                   <div className="flex items-center gap-2">
