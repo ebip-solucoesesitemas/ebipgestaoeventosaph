@@ -107,7 +107,7 @@ export default function Index() {
     },
   ];
 
-  const isAdminLike = isAdmin || profile?.cargo === 'gestor';
+  const isAdminLike = isAdmin || profile?.cargo === 'gestor' || profile?.cargo === 'operacional';
   const cards = isAdminLike ? adminCards : teamCards;
 
   return (
