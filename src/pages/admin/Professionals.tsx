@@ -112,6 +112,7 @@ export default function AdminProfessionals() {
       cargo: profile.cargo,
       cpf: profile.cpf || '',
       chave_pix: profile.chave_pix || '',
+      base_id: profile.base_id || '',
       email: '',
       password: '',
     });
