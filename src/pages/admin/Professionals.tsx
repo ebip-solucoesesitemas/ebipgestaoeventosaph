@@ -95,6 +95,7 @@ export default function AdminProfessionals() {
 
   useEffect(() => {
     fetchProfiles();
+    fetchBases();
   }, []);
 
   const resetForm = () => {
