@@ -191,6 +191,7 @@ export default function AdminProfessionals() {
           cargo: formData.cargo as any,
           cpf: formData.cpf || null,
           chave_pix: formData.chave_pix || null,
+          base_id: formData.base_id || null,
         });
 
         if (error) {
