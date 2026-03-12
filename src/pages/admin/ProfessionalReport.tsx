@@ -120,7 +120,9 @@ export default function ProfessionalReport() {
       };
     });
 
-    setReports(reportData);
+    // Filter out professionals with no activity in the period
+    const activeReports = reportData.filter(r => r.total_events > 0 || r.total_pendente > 0 || r.total_pago > 0);
+    setReports(activeReports);
     setIsLoading(false);
   };
 

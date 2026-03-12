@@ -75,7 +75,10 @@ export default function PayrollReport() {
     const ratesMap = new Map(rates.map((r) => [r.profile_id, r]));
     const eventsMap = new Map(events.map((e) => [e.id, e]));
 
-    const payrollLines: PayrollLine[] = assignments.map((a) => {
+    // Filter out assignments referencing deleted profiles
+    const validAssignments = assignments.filter((a) => profileMap.has(a.profile_id));
+
+    const payrollLines: PayrollLine[] = validAssignments.map((a) => {
       const profile = profileMap.get(a.profile_id);
       const rate = ratesMap.get(a.profile_id);
       const event = eventsMap.get(a.event_id);

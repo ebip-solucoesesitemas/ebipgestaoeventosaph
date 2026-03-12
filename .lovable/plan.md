@@ -1,35 +1,29 @@
 
+# Plano de Melhorias — EBIP Eventos
 
-# Fix: Profissional excluído permanece nos relatórios
+## Status das Fases
 
-## Problema identificado
+| Fase | Melhoria | Status |
+|------|----------|--------|
+| 1 | Dashboard KPIs | ✅ Implementado |
+| 2 | Exportação PDF | ✅ Implementado |
+| 3 | Histórico Profissional | 🔜 Pendente |
+| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
+| 5 | Modo Escuro | ✅ Implementado |
+| 6 | Variáveis Contrato | ✅ Já existia |
+| — | Nota de oficina na viatura | ✅ Implementado |
 
-Existem **dois problemas**:
+## Auditoria de Segurança
 
-1. **A exclusão do profissional não limpa dados relacionados**: A edge function `delete-user` exclui o registro em `profiles`, mas **não exclui** os registros em `professional_rates`, `professional_payments` e `event_assignments`. Se a exclusão do profile falhar por causa dessas referências, o profissional permanece no banco.
-
-2. **Relatório por Profissional mostra TODOS os profiles**: O `ProfessionalReport.tsx` lista todos os profissionais do banco, mesmo aqueles com 0 eventos e 0 pagamentos no período. Deveria filtrar apenas quem teve atividade.
-
-## Solução
-
-### 1. Edge function `delete-user` — Limpar dados relacionados antes de excluir o profile
-
-Antes de deletar o profile, excluir registros nas tabelas dependentes:
-- `professional_rates` (valor/hora do profissional)
-- `professional_payments` (pagamentos)
-- `event_assignments` (alocações em eventos)
-
-### 2. `ProfessionalReport.tsx` — Filtrar profissionais sem atividade
-
-Após montar os dados, filtrar para mostrar apenas profissionais que tenham `total_events > 0` OU `total_pendente > 0` OU `total_pago > 0` no período selecionado.
-
-### 3. `PayrollReport.tsx` — Tratar profile_id órfão
-
-Na Folha de Pagamento, se um `event_assignment` referencia um `profile_id` que não existe mais em `profiles`, o relatório já mostra "—" como nome. Após a correção na edge function, isso não ocorrerá mais, mas adicionaremos um filtro para ignorar linhas com profile inexistente.
-
-| Arquivo | Ação |
-|---------|------|
-| `supabase/functions/delete-user/index.ts` | Excluir `professional_rates`, `professional_payments`, `event_assignments` antes do profile |
-| `src/pages/admin/ProfessionalReport.tsx` | Filtrar profissionais sem atividade no período |
-| `src/pages/admin/PayrollReport.tsx` | Ignorar linhas com profile inexistente |
-
+| # | Correção | Status |
+|---|----------|--------|
+| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
+| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
+| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
+| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
+| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
+| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
+| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
+| 8 | Utilitário de validação UUID criado | ✅ Implementado |
+| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
+| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |

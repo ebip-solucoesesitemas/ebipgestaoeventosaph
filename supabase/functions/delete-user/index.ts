@@ -90,6 +90,11 @@ Deno.serve(async (req) => {
 
     const userId = profile.user_id;
 
+    // Delete related records first (no FK cascade configured)
+    await supabaseAdmin.from("professional_rates").delete().eq("profile_id", profileId);
+    await supabaseAdmin.from("professional_payments").delete().eq("profile_id", profileId);
+    await supabaseAdmin.from("event_assignments").delete().eq("profile_id", profileId);
+
     // Delete profile
     const { error: deleteProfileError } = await supabaseAdmin
       .from("profiles")
