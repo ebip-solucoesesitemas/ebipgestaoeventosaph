@@ -1,26 +1,29 @@
 
+# Plano de Melhorias — EBIP Eventos
 
-# Fix: Super-admin aparecendo na lista de escalação de equipe
+## Status das Fases
 
-## Problema
+| Fase | Melhoria | Status |
+|------|----------|--------|
+| 1 | Dashboard KPIs | ✅ Implementado |
+| 2 | Exportação PDF | ✅ Implementado |
+| 3 | Histórico Profissional | 🔜 Pendente |
+| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
+| 5 | Modo Escuro | ✅ Implementado |
+| 6 | Variáveis Contrato | ✅ Já existia |
+| — | Nota de oficina na viatura | ✅ Implementado |
 
-Na página `src/pages/admin/Events.tsx`, a query de profiles (linha 129) não filtra `hidden` nem `is_account_only`:
+## Auditoria de Segurança
 
-```typescript
-supabase.from('profiles').select('*').order('nome')
-```
-
-Isso faz com que o perfil "Sistema EBIP" (super-admin com `hidden = true`) e contas técnicas apareçam na lista de seleção de equipe.
-
-## Correção
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/admin/Events.tsx` (linha 129) | Adicionar `.eq('hidden', false).eq('is_account_only', false)` à query de profiles |
-
-```typescript
-supabase.from('profiles').select('*').eq('hidden', false).eq('is_account_only', false).order('nome')
-```
-
-Apenas uma linha alterada. Perfis super-admin e contas técnicas deixarão de aparecer na lista de escalação.
-
+| # | Correção | Status |
+|---|----------|--------|
+| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
+| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
+| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
+| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
+| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
+| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
+| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
+| 8 | Utilitário de validação UUID criado | ✅ Implementado |
+| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
+| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
