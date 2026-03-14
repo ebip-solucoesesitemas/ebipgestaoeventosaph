@@ -235,8 +235,10 @@ export default function AdminDashboard() {
                         {displayStatus}
                       </Badge>
                     </div>
-                  </Link>);
-                }))
+                  </Link>
+                  );
+                })
+              )}
               )}
             </CardContent>
           </Card>
