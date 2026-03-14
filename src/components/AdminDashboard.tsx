@@ -214,7 +214,13 @@ export default function AdminDashboard() {
               {data.upcomingEvents.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum evento nos próximos 7 dias</p>
               ) : (
-                data.upcomingEvents.map((event) => (
+                data.upcomingEvents.map((event) => {
+                  const now = new Date();
+                  const inicio = new Date(event.data_inicio);
+                  const fim = new Date(event.data_fim);
+                  const displayStatus = inicio > now ? 'agendado' : fim < now ? 'finalizado' : 'em_andamento';
+
+                  return (
                   <Link
                     key={event.id}
                     to={`/admin/events/${event.id}`}
@@ -223,13 +229,13 @@ export default function AdminDashboard() {
                     <p className="text-sm font-medium truncate">{event.nome_evento}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date(event.data_inicio), 'dd/MM HH:mm')}
+                        {format(inicio, 'dd/MM HH:mm')}
                       </span>
                       <Badge variant="outline" className="text-[10px] h-4">
-                        {event.status}
+                        {displayStatus}
                       </Badge>
                     </div>
-                  </Link>
+                  </Link>);
                 ))
               )}
             </CardContent>
