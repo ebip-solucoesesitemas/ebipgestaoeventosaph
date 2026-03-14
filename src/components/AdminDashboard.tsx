@@ -236,7 +236,7 @@ export default function AdminDashboard() {
                       </Badge>
                     </div>
                   </Link>);
-                ))
+                }))
               )}
             </CardContent>
           </Card>
