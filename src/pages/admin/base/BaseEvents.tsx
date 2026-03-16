@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, ArrowLeft, Eye, Clock } from 'lucide-react';
+import { CepInput } from '@/components/CepInput';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { localDatetimeToISO, isoToLocalDatetime } from '@/lib/utils';
