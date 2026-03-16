@@ -203,6 +203,7 @@ export default function AdminEvents() {
       data_inicio: '',
       data_fim: '',
       local: '',
+      cep_local: '',
       base_id: '',
       viatura_id: '',
       user_id: '',
