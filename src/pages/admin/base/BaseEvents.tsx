@@ -101,13 +101,14 @@ export default function BaseEvents() {
     if (!baseId) return;
     setIsLoading(true);
 
-    const [baseRes, eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes, clientsRes] = await Promise.all([
+    const [baseRes, eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes, clientsRes, accountsRes] = await Promise.all([
       supabase.from('bases').select('id, nome, sigla').eq('id', baseId).single(),
       supabase.from('events').select('*, vehicles(*)').eq('base_id', baseId).order('data_inicio', { ascending: false }),
       supabase.from('vehicles').select('*').order('prefixo'),
       supabase.from('vehicles').select('*').eq('base_id', baseId).neq('status', 'manutencao'),
       supabase.from('profiles').select('id, nome, especialidade').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('clients').select('id, nome, endereco').order('nome'),
+      supabase.from('profiles').select('id, nome, user_id').not('user_id', 'is', null).eq('hidden', false).order('nome'),
     ]);
 
     if (baseRes.data) setBase(baseRes.data);
