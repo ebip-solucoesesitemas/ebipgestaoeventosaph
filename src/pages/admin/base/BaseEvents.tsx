@@ -133,6 +133,7 @@ export default function BaseEvents() {
     if (availableVehiclesRes.data) setVehicles(availableVehiclesRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
     if (clientsRes.data) setClients(clientsRes.data);
+    if (accountsRes.data) setUserAccounts(accountsRes.data as UserAccount[]);
     setIsLoading(false);
   };
 
