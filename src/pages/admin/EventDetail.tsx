@@ -514,8 +514,15 @@ export default function AdminEventDetail() {
                     <p className="text-sm text-muted-foreground mt-1">{att.queixa_principal}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={att.status === 'finalizado' ? 'bg-stable/20 text-stable' : 'bg-warning/20 text-warning'}>
-                      {att.status === 'finalizado' ? 'Finalizado' : 'Em andamento'}
+                    <Badge className={
+                      att.status === 'finalizado' ? 'bg-stable/20 text-stable' : 
+                      att.status === 'em_remocao' ? 'bg-destructive/20 text-destructive' : 
+                      'bg-warning/20 text-warning'
+                    }>
+                      {att.status === 'finalizado' ? 'Finalizado' : 
+                       att.status === 'em_remocao' ? (
+                        <span className="flex items-center gap-1"><Ambulance className="w-3 h-3" />Em Remoção</span>
+                       ) : 'Em andamento'}
                     </Badge>
                     <Button 
                       variant="ghost" 
