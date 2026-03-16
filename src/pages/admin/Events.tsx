@@ -529,6 +529,14 @@ export default function AdminEvents() {
               </div>
 
               <div className="space-y-2">
+                <Label>CEP do Local</Label>
+                <CepInput
+                  value={formData.cep_local || ''}
+                  onChange={(cep) => setFormData(prev => ({ ...prev, cep_local: cep }))}
+                  onAddressFound={(addr) => setFormData(prev => ({ ...prev, local: addr.endereco }))}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Local</Label>
                 <Input
                   value={formData.local}
