@@ -36,6 +36,10 @@ interface Profile {
   base_id: string | null;
 }
 
+interface RateMap {
+  [profileId: string]: { id?: string; valor_hora: number; valor_evento: number };
+}
+
 interface Base {
   id: string;
   nome: string;
