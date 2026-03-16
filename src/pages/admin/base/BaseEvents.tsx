@@ -161,6 +161,7 @@ export default function BaseEvents() {
       data_inicio: isoToLocalDatetime(event.data_inicio),
       data_fim: isoToLocalDatetime(event.data_fim),
       local: event.local,
+      cep_local: '',
       viatura_id: event.viatura_id || '',
       client_id: (data as any)?.client_id || '',
       equipe_completa: event.equipe_completa || false,
