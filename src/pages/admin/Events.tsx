@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle, Fuel, Search, Eye, LogIn, LogOut, Navigation } from 'lucide-react';
+import { CepInput } from '@/components/CepInput';
 import { localDatetimeToISO, isoToLocalDatetime } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
