@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle, Fuel, Search, Eye, LogIn, LogOut, Navigation } from 'lucide-react';
+import { CepInput } from '@/components/CepInput';
 import { localDatetimeToISO, isoToLocalDatetime } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -106,6 +107,7 @@ export default function AdminEvents() {
     data_inicio: '',
     data_fim: '',
     local: '',
+    cep_local: '',
     base_id: '',
     viatura_id: '',
     user_id: '',
@@ -201,6 +203,7 @@ export default function AdminEvents() {
       data_inicio: '',
       data_fim: '',
       local: '',
+      cep_local: '',
       base_id: '',
       viatura_id: '',
       user_id: '',
@@ -229,6 +232,7 @@ export default function AdminEvents() {
         data_inicio: isoToLocalDatetime(event.data_inicio),
         data_fim: isoToLocalDatetime(event.data_fim),
         local: event.local,
+        cep_local: '',
         base_id: (data as any)?.base_id || '',
         viatura_id: event.viatura_id || '',
         user_id: (data as any)?.user_id || '',
@@ -528,6 +532,14 @@ export default function AdminEvents() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>CEP do Local</Label>
+                <CepInput
+                  value={formData.cep_local || ''}
+                  onChange={(cep) => setFormData(prev => ({ ...prev, cep_local: cep }))}
+                  onAddressFound={(addr) => setFormData(prev => ({ ...prev, local: addr.endereco }))}
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Local</Label>
                 <Input
