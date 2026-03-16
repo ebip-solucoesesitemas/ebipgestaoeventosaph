@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2, Key, Phone, MapPin } from 'lucide-react';
+import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2, Key, Phone, MapPin, DollarSign } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -34,6 +34,10 @@ interface Profile {
   cpf: string | null;
   chave_pix: string | null;
   base_id: string | null;
+}
+
+interface RateMap {
+  [profileId: string]: { id?: string; valor_hora: number; valor_evento: number };
 }
 
 interface Base {
@@ -54,6 +58,7 @@ const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR'
 export default function AdminProfessionals() {
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [rates, setRates] = useState<RateMap>({});
   const [bases, setBases] = useState<Base[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -70,22 +75,28 @@ export default function AdminProfessionals() {
     base_id: '',
     email: '',
     password: '',
+    valor_hora: '',
+    valor_evento: '',
   });
 
   const fetchProfiles = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('hidden', false)
-      .eq('is_account_only', false)
-      .order('nome');
+    const [profilesRes, ratesRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('hidden', false).eq('is_account_only', false).order('nome'),
+      supabase.from('professional_rates').select('*'),
+    ]);
 
-    if (error) {
-      toast({ title: 'Erro ao carregar', description: error.message, variant: 'destructive' });
+    if (profilesRes.error) {
+      toast({ title: 'Erro ao carregar', description: profilesRes.error.message, variant: 'destructive' });
     } else {
-      setProfiles(data || []);
+      setProfiles(profilesRes.data || []);
     }
+
+    const ratesMap: RateMap = {};
+    ratesRes.data?.forEach((r) => {
+      ratesMap[r.profile_id] = { id: r.id, valor_hora: r.valor_hora, valor_evento: r.valor_evento };
+    });
+    setRates(ratesMap);
     setIsLoading(false);
   };
 
@@ -100,11 +111,12 @@ export default function AdminProfessionals() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', chave_pix: '', base_id: '', email: '', password: '' });
+    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', chave_pix: '', base_id: '', email: '', password: '', valor_hora: '', valor_evento: '' });
     setEditingProfile(null);
   };
 
   const openEditDialog = (profile: Profile) => {
+    const rate = rates[profile.id];
     setEditingProfile(profile);
     setFormData({
       nome: profile.nome,
@@ -116,6 +128,8 @@ export default function AdminProfessionals() {
       base_id: profile.base_id || '',
       email: '',
       password: '',
+      valor_hora: rate?.valor_hora ? String(rate.valor_hora) : '',
+      valor_evento: rate?.valor_evento ? String(rate.valor_evento) : '',
     });
     setDialogOpen(true);
   };
@@ -146,6 +160,15 @@ export default function AdminProfessionals() {
         setIsSubmitting(false);
         return;
       }
+
+      // Upsert rates
+      const ratePayload = {
+        profile_id: editingProfile.id,
+        valor_hora: parseFloat(formData.valor_hora) || 0,
+        valor_evento: parseFloat(formData.valor_evento) || 0,
+      };
+      await supabase.from('professional_rates').upsert(ratePayload, { onConflict: 'profile_id' });
+
       toast({ title: 'Profissional atualizado!' });
     } else {
       // If email and password provided, create user + profile via edge function
@@ -181,6 +204,14 @@ export default function AdminProfessionals() {
           return;
         }
 
+        // Save rates for the new profile created via edge function
+        if (data?.profileId && (formData.valor_hora || formData.valor_evento)) {
+          await supabase.from('professional_rates').upsert({
+            profile_id: data.profileId,
+            valor_hora: parseFloat(formData.valor_hora) || 0,
+            valor_evento: parseFloat(formData.valor_evento) || 0,
+          }, { onConflict: 'profile_id' });
+        }
         toast({ title: 'Profissional cadastrado com sucesso!', description: `Login: ${formData.email}` });
       } else {
         // Insert profile directly without auth user
@@ -199,6 +230,18 @@ export default function AdminProfessionals() {
           toast({ title: 'Erro ao cadastrar', description: error.message, variant: 'destructive' });
           setIsSubmitting(false);
           return;
+        }
+
+        // Save rates: need to find the newly created profile
+        if (formData.valor_hora || formData.valor_evento) {
+          const { data: newProfiles } = await supabase.from('profiles').select('id').eq('nome', formData.nome).eq('user_id', null as any).order('created_at', { ascending: false }).limit(1);
+          if (newProfiles?.[0]) {
+            await supabase.from('professional_rates').upsert({
+              profile_id: newProfiles[0].id,
+              valor_hora: parseFloat(formData.valor_hora) || 0,
+              valor_evento: parseFloat(formData.valor_evento) || 0,
+            }, { onConflict: 'profile_id' });
+          }
         }
 
         toast({ title: 'Profissional cadastrado com sucesso!' });
@@ -367,6 +410,35 @@ export default function AdminProfessionals() {
                 </Select>
               </div>
 
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
+                  <DollarSign className="w-4 h-4" />
+                  Valores de Pagamento
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Valor por Hora (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.valor_hora}
+                      onChange={(e) => setFormData(prev => ({ ...prev, valor_hora: e.target.value }))}
+                      placeholder="0,00"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Valor por Evento (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.valor_evento}
+                      onChange={(e) => setFormData(prev => ({ ...prev, valor_evento: e.target.value }))}
+                      placeholder="0,00"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {!editingProfile && (
                 <>
                   <div className="border-t pt-4 mt-4">
@@ -456,6 +528,17 @@ export default function AdminProfessionals() {
                   </p>
                   {profile.cpf && (
                     <p className="text-sm text-muted-foreground">CPF: {profile.cpf}</p>
+                  )}
+                  {(rates[profile.id]?.valor_hora > 0 || rates[profile.id]?.valor_evento > 0) && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <DollarSign className="w-3 h-3 text-muted-foreground" />
+                      {rates[profile.id]?.valor_hora > 0 && (
+                        <Badge variant="outline" className="text-xs">R$ {rates[profile.id].valor_hora.toFixed(2)}/h</Badge>
+                      )}
+                      {rates[profile.id]?.valor_evento > 0 && (
+                        <Badge variant="outline" className="text-xs">R$ {rates[profile.id].valor_evento.toFixed(2)}/evento</Badge>
+                      )}
+                    </div>
                   )}
                   {profile.chave_pix && (
                     <p className="text-sm text-muted-foreground">PIX: {profile.chave_pix}</p>
