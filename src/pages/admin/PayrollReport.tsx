@@ -363,13 +363,13 @@ export default function PayrollReport() {
                 <tfoot>
                   <tr className="payroll-subtotal">
                     <td colSpan={4} style={{ textAlign: "right", fontWeight: 600 }}>
-                      Subtotal — {profile.profile_name}
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{totalHours.toFixed(1)}h</td>
-                    <td colSpan={2}></td>
-                    <td style={{ textAlign: "right", fontWeight: 700 }}>
-                      R$ {subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </td>
+                       Subtotal — {profile.profile_name}
+                     </td>
+                     <td style={{ fontWeight: 600 }}>{totalHours.toFixed(1)}h</td>
+                     <td colSpan={3}></td>
+                     <td style={{ textAlign: "right", fontWeight: 700 }}>
+                       R$ {subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                     </td>
                   </tr>
                 </tfoot>
               </table>

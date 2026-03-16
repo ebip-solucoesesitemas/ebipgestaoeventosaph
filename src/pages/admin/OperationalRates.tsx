@@ -17,6 +17,7 @@ interface OperationalRate {
 
 const tipoLabels: Record<string, string> = {
   km: 'Valor por Quilômetro (R$/km)',
+  ajuda_custo_6h: 'Ajuda de Custo (eventos > 6h)',
 };
 
 export default function OperationalRates() {

@@ -101,7 +101,18 @@ export default function ProfessionalReport() {
       const totalHoras = totalMinutes / 60;
 
       const valorHora = ratesMap.get(profile.id) || 0;
-      const totalCalculado = totalHoras * valorHora;
+      
+      // Count assignments over 6h for ajuda de custo
+      const ajudaCustoCount = profileAssignments.filter(a => {
+        if (a.checkin_at && a.checkout_at) {
+          const mins = differenceInMinutes(new Date(a.checkout_at), new Date(a.checkin_at));
+          return mins / 60 > 6;
+        }
+        return false;
+      }).length;
+      const totalAjudaCusto = ajudaCustoCount * ajudaCustoValor;
+      
+      const totalCalculado = (totalHoras * valorHora) + totalAjudaCusto;
       
       const profilePayments = payments.filter(p => p.profile_id === profile.id);
       const totalPendente = profilePayments.filter(p => p.status === 'pendente').reduce((sum, p) => sum + Number(p.valor), 0);
