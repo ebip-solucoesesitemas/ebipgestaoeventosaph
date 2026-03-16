@@ -1,29 +1,36 @@
 
-# Plano de Melhorias — EBIP Eventos
 
-## Status das Fases
+# Adicionar ajuda de custo automática para eventos acima de 6 horas
 
-| Fase | Melhoria | Status |
-|------|----------|--------|
-| 1 | Dashboard KPIs | ✅ Implementado |
-| 2 | Exportação PDF | ✅ Implementado |
-| 3 | Histórico Profissional | 🔜 Pendente |
-| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
-| 5 | Modo Escuro | ✅ Implementado |
-| 6 | Variáveis Contrato | ✅ Já existia |
-| — | Nota de oficina na viatura | ✅ Implementado |
+## Resumo
 
-## Auditoria de Segurança
+Quando um profissional trabalhar mais de 6 horas em um evento, o sistema adicionará automaticamente um valor de ajuda de custo (padrão R$15,00) ao cálculo do pagamento. O valor será configurável pela tabela `operational_rates` já existente.
 
-| # | Correção | Status |
-|---|----------|--------|
-| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
-| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
-| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
-| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
-| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
-| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
-| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
-| 8 | Utilitário de validação UUID criado | ✅ Implementado |
-| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
-| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
+## Alterações
+
+| Arquivo | O que muda |
+|---------|-----------|
+| `operational_rates` (dados) | Inserir registro com tipo `ajuda_custo_6h` e valor 15.00 |
+| `src/pages/admin/OperationalRates.tsx` | Garantir que o registro apareça e seja editável |
+| `src/pages/admin/PayrollReport.tsx` | Buscar o valor de ajuda de custo, adicionar R$15 ao `line_total` quando horas > 6. Exibir coluna "Ajuda de Custo" na tabela e PDF. |
+| `src/pages/admin/ProfessionalReport.tsx` | Buscar o valor e somar ao `total_calculado` para cada assignment > 6h |
+| `supabase/functions/.../handle_team_checkout` (DB function) | Atualizar a função para buscar o valor de ajuda de custo e somar ao pagamento quando horas > 6 |
+
+## Detalhes
+
+**Configuração**: Usar a tabela `operational_rates` com `tipo = 'ajuda_custo_6h'` e valor padrão 15.00. O admin pode alterar na tela "Valores Operacionais".
+
+**PayrollReport**: 
+- Buscar `operational_rates` com tipo `ajuda_custo_6h`
+- Quando `hours_worked > 6`, adicionar o valor ao `line_total`
+- Adicionar campo `ajuda_custo` à interface `PayrollLine`
+- Nova coluna "Ajuda Custo" na tabela e no PDF
+
+**ProfessionalReport**:
+- Para cada assignment com > 6h, somar o valor de ajuda de custo ao `total_calculado`
+
+**Função handle_team_checkout (DB)**:
+- Buscar valor de `operational_rates` onde `tipo = 'ajuda_custo_6h'`
+- Se horas > 6 e valor existe, somar ao `v_payment_value`
+- Incluir na descrição do pagamento
+
