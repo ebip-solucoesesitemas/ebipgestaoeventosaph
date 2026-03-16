@@ -75,6 +75,8 @@ export default function AdminProfessionals() {
     base_id: '',
     email: '',
     password: '',
+    valor_hora: '',
+    valor_evento: '',
   });
 
   const fetchProfiles = async () => {
