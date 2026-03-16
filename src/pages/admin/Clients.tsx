@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, Building2, Phone, Mail, MapPin, FileText } from 'lucide-react';
 import { CepInput } from '@/components/CepInput';
+import { formatCPFOrCNPJ, formatPhone } from '@/lib/masks';
 import { GenerateContractDialog } from '@/components/GenerateContractDialog';
 import { ClientContractsList } from '@/components/ClientContractsList';
 
