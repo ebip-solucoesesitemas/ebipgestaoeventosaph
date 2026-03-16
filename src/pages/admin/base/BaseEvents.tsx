@@ -75,6 +75,7 @@ export default function BaseEvents() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [userAccounts, setUserAccounts] = useState<UserAccount[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [assignments, setAssignments] = useState<Record<string, EventAssignment[]>>({});
   const [isLoading, setIsLoading] = useState(true);
