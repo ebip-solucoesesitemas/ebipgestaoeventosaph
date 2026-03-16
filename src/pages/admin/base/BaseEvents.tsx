@@ -60,6 +60,12 @@ interface Client {
   endereco: string | null;
 }
 
+interface UserAccount {
+  id: string;
+  nome: string;
+  user_id: string;
+}
+
 export default function BaseEvents() {
   const { baseId } = useParams<{ baseId: string }>();
   const navigate = useNavigate();
@@ -69,6 +75,7 @@ export default function BaseEvents() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [userAccounts, setUserAccounts] = useState<UserAccount[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [assignments, setAssignments] = useState<Record<string, EventAssignment[]>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -86,6 +93,7 @@ export default function BaseEvents() {
     equipe_minima: 2,
     min_antes_saida_base: '',
     horario_saida_base: '',
+    user_id: '',
     selectedProfiles: [] as string[],
   });
 
@@ -93,13 +101,14 @@ export default function BaseEvents() {
     if (!baseId) return;
     setIsLoading(true);
 
-    const [baseRes, eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes, clientsRes] = await Promise.all([
+    const [baseRes, eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes, clientsRes, accountsRes] = await Promise.all([
       supabase.from('bases').select('id, nome, sigla').eq('id', baseId).single(),
       supabase.from('events').select('*, vehicles(*)').eq('base_id', baseId).order('data_inicio', { ascending: false }),
       supabase.from('vehicles').select('*').order('prefixo'),
       supabase.from('vehicles').select('*').eq('base_id', baseId).neq('status', 'manutencao'),
       supabase.from('profiles').select('id, nome, especialidade').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('clients').select('id, nome, endereco').order('nome'),
+      supabase.from('profiles').select('id, nome, user_id').not('user_id', 'is', null).eq('hidden', false).order('nome'),
     ]);
 
     if (baseRes.data) setBase(baseRes.data);
@@ -124,6 +133,7 @@ export default function BaseEvents() {
     if (availableVehiclesRes.data) setVehicles(availableVehiclesRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
     if (clientsRes.data) setClients(clientsRes.data);
+    if (accountsRes.data) setUserAccounts(accountsRes.data as UserAccount[]);
     setIsLoading(false);
   };
 
@@ -135,7 +145,7 @@ export default function BaseEvents() {
     setFormData({
       nome_evento: '', data_inicio: '', data_fim: '', local: '',
       viatura_id: '', client_id: '', equipe_completa: false, equipe_minima: 2,
-      min_antes_saida_base: '', horario_saida_base: '',
+      min_antes_saida_base: '', horario_saida_base: '', user_id: '',
       selectedProfiles: [],
     });
     setEditingEvent(null);
@@ -143,7 +153,7 @@ export default function BaseEvents() {
 
   const openEditDialog = async (event: Event) => {
     setEditingEvent(event);
-    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base, client_id').eq('id', event.id).single();
+    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base, client_id, user_id').eq('id', event.id).single();
     setFormData({
       nome_evento: event.nome_evento,
       data_inicio: isoToLocalDatetime(event.data_inicio),
@@ -155,6 +165,7 @@ export default function BaseEvents() {
       equipe_minima: event.equipe_minima || 2,
       min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || '',
       horario_saida_base: (data as any)?.horario_saida_base ? isoToLocalDatetime((data as any).horario_saida_base) : '',
+      user_id: (data as any)?.user_id || '',
       selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
     });
     setDialogOpen(true);
@@ -208,6 +219,7 @@ export default function BaseEvents() {
       }
     }
 
+    const selectedAccount = userAccounts.find(a => a.id === formData.user_id);
     const eventData = {
       nome_evento: formData.nome_evento,
       data_inicio: dataInicioISO,
@@ -219,6 +231,7 @@ export default function BaseEvents() {
       equipe_minima: formData.equipe_minima,
       min_antes_saida_base: formData.min_antes_saida_base ? parseInt(formData.min_antes_saida_base) : null,
       horario_saida_base: formData.horario_saida_base ? localDatetimeToISO(formData.horario_saida_base) : null,
+      user_id: selectedAccount?.user_id || null,
       base_id: baseId,
     };
 
@@ -371,6 +384,17 @@ export default function BaseEvents() {
                   <SelectContent>
                     {clients.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Conta Responsável</Label>
+                <Select value={formData.user_id} onValueChange={(v) => setFormData(prev => ({ ...prev, user_id: v }))}>
+                  <SelectTrigger className="input-touch"><SelectValue placeholder="Selecione uma conta (opcional)" /></SelectTrigger>
+                  <SelectContent>
+                    {userAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
