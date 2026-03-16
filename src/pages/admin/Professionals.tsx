@@ -232,6 +232,18 @@ export default function AdminProfessionals() {
           return;
         }
 
+        // Save rates: need to find the newly created profile
+        if (formData.valor_hora || formData.valor_evento) {
+          const { data: newProfiles } = await supabase.from('profiles').select('id').eq('nome', formData.nome).eq('user_id', null as any).order('created_at', { ascending: false }).limit(1);
+          if (newProfiles?.[0]) {
+            await supabase.from('professional_rates').upsert({
+              profile_id: newProfiles[0].id,
+              valor_hora: parseFloat(formData.valor_hora) || 0,
+              valor_evento: parseFloat(formData.valor_evento) || 0,
+            }, { onConflict: 'profile_id' });
+          }
+        }
+
         toast({ title: 'Profissional cadastrado com sucesso!' });
       }
     }
