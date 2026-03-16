@@ -153,7 +153,7 @@ export default function BaseEvents() {
 
   const openEditDialog = async (event: Event) => {
     setEditingEvent(event);
-    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base, client_id').eq('id', event.id).single();
+    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base, client_id, user_id').eq('id', event.id).single();
     setFormData({
       nome_evento: event.nome_evento,
       data_inicio: isoToLocalDatetime(event.data_inicio),
@@ -165,6 +165,7 @@ export default function BaseEvents() {
       equipe_minima: event.equipe_minima || 2,
       min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || '',
       horario_saida_base: (data as any)?.horario_saida_base ? isoToLocalDatetime((data as any).horario_saida_base) : '',
+      user_id: (data as any)?.user_id || '',
       selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
     });
     setDialogOpen(true);
