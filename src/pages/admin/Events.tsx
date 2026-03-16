@@ -232,6 +232,7 @@ export default function AdminEvents() {
         data_inicio: isoToLocalDatetime(event.data_inicio),
         data_fim: isoToLocalDatetime(event.data_fim),
         local: event.local,
+        cep_local: '',
         base_id: (data as any)?.base_id || '',
         viatura_id: event.viatura_id || '',
         user_id: (data as any)?.user_id || '',
