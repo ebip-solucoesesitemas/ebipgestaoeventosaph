@@ -222,6 +222,25 @@ export default function EventDetail() {
         )}
       </div>
 
+      {/* Removal Alert Banner */}
+      {attendances.filter(a => a.status === 'em_remocao').length > 0 && (
+        <Card className="border-2 border-destructive bg-destructive/10">
+          <CardContent className="p-4">
+            {attendances.filter(a => a.status === 'em_remocao').map(a => (
+              <div key={a.id} className="flex items-center gap-3">
+                <Ambulance className="w-6 h-6 text-destructive flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-destructive">Paciente em remoção hospitalar</p>
+                  <p className="text-sm text-muted-foreground">
+                    {a.nome_paciente}{a.hospital_destino ? ` → ${a.hospital_destino}` : ''}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Info Cards */}
       <div className="grid grid-cols-2 gap-4">
         {event.vehicles && (
