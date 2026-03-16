@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatCPF } from '@/lib/masks';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -315,6 +316,7 @@ export default function AdminProfessionals() {
                 <Input
                   value={formData.cpf}
                   onChange={(e) => setFormData(prev => ({ ...prev, cpf: e.target.value }))}
+                  onBlur={(e) => setFormData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
                   placeholder="000.000.000-00"
                 />
               </div>
