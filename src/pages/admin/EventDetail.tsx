@@ -696,6 +696,28 @@ export default function AdminEventDetail() {
                 </div>
               )}
 
+              {/* Removal / Hospital Info */}
+              {(selectedAttendance.status === 'em_remocao' || selectedAttendance.desfecho === 'removido') && (
+                <div className="p-4 border-2 border-destructive/30 bg-destructive/5 rounded-lg space-y-2">
+                  <h4 className="font-medium text-sm flex items-center gap-1 text-destructive">
+                    <Ambulance className="w-4 h-4" />
+                    Remoção Hospitalar
+                  </h4>
+                  {selectedAttendance.hospital_destino && (
+                    <p className="text-sm"><span className="text-muted-foreground">Hospital:</span> {selectedAttendance.hospital_destino}</p>
+                  )}
+                  {selectedAttendance.nome_receptor && (
+                    <p className="text-sm"><span className="text-muted-foreground">Receptor:</span> {selectedAttendance.nome_receptor}</p>
+                  )}
+                  {selectedAttendance.crm_receptor && (
+                    <p className="text-sm"><span className="text-muted-foreground">CRM:</span> {selectedAttendance.crm_receptor}</p>
+                  )}
+                  {selectedAttendance.data_remocao && (
+                    <p className="text-sm"><span className="text-muted-foreground">Data:</span> {format(new Date(selectedAttendance.data_remocao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                  )}
+                </div>
+              )}
+
               {/* Footer Info */}
               <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
                 <span>Profissional: {selectedAttendance.profiles?.nome || 'N/A'}</span>
