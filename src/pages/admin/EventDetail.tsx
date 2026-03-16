@@ -80,6 +80,11 @@ interface Attendance {
   status: string | null;
   created_at: string;
   profissional_id: string;
+  hospital_destino: string | null;
+  nome_receptor: string | null;
+  crm_receptor: string | null;
+  data_remocao: string | null;
+  desfecho: string | null;
   profiles: {
     nome: string;
     especialidade: string;
