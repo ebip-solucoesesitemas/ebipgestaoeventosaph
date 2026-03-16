@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine, Gauge, Save, CheckCircle2, Printer } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine, Gauge, Save, CheckCircle2, Printer, Ambulance } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import APHForm from '@/components/APHForm';
@@ -38,6 +38,7 @@ interface Attendance {
   queixa_principal: string;
   status: string;
   created_at: string;
+  hospital_destino: string | null;
   profiles?: { nome: string };
 }
 
@@ -221,6 +222,25 @@ export default function EventDetail() {
         )}
       </div>
 
+      {/* Removal Alert Banner */}
+      {attendances.filter(a => a.status === 'em_remocao').length > 0 && (
+        <Card className="border-2 border-destructive bg-destructive/10">
+          <CardContent className="p-4">
+            {attendances.filter(a => a.status === 'em_remocao').map(a => (
+              <div key={a.id} className="flex items-center gap-3">
+                <Ambulance className="w-6 h-6 text-destructive flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-destructive">Paciente em remoção hospitalar</p>
+                  <p className="text-sm text-muted-foreground">
+                    {a.nome_paciente}{a.hospital_destino ? ` → ${a.hospital_destino}` : ''}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Info Cards */}
       <div className="grid grid-cols-2 gap-4">
         {event.vehicles && (
@@ -369,8 +389,15 @@ export default function EventDetail() {
                     <p className="font-medium">{att.nome_paciente}</p>
                     <p className="text-sm text-muted-foreground mt-1">{att.queixa_principal}</p>
                   </div>
-                  <Badge className={att.status === 'finalizado' ? 'bg-stable/20 text-stable' : 'bg-warning/20 text-warning'}>
-                    {att.status === 'finalizado' ? 'Finalizado' : 'Em andamento'}
+                  <Badge className={
+                    att.status === 'finalizado' ? 'bg-stable/20 text-stable' : 
+                    att.status === 'em_remocao' ? 'bg-destructive/20 text-destructive' : 
+                    'bg-warning/20 text-warning'
+                  }>
+                    {att.status === 'finalizado' ? 'Finalizado' : 
+                     att.status === 'em_remocao' ? (
+                      <span className="flex items-center gap-1"><Ambulance className="w-3 h-3" />Em Remoção</span>
+                     ) : 'Em andamento'}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
