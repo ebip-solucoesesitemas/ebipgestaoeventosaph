@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, Calendar, MapPin, Truck, Users, Clock, 
   CheckCircle2, AlertCircle, Fuel, FileText, DollarSign,
-  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save, Printer, Phone
+  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save, Printer, Phone, Ambulance
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -80,6 +80,11 @@ interface Attendance {
   status: string | null;
   created_at: string;
   profissional_id: string;
+  hospital_destino: string | null;
+  nome_receptor: string | null;
+  crm_receptor: string | null;
+  data_remocao: string | null;
+  desfecho: string | null;
   profiles: {
     nome: string;
     especialidade: string;
@@ -509,8 +514,15 @@ export default function AdminEventDetail() {
                     <p className="text-sm text-muted-foreground mt-1">{att.queixa_principal}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={att.status === 'finalizado' ? 'bg-stable/20 text-stable' : 'bg-warning/20 text-warning'}>
-                      {att.status === 'finalizado' ? 'Finalizado' : 'Em andamento'}
+                    <Badge className={
+                      att.status === 'finalizado' ? 'bg-stable/20 text-stable' : 
+                      att.status === 'em_remocao' ? 'bg-destructive/20 text-destructive' : 
+                      'bg-warning/20 text-warning'
+                    }>
+                      {att.status === 'finalizado' ? 'Finalizado' : 
+                       att.status === 'em_remocao' ? (
+                        <span className="flex items-center gap-1"><Ambulance className="w-3 h-3" />Em Remoção</span>
+                       ) : 'Em andamento'}
                     </Badge>
                     <Button 
                       variant="ghost" 
@@ -681,6 +693,28 @@ export default function AdminEventDetail() {
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">Evolução Clínica</h4>
                   <p className="p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">{selectedAttendance.evolucao_clinica}</p>
+                </div>
+              )}
+
+              {/* Removal / Hospital Info */}
+              {(selectedAttendance.status === 'em_remocao' || selectedAttendance.desfecho === 'removido') && (
+                <div className="p-4 border-2 border-destructive/30 bg-destructive/5 rounded-lg space-y-2">
+                  <h4 className="font-medium text-sm flex items-center gap-1 text-destructive">
+                    <Ambulance className="w-4 h-4" />
+                    Remoção Hospitalar
+                  </h4>
+                  {selectedAttendance.hospital_destino && (
+                    <p className="text-sm"><span className="text-muted-foreground">Hospital:</span> {selectedAttendance.hospital_destino}</p>
+                  )}
+                  {selectedAttendance.nome_receptor && (
+                    <p className="text-sm"><span className="text-muted-foreground">Receptor:</span> {selectedAttendance.nome_receptor}</p>
+                  )}
+                  {selectedAttendance.crm_receptor && (
+                    <p className="text-sm"><span className="text-muted-foreground">CRM:</span> {selectedAttendance.crm_receptor}</p>
+                  )}
+                  {selectedAttendance.data_remocao && (
+                    <p className="text-sm"><span className="text-muted-foreground">Data:</span> {format(new Date(selectedAttendance.data_remocao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                  )}
                 </div>
               )}
 
