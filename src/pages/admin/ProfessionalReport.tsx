@@ -62,7 +62,7 @@ export default function ProfessionalReport() {
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
 
-    const [profilesRes, ratesRes, assignmentsRes, paymentsRes] = await Promise.all([
+    const [profilesRes, ratesRes, assignmentsRes, paymentsRes, ajudaCustoRes] = await Promise.all([
       supabase.from('profiles').select('id, nome, especialidade, cpf, chave_pix').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('professional_rates').select('profile_id, valor_hora'),
       supabase.from('event_assignments')
@@ -75,7 +75,10 @@ export default function ProfessionalReport() {
         .select('profile_id, valor, status')
         .gte('created_at', monthStart.toISOString())
         .lte('created_at', monthEnd.toISOString()),
+      supabase.from('operational_rates').select('valor').eq('tipo', 'ajuda_custo_6h').single(),
     ]);
+
+    const ajudaCustoValor = ajudaCustoRes.data?.valor || 0;
 
     const profiles = profilesRes.data || [];
     const rates = ratesRes.data || [];
@@ -98,7 +101,18 @@ export default function ProfessionalReport() {
       const totalHoras = totalMinutes / 60;
 
       const valorHora = ratesMap.get(profile.id) || 0;
-      const totalCalculado = totalHoras * valorHora;
+      
+      // Count assignments over 6h for ajuda de custo
+      const ajudaCustoCount = profileAssignments.filter(a => {
+        if (a.checkin_at && a.checkout_at) {
+          const mins = differenceInMinutes(new Date(a.checkout_at), new Date(a.checkin_at));
+          return mins / 60 > 6;
+        }
+        return false;
+      }).length;
+      const totalAjudaCusto = ajudaCustoCount * ajudaCustoValor;
+      
+      const totalCalculado = (totalHoras * valorHora) + totalAjudaCusto;
       
       const profilePayments = payments.filter(p => p.profile_id === profile.id);
       const totalPendente = profilePayments.filter(p => p.status === 'pendente').reduce((sum, p) => sum + Number(p.valor), 0);

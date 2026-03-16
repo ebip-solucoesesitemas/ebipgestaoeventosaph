@@ -26,6 +26,7 @@ interface PayrollLine {
   minutes_display: string;
   valor_hora: number;
   valor_evento: number;
+  ajuda_custo: number;
   line_total: number;
 }
 
@@ -50,7 +51,7 @@ export default function PayrollReport() {
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
 
-    const [assignmentsRes, profilesRes, ratesRes, eventsRes] = await Promise.all([
+    const [assignmentsRes, profilesRes, ratesRes, eventsRes, ajudaCustoRes] = await Promise.all([
     supabase.
     from("event_assignments").
     select("profile_id, event_id, checkin_at, checkout_at").
@@ -60,8 +61,11 @@ export default function PayrollReport() {
     lte("checkout_at", monthEnd.toISOString()),
     supabase.from("profiles").select("id, nome, especialidade, cpf, chave_pix").eq("hidden", false).eq("is_account_only", false).order("nome"),
     supabase.from("professional_rates").select("profile_id, valor_hora, valor_evento"),
-    supabase.from("events").select("id, nome_evento, data_inicio")]
+    supabase.from("events").select("id, nome_evento, data_inicio"),
+    supabase.from("operational_rates").select("valor").eq("tipo", "ajuda_custo_6h").single()]
     );
+
+    const ajudaCustoValor = ajudaCustoRes.data?.valor || 0;
 
     const assignments = assignmentsRes.data || [];
     const allProfiles = profilesRes.data || [];
@@ -95,12 +99,14 @@ export default function PayrollReport() {
 
       const valorHora = rate?.valor_hora || 0;
       const valorEvento = rate?.valor_evento || 0;
+      const ajudaCusto = hours > 6 ? ajudaCustoValor : 0;
       let lineTotal = 0;
       if (valorHora > 0) {
         lineTotal = Math.round(hours * valorHora * 100) / 100;
       } else if (valorEvento > 0) {
         lineTotal = valorEvento;
       }
+      lineTotal += ajudaCusto;
 
       return {
         profile_id: a.profile_id,
@@ -116,6 +122,7 @@ export default function PayrollReport() {
         minutes_display: minutesDisplay,
         valor_hora: valorHora,
         valor_evento: valorEvento,
+        ajuda_custo: ajudaCusto,
         line_total: lineTotal
       };
     });
@@ -153,6 +160,7 @@ export default function PayrollReport() {
     { header: "Duração", dataKey: "minutes_display" },
     { header: "Valor/Hora", dataKey: "valor_hora_fmt", halign: "right" as const },
     { header: "Valor/Evento", dataKey: "valor_evento_fmt", halign: "right" as const },
+    { header: "Ajuda Custo", dataKey: "ajuda_custo_fmt", halign: "right" as const },
     { header: "Total", dataKey: "line_total_fmt", halign: "right" as const }];
 
 
@@ -172,6 +180,7 @@ export default function PayrollReport() {
           minutes_display: l.minutes_display,
           valor_hora_fmt: l.valor_hora > 0 ? `R$ ${l.valor_hora.toFixed(2)}` : "—",
           valor_evento_fmt: l.valor_evento > 0 ? `R$ ${l.valor_evento.toFixed(2)}` : "—",
+          ajuda_custo_fmt: l.ajuda_custo > 0 ? `R$ ${l.ajuda_custo.toFixed(2)}` : "—",
           line_total_fmt: `R$ ${l.line_total.toFixed(2)}`
         })),
         subtotalLabel: `Subtotal — ${groupLines[0].profile_name}`,
@@ -317,14 +326,15 @@ export default function PayrollReport() {
               <table className="payroll-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "25%" }}>Evento</th>
-                    <th style={{ width: "10%" }}>Data</th>
-                    <th style={{ width: "12%" }}>Check-in</th>
-                    <th style={{ width: "12%" }}>Check-out</th>
-                    <th style={{ width: "10%" }}>Duração</th>
+                    <th style={{ width: "22%" }}>Evento</th>
+                    <th style={{ width: "9%" }}>Data</th>
+                    <th style={{ width: "10%" }}>Check-in</th>
+                    <th style={{ width: "10%" }}>Check-out</th>
+                    <th style={{ width: "9%" }}>Duração</th>
                     <th style={{ width: "10%", textAlign: "right" }}>Valor/Hora</th>
                     <th style={{ width: "10%", textAlign: "right" }}>Valor/Evento</th>
-                    <th style={{ width: "11%", textAlign: "right" }}>Total</th>
+                    <th style={{ width: "10%", textAlign: "right" }}>Ajuda Custo</th>
+                    <th style={{ width: "10%", textAlign: "right" }}>Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -341,6 +351,9 @@ export default function PayrollReport() {
                       <td style={{ textAlign: "right" }}>
                         {line.valor_evento > 0 ? `R$ ${line.valor_evento.toFixed(2)}` : "—"}
                       </td>
+                      <td style={{ textAlign: "right" }}>
+                        {line.ajuda_custo > 0 ? `R$ ${line.ajuda_custo.toFixed(2)}` : "—"}
+                      </td>
                       <td style={{ textAlign: "right", fontWeight: 600 }}>
                         R$ {line.line_total.toFixed(2)}
                       </td>
@@ -350,13 +363,13 @@ export default function PayrollReport() {
                 <tfoot>
                   <tr className="payroll-subtotal">
                     <td colSpan={4} style={{ textAlign: "right", fontWeight: 600 }}>
-                      Subtotal — {profile.profile_name}
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{totalHours.toFixed(1)}h</td>
-                    <td colSpan={2}></td>
-                    <td style={{ textAlign: "right", fontWeight: 700 }}>
-                      R$ {subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </td>
+                       Subtotal — {profile.profile_name}
+                     </td>
+                     <td style={{ fontWeight: 600 }}>{totalHours.toFixed(1)}h</td>
+                     <td colSpan={3}></td>
+                     <td style={{ textAlign: "right", fontWeight: 700 }}>
+                       R$ {subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                     </td>
                   </tr>
                 </tfoot>
               </table>
