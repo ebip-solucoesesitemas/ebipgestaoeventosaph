@@ -439,6 +439,7 @@ export default function AdminProfessionals() {
                 </div>
               </div>
 
+              {!editingProfile && (
                 <>
                   <div className="border-t pt-4 mt-4">
                     <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
