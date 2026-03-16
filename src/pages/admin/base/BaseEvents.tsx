@@ -145,7 +145,7 @@ export default function BaseEvents() {
     setFormData({
       nome_evento: '', data_inicio: '', data_fim: '', local: '',
       viatura_id: '', client_id: '', equipe_completa: false, equipe_minima: 2,
-      min_antes_saida_base: '', horario_saida_base: '',
+      min_antes_saida_base: '', horario_saida_base: '', user_id: '',
       selectedProfiles: [],
     });
     setEditingEvent(null);
