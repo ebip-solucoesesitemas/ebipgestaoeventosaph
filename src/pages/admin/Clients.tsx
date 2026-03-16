@@ -183,6 +183,7 @@ export default function Clients() {
                   id="documento"
                   value={formData.documento}
                   onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
+                  onBlur={(e) => setFormData(prev => ({ ...prev, documento: formatCPFOrCNPJ(e.target.value) }))}
                   placeholder="00.000.000/0000-00"
                 />
               </div>
