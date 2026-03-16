@@ -88,6 +88,7 @@ export default function BaseEvents() {
     data_inicio: '',
     data_fim: '',
     local: '',
+    cep_local: '',
     viatura_id: '',
     client_id: '',
     equipe_completa: false,
