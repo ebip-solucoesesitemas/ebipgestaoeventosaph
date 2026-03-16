@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, ArrowLeft, Eye, Clock } from 'lucide-react';
+import { CepInput } from '@/components/CepInput';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { localDatetimeToISO, isoToLocalDatetime } from '@/lib/utils';
@@ -87,6 +88,7 @@ export default function BaseEvents() {
     data_inicio: '',
     data_fim: '',
     local: '',
+    cep_local: '',
     viatura_id: '',
     client_id: '',
     equipe_completa: false,
@@ -143,7 +145,7 @@ export default function BaseEvents() {
 
   const resetForm = () => {
     setFormData({
-      nome_evento: '', data_inicio: '', data_fim: '', local: '',
+      nome_evento: '', data_inicio: '', data_fim: '', local: '', cep_local: '',
       viatura_id: '', client_id: '', equipe_completa: false, equipe_minima: 2,
       min_antes_saida_base: '', horario_saida_base: '', user_id: '',
       selectedProfiles: [],
@@ -159,6 +161,7 @@ export default function BaseEvents() {
       data_inicio: isoToLocalDatetime(event.data_inicio),
       data_fim: isoToLocalDatetime(event.data_fim),
       local: event.local,
+      cep_local: '',
       viatura_id: event.viatura_id || '',
       client_id: (data as any)?.client_id || '',
       equipe_completa: event.equipe_completa || false,
@@ -397,6 +400,14 @@ export default function BaseEvents() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>CEP do Local</Label>
+                <CepInput
+                  value={formData.cep_local || ''}
+                  onChange={(cep) => setFormData(prev => ({ ...prev, cep_local: cep }))}
+                  onAddressFound={(addr) => setFormData(prev => ({ ...prev, local: addr.endereco }))}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Local</Label>
