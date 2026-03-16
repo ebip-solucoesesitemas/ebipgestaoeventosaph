@@ -219,6 +219,7 @@ export default function BaseEvents() {
       }
     }
 
+    const selectedAccount = userAccounts.find(a => a.id === formData.user_id);
     const eventData = {
       nome_evento: formData.nome_evento,
       data_inicio: dataInicioISO,
@@ -230,6 +231,7 @@ export default function BaseEvents() {
       equipe_minima: formData.equipe_minima,
       min_antes_saida_base: formData.min_antes_saida_base ? parseInt(formData.min_antes_saida_base) : null,
       horario_saida_base: formData.horario_saida_base ? localDatetimeToISO(formData.horario_saida_base) : null,
+      user_id: selectedAccount?.user_id || null,
       base_id: baseId,
     };
 
