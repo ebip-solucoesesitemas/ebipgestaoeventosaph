@@ -18,7 +18,7 @@ import AdminVehicles from "./pages/admin/Vehicles";
 import AdminClients from "./pages/admin/Clients";
 import AdminFinance from "./pages/admin/Finance";
 import AdminPayroll from "./pages/admin/Payroll";
-import AdminProfessionalRates from "./pages/admin/ProfessionalRates";
+
 import AdminProfessionalReport from "./pages/admin/ProfessionalReport";
 import AdminOperationalRates from "./pages/admin/OperationalRates";
 import AdminBases from "./pages/admin/Bases";
