@@ -273,7 +273,7 @@ export default function BaseEvents() {
     toast({ title: editingEvent ? 'Evento atualizado!' : 'Evento criado!' });
     setDialogOpen(false);
     resetForm();
-    fetchData();
+    await fetchData();
   };
 
   const handleDelete = async (id: string) => {
