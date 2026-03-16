@@ -316,6 +316,7 @@ export default function AdminProfessionals() {
                 <Input
                   value={formData.cpf}
                   onChange={(e) => setFormData(prev => ({ ...prev, cpf: e.target.value }))}
+                  onBlur={(e) => setFormData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
                   placeholder="000.000.000-00"
                 />
               </div>

@@ -203,6 +203,7 @@ export default function Clients() {
                     id="telefone"
                     value={formData.telefone}
                     onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    onBlur={(e) => setFormData(prev => ({ ...prev, telefone: formatPhone(e.target.value) }))}
                   />
                 </div>
               </div>
