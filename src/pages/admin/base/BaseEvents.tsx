@@ -354,6 +354,10 @@ export default function BaseEvents() {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
+                <Label>Base Vinculada</Label>
+                <Input value={base ? `${base.sigla} — ${base.nome}` : ''} disabled className="input-touch bg-muted" />
+              </div>
+              <div className="space-y-2">
                 <Label>Nome do Evento</Label>
                 <Input value={formData.nome_evento} onChange={(e) => setFormData(prev => ({ ...prev, nome_evento: e.target.value }))} placeholder="Ex: Show Rock in Rio" className="input-touch" required />
               </div>
