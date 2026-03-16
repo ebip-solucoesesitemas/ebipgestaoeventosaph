@@ -116,6 +116,7 @@ export default function AdminProfessionals() {
   };
 
   const openEditDialog = (profile: Profile) => {
+    const rate = rates[profile.id];
     setEditingProfile(profile);
     setFormData({
       nome: profile.nome,
@@ -127,6 +128,8 @@ export default function AdminProfessionals() {
       base_id: profile.base_id || '',
       email: '',
       password: '',
+      valor_hora: rate?.valor_hora ? String(rate.valor_hora) : '',
+      valor_evento: rate?.valor_evento ? String(rate.valor_evento) : '',
     });
     setDialogOpen(true);
   };
