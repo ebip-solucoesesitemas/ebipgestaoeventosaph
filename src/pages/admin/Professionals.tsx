@@ -58,6 +58,7 @@ const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR'
 export default function AdminProfessionals() {
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [rates, setRates] = useState<RateMap>({});
   const [bases, setBases] = useState<Base[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
