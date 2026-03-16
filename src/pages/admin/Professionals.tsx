@@ -81,18 +81,22 @@ export default function AdminProfessionals() {
 
   const fetchProfiles = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('hidden', false)
-      .eq('is_account_only', false)
-      .order('nome');
+    const [profilesRes, ratesRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('hidden', false).eq('is_account_only', false).order('nome'),
+      supabase.from('professional_rates').select('*'),
+    ]);
 
-    if (error) {
-      toast({ title: 'Erro ao carregar', description: error.message, variant: 'destructive' });
+    if (profilesRes.error) {
+      toast({ title: 'Erro ao carregar', description: profilesRes.error.message, variant: 'destructive' });
     } else {
-      setProfiles(data || []);
+      setProfiles(profilesRes.data || []);
     }
+
+    const ratesMap: RateMap = {};
+    ratesRes.data?.forEach((r) => {
+      ratesMap[r.profile_id] = { id: r.id, valor_hora: r.valor_hora, valor_evento: r.valor_evento };
+    });
+    setRates(ratesMap);
     setIsLoading(false);
   };
 
