@@ -160,6 +160,15 @@ export default function AdminProfessionals() {
         setIsSubmitting(false);
         return;
       }
+
+      // Upsert rates
+      const ratePayload = {
+        profile_id: editingProfile.id,
+        valor_hora: parseFloat(formData.valor_hora) || 0,
+        valor_evento: parseFloat(formData.valor_evento) || 0,
+      };
+      await supabase.from('professional_rates').upsert(ratePayload, { onConflict: 'profile_id' });
+
       toast({ title: 'Profissional atualizado!' });
     } else {
       // If email and password provided, create user + profile via edge function
