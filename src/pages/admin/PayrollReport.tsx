@@ -160,6 +160,7 @@ export default function PayrollReport() {
     { header: "Duração", dataKey: "minutes_display" },
     { header: "Valor/Hora", dataKey: "valor_hora_fmt", halign: "right" as const },
     { header: "Valor/Evento", dataKey: "valor_evento_fmt", halign: "right" as const },
+    { header: "Ajuda Custo", dataKey: "ajuda_custo_fmt", halign: "right" as const },
     { header: "Total", dataKey: "line_total_fmt", halign: "right" as const }];
 
 
