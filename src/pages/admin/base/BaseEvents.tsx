@@ -399,6 +399,14 @@ export default function BaseEvents() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label>CEP do Local</Label>
+                <CepInput
+                  value={formData.cep_local || ''}
+                  onChange={(cep) => setFormData(prev => ({ ...prev, cep_local: cep }))}
+                  onAddressFound={(addr) => setFormData(prev => ({ ...prev, local: addr.endereco }))}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Local</Label>
                 <Input value={formData.local} onChange={(e) => setFormData(prev => ({ ...prev, local: e.target.value }))} placeholder="Endereço do evento" className="input-touch" required />
               </div>
