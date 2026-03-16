@@ -93,6 +93,7 @@ export default function BaseEvents() {
     equipe_minima: 2,
     min_antes_saida_base: '',
     horario_saida_base: '',
+    user_id: '',
     selectedProfiles: [] as string[],
   });
 
