@@ -389,6 +389,17 @@ export default function BaseEvents() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label>Conta Responsável</Label>
+                <Select value={formData.user_id} onValueChange={(v) => setFormData(prev => ({ ...prev, user_id: v }))}>
+                  <SelectTrigger className="input-touch"><SelectValue placeholder="Selecione uma conta (opcional)" /></SelectTrigger>
+                  <SelectContent>
+                    {userAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Local</Label>
                 <Input value={formData.local} onChange={(e) => setFormData(prev => ({ ...prev, local: e.target.value }))} placeholder="Endereço do evento" className="input-touch" required />
               </div>
