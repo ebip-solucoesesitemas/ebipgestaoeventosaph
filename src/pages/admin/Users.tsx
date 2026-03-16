@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatPhone } from "@/lib/masks";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -430,6 +431,7 @@ export default function AdminUsers() {
                   type="tel"
                   value={form.telefone}
                   onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))}
+                  onBlur={(e) => setForm((f) => ({ ...f, telefone: formatPhone(e.target.value) }))}
                   placeholder="(00) 00000-0000"
                   maxLength={20}
                 />

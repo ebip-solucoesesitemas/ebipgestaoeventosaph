@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, Building2, Phone, Mail, MapPin, FileText } from 'lucide-react';
 import { CepInput } from '@/components/CepInput';
+import { formatCPFOrCNPJ, formatPhone } from '@/lib/masks';
 import { GenerateContractDialog } from '@/components/GenerateContractDialog';
 import { ClientContractsList } from '@/components/ClientContractsList';
 
@@ -182,6 +183,7 @@ export default function Clients() {
                   id="documento"
                   value={formData.documento}
                   onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
+                  onBlur={(e) => setFormData(prev => ({ ...prev, documento: formatCPFOrCNPJ(e.target.value) }))}
                   placeholder="00.000.000/0000-00"
                 />
               </div>
@@ -201,6 +203,7 @@ export default function Clients() {
                     id="telefone"
                     value={formData.telefone}
                     onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    onBlur={(e) => setFormData(prev => ({ ...prev, telefone: formatPhone(e.target.value) }))}
                   />
                 </div>
               </div>
