@@ -99,12 +99,14 @@ export default function PayrollReport() {
 
       const valorHora = rate?.valor_hora || 0;
       const valorEvento = rate?.valor_evento || 0;
+      const ajudaCusto = hours > 6 ? ajudaCustoValor : 0;
       let lineTotal = 0;
       if (valorHora > 0) {
         lineTotal = Math.round(hours * valorHora * 100) / 100;
       } else if (valorEvento > 0) {
         lineTotal = valorEvento;
       }
+      lineTotal += ajudaCusto;
 
       return {
         profile_id: a.profile_id,
@@ -120,6 +122,7 @@ export default function PayrollReport() {
         minutes_display: minutesDisplay,
         valor_hora: valorHora,
         valor_evento: valorEvento,
+        ajuda_custo: ajudaCusto,
         line_total: lineTotal
       };
     });
