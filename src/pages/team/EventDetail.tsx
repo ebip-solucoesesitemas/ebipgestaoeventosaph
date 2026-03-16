@@ -38,6 +38,7 @@ interface Attendance {
   queixa_principal: string;
   status: string;
   created_at: string;
+  hospital_destino: string | null;
   profiles?: { nome: string };
 }
 
