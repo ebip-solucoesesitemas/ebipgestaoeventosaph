@@ -529,6 +529,17 @@ export default function AdminProfessionals() {
                   {profile.cpf && (
                     <p className="text-sm text-muted-foreground">CPF: {profile.cpf}</p>
                   )}
+                  {(rates[profile.id]?.valor_hora > 0 || rates[profile.id]?.valor_evento > 0) && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <DollarSign className="w-3 h-3 text-muted-foreground" />
+                      {rates[profile.id]?.valor_hora > 0 && (
+                        <Badge variant="outline" className="text-xs">R$ {rates[profile.id].valor_hora.toFixed(2)}/h</Badge>
+                      )}
+                      {rates[profile.id]?.valor_evento > 0 && (
+                        <Badge variant="outline" className="text-xs">R$ {rates[profile.id].valor_evento.toFixed(2)}/evento</Badge>
+                      )}
+                    </div>
+                  )}
                   {profile.chave_pix && (
                     <p className="text-sm text-muted-foreground">PIX: {profile.chave_pix}</p>
                   )}

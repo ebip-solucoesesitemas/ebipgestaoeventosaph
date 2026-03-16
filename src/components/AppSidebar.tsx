@@ -63,7 +63,7 @@ const configLinks: MenuLink[] = [
   { href: "/admin/users", label: "Usuários", icon: Users, permissionKey: "users.view" },
   { href: "/admin/permissions", label: "Permissões", icon: Shield, permissionKey: "users.manage" },
   { href: "/admin/bases", label: "Bases", icon: MapPin, permissionKey: "bases.view" },
-  { href: "/admin/professional-rates", label: "Valores Profissionais", icon: DollarSign, permissionKey: "professionals.manage" },
+  
   { href: "/admin/operational-rates", label: "Valores Operacionais", icon: Settings, permissionKey: "finance.manage" },
   { href: "/admin/regulation-phones", label: "Tel. Regulação", icon: Shield, permissionKey: "bases.view" },
   { href: "/admin/professional-report", label: "Relatórios", icon: ClipboardList, permissionKey: "professionals.view" },
