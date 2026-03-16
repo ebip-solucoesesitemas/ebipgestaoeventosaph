@@ -431,6 +431,7 @@ export default function AdminUsers() {
                   type="tel"
                   value={form.telefone}
                   onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))}
+                  onBlur={(e) => setForm((f) => ({ ...f, telefone: formatPhone(e.target.value) }))}
                   placeholder="(00) 00000-0000"
                   maxLength={20}
                 />
