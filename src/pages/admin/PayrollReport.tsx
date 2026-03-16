@@ -26,6 +26,7 @@ interface PayrollLine {
   minutes_display: string;
   valor_hora: number;
   valor_evento: number;
+  ajuda_custo: number;
   line_total: number;
 }
 
