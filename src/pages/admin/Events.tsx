@@ -157,12 +157,12 @@ export default function AdminEvents() {
     if (clientsRes.data) setClients(clientsRes.data);
     if (basesRes.data) setBases(basesRes.data);
 
-    // Fetch user accounts (profiles with user_id and cargo = equipe)
+    // Fetch user accounts (profiles with user_id)
     const { data: accountsData } = await supabase
       .from('profiles')
       .select('id, nome, user_id')
       .not('user_id', 'is', null)
-      .eq('cargo', 'equipe')
+      .eq('hidden', false)
       .order('nome');
     if (accountsData) setUserAccounts(accountsData as UserAccount[]);
     
