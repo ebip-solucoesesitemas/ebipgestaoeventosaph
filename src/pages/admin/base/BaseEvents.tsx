@@ -60,6 +60,12 @@ interface Client {
   endereco: string | null;
 }
 
+interface UserAccount {
+  id: string;
+  nome: string;
+  user_id: string;
+}
+
 export default function BaseEvents() {
   const { baseId } = useParams<{ baseId: string }>();
   const navigate = useNavigate();
