@@ -393,7 +393,7 @@ export default function BaseEvents() {
                   <SelectTrigger className="input-touch"><SelectValue placeholder="Selecione uma conta (opcional)" /></SelectTrigger>
                   <SelectContent>
                     {userAccounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
+                      <SelectItem key={a.id} value={a.user_id}>{a.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
