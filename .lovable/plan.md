@@ -1,29 +1,31 @@
 
-# Plano de Melhorias — EBIP Eventos
 
-## Status das Fases
+# Fix: Exibir status de remoção hospitalar nos atendimentos
 
-| Fase | Melhoria | Status |
-|------|----------|--------|
-| 1 | Dashboard KPIs | ✅ Implementado |
-| 2 | Exportação PDF | ✅ Implementado |
-| 3 | Histórico Profissional | 🔜 Pendente |
-| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
-| 5 | Modo Escuro | ✅ Implementado |
-| 6 | Variáveis Contrato | ✅ Já existia |
-| — | Nota de oficina na viatura | ✅ Implementado |
+## Diagnóstico
 
-## Auditoria de Segurança
+1. **Sinais Vitais**: O atendimento "Everaldo" realmente não possui sinais vitais registrados no banco — o dialog está correto. Não há bug aqui.
 
-| # | Correção | Status |
-|---|----------|--------|
-| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
-| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
-| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
-| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
-| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
-| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
-| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
-| 8 | Utilitário de validação UUID criado | ✅ Implementado |
-| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
-| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
+2. **Status `em_remocao` não aparece**: Os badges nas listas de atendimentos (admin e equipe) só reconhecem "finalizado" ou "em andamento", ignorando o status `em_remocao`. Além disso, o dialog de detalhes não mostra informações de remoção (hospital de destino, etc).
+
+## Correções
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/pages/admin/EventDetail.tsx` | Atualizar badge do atendimento na lista (linha 512) para reconhecer `em_remocao` com cor vermelha e ícone ambulância. Adicionar seção de remoção no dialog de detalhes mostrando hospital de destino, receptor e data. Adicionar `hospital_destino`, `nome_receptor`, `crm_receptor`, `data_remocao`, `desfecho` à interface Attendance e ao select da query. |
+| `src/pages/team/EventDetail.tsx` | Atualizar badge do atendimento na lista (linha 372) para reconhecer `em_remocao`. Adicionar banner de destaque no topo da página quando houver atendimento em remoção. Incluir `hospital_destino` e `status` no tipo Attendance. |
+
+### Detalhes da implementação
+
+**Badge de status** (ambos arquivos):
+- `em_remocao` → Badge vermelha com texto "Em Remoção" e ícone de ambulância
+- Manter "Finalizado" (verde) e "Em andamento" (amarelo) sem alteração
+
+**Dialog de detalhes (admin)**:
+- Quando `status === 'em_remocao'`, exibir card de destaque vermelho com hospital de destino
+- Quando finalizado com `desfecho === 'removido'`, mostrar dados do receptor (nome, CRM, data)
+
+**Banner no topo (team EventDetail)**:
+- Verificar se algum atendimento tem `status === 'em_remocao'`
+- Se sim, exibir banner vermelho abaixo do header com "Paciente em remoção hospitalar" e hospital de destino
+
