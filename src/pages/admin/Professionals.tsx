@@ -410,7 +410,35 @@ export default function AdminProfessionals() {
                 </Select>
               </div>
 
-              {!editingProfile && (
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
+                  <DollarSign className="w-4 h-4" />
+                  Valores de Pagamento
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Valor por Hora (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.valor_hora}
+                      onChange={(e) => setFormData(prev => ({ ...prev, valor_hora: e.target.value }))}
+                      placeholder="0,00"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Valor por Evento (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.valor_evento}
+                      onChange={(e) => setFormData(prev => ({ ...prev, valor_evento: e.target.value }))}
+                      placeholder="0,00"
+                    />
+                  </div>
+                </div>
+              </div>
+
                 <>
                   <div className="border-t pt-4 mt-4">
                     <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
