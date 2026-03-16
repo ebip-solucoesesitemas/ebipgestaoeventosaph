@@ -326,14 +326,15 @@ export default function PayrollReport() {
               <table className="payroll-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "25%" }}>Evento</th>
-                    <th style={{ width: "10%" }}>Data</th>
-                    <th style={{ width: "12%" }}>Check-in</th>
-                    <th style={{ width: "12%" }}>Check-out</th>
-                    <th style={{ width: "10%" }}>Duração</th>
+                    <th style={{ width: "22%" }}>Evento</th>
+                    <th style={{ width: "9%" }}>Data</th>
+                    <th style={{ width: "10%" }}>Check-in</th>
+                    <th style={{ width: "10%" }}>Check-out</th>
+                    <th style={{ width: "9%" }}>Duração</th>
                     <th style={{ width: "10%", textAlign: "right" }}>Valor/Hora</th>
                     <th style={{ width: "10%", textAlign: "right" }}>Valor/Evento</th>
-                    <th style={{ width: "11%", textAlign: "right" }}>Total</th>
+                    <th style={{ width: "10%", textAlign: "right" }}>Ajuda Custo</th>
+                    <th style={{ width: "10%", textAlign: "right" }}>Total</th>
                   </tr>
                 </thead>
                 <tbody>
