@@ -204,6 +204,14 @@ export default function AdminProfessionals() {
           return;
         }
 
+        // Save rates for the new profile created via edge function
+        if (data?.profileId && (formData.valor_hora || formData.valor_evento)) {
+          await supabase.from('professional_rates').upsert({
+            profile_id: data.profileId,
+            valor_hora: parseFloat(formData.valor_hora) || 0,
+            valor_evento: parseFloat(formData.valor_evento) || 0,
+          }, { onConflict: 'profile_id' });
+        }
         toast({ title: 'Profissional cadastrado com sucesso!', description: `Login: ${formData.email}` });
       } else {
         // Insert profile directly without auth user
