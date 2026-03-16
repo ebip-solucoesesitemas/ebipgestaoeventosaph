@@ -180,6 +180,7 @@ export default function PayrollReport() {
           minutes_display: l.minutes_display,
           valor_hora_fmt: l.valor_hora > 0 ? `R$ ${l.valor_hora.toFixed(2)}` : "—",
           valor_evento_fmt: l.valor_evento > 0 ? `R$ ${l.valor_evento.toFixed(2)}` : "—",
+          ajuda_custo_fmt: l.ajuda_custo > 0 ? `R$ ${l.ajuda_custo.toFixed(2)}` : "—",
           line_total_fmt: `R$ ${l.line_total.toFixed(2)}`
         })),
         subtotalLabel: `Subtotal — ${groupLines[0].profile_name}`,
