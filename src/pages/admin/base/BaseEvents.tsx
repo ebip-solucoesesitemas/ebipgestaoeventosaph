@@ -154,9 +154,6 @@ export default function BaseEvents() {
   const openEditDialog = async (event: Event) => {
     setEditingEvent(event);
     const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base, client_id, user_id').eq('id', event.id).single();
-    // Reverse-lookup: find the profile ID that matches the event's auth user_id
-    const eventUserId = (data as any)?.user_id;
-    const matchingAccount = eventUserId ? userAccounts.find(a => a.user_id === eventUserId) : null;
     setFormData({
       nome_evento: event.nome_evento,
       data_inicio: isoToLocalDatetime(event.data_inicio),
@@ -168,7 +165,7 @@ export default function BaseEvents() {
       equipe_minima: event.equipe_minima || 2,
       min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || '',
       horario_saida_base: (data as any)?.horario_saida_base ? isoToLocalDatetime((data as any).horario_saida_base) : '',
-      user_id: matchingAccount?.id || '',
+      user_id: (data as any)?.user_id || '',
       selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
     });
     setDialogOpen(true);
@@ -222,7 +219,6 @@ export default function BaseEvents() {
       }
     }
 
-    const selectedAccount = userAccounts.find(a => a.id === formData.user_id);
     const eventData = {
       nome_evento: formData.nome_evento,
       data_inicio: dataInicioISO,
@@ -234,7 +230,7 @@ export default function BaseEvents() {
       equipe_minima: formData.equipe_minima,
       min_antes_saida_base: formData.min_antes_saida_base ? parseInt(formData.min_antes_saida_base) : null,
       horario_saida_base: formData.horario_saida_base ? localDatetimeToISO(formData.horario_saida_base) : null,
-      user_id: selectedAccount?.user_id || null,
+      user_id: formData.user_id || null,
       base_id: baseId,
     };
 
@@ -397,7 +393,7 @@ export default function BaseEvents() {
                   <SelectTrigger className="input-touch"><SelectValue placeholder="Selecione uma conta (opcional)" /></SelectTrigger>
                   <SelectContent>
                     {userAccounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
+                      <SelectItem key={a.id} value={a.user_id}>{a.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
