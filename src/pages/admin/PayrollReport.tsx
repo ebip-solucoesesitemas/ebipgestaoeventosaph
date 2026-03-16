@@ -51,7 +51,7 @@ export default function PayrollReport() {
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
 
-    const [assignmentsRes, profilesRes, ratesRes, eventsRes] = await Promise.all([
+    const [assignmentsRes, profilesRes, ratesRes, eventsRes, ajudaCustoRes] = await Promise.all([
     supabase.
     from("event_assignments").
     select("profile_id, event_id, checkin_at, checkout_at").
@@ -61,8 +61,11 @@ export default function PayrollReport() {
     lte("checkout_at", monthEnd.toISOString()),
     supabase.from("profiles").select("id, nome, especialidade, cpf, chave_pix").eq("hidden", false).eq("is_account_only", false).order("nome"),
     supabase.from("professional_rates").select("profile_id, valor_hora, valor_evento"),
-    supabase.from("events").select("id, nome_evento, data_inicio")]
+    supabase.from("events").select("id, nome_evento, data_inicio"),
+    supabase.from("operational_rates").select("valor").eq("tipo", "ajuda_custo_6h").single()]
     );
+
+    const ajudaCustoValor = ajudaCustoRes.data?.valor || 0;
 
     const assignments = assignmentsRes.data || [];
     const allProfiles = profilesRes.data || [];
