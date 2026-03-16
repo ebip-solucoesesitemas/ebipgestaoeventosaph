@@ -18,7 +18,7 @@ import AdminVehicles from "./pages/admin/Vehicles";
 import AdminClients from "./pages/admin/Clients";
 import AdminFinance from "./pages/admin/Finance";
 import AdminPayroll from "./pages/admin/Payroll";
-import AdminProfessionalRates from "./pages/admin/ProfessionalRates";
+
 import AdminProfessionalReport from "./pages/admin/ProfessionalReport";
 import AdminOperationalRates from "./pages/admin/OperationalRates";
 import AdminBases from "./pages/admin/Bases";
@@ -62,7 +62,7 @@ const App = () => (
               <Route path="/admin/clients" element={<AdminRoute><AdminClients /></AdminRoute>} />
               <Route path="/admin/finance" element={<AdminRoute><AdminFinance /></AdminRoute>} />
               <Route path="/admin/payroll" element={<AdminRoute><AdminPayroll /></AdminRoute>} />
-              <Route path="/admin/professional-rates" element={<AdminRoute><AdminProfessionalRates /></AdminRoute>} />
+              
               <Route path="/admin/professional-report" element={<AdminRoute><AdminProfessionalReport /></AdminRoute>} />
               <Route path="/admin/bases" element={<AdminRoute><AdminBases /></AdminRoute>} />
               <Route path="/admin/operational-rates" element={<AdminRoute><AdminOperationalRates /></AdminRoute>} />
