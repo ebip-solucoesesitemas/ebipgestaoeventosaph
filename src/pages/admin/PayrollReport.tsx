@@ -351,6 +351,9 @@ export default function PayrollReport() {
                       <td style={{ textAlign: "right" }}>
                         {line.valor_evento > 0 ? `R$ ${line.valor_evento.toFixed(2)}` : "—"}
                       </td>
+                      <td style={{ textAlign: "right" }}>
+                        {line.ajuda_custo > 0 ? `R$ ${line.ajuda_custo.toFixed(2)}` : "—"}
+                      </td>
                       <td style={{ textAlign: "right", fontWeight: 600 }}>
                         R$ {line.line_total.toFixed(2)}
                       </td>
