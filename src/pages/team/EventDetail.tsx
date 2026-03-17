@@ -128,7 +128,7 @@ export default function EventDetail() {
       return;
     }
 
- let eventData = eventRes.data;
+    let eventData = eventRes.data;
     let responsibleProfileData = null;
 
     // 1. Busca o perfil responsável separadamente
@@ -141,21 +141,23 @@ export default function EventDetail() {
       responsibleProfileData = profileData;
     }
 
+    // ... (restante do código anterior da fetchData)
+
     // 2. Monta o objeto final garantindo a tipagem da interface Event
-    const finalEvent: Event = {
+    const finalEvent = {
       ...eventData,
-      // Garante que o responsible_profile seja injetado respeitando a interface
       responsible_profile: responsibleProfileData,
     } as unknown as Event;
 
     // 3. Atualiza os estados
     setEvent(finalEvent);
-    setKmInicial(eventData.km_inicial?.toString() || "");
-    setKmFinal(eventData.km_final?.toString() || "");
+    setKmInicial(eventData?.km_inicial?.toString() || "");
+    setKmFinal(eventData?.km_final?.toString() || "");
     setAttendances(attendancesRes.data || []);
     setTeam((teamRes.data || []).filter((m: any) => m.profiles) as TeamMember[]);
     setSignatures((sigRes.data || []) as SignatureRecord[]);
     setIsLoading(false);
+  }; // <--- ESSA CHAVE FECHA A FUNÇÃO fetchData
 
   useEffect(() => {
     fetchData();
