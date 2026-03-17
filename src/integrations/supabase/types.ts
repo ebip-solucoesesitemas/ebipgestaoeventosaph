@@ -553,6 +553,7 @@ export type Database = {
           min_antes_saida_base: number | null
           nome_evento: string
           status: string
+          tipo_unidade: string | null
           updated_at: string | null
           user_id: string | null
           valor_litro_combustivel: number | null
@@ -575,6 +576,7 @@ export type Database = {
           min_antes_saida_base?: number | null
           nome_evento: string
           status?: string
+          tipo_unidade?: string | null
           updated_at?: string | null
           user_id?: string | null
           valor_litro_combustivel?: number | null
@@ -597,6 +599,7 @@ export type Database = {
           min_antes_saida_base?: number | null
           nome_evento?: string
           status?: string
+          tipo_unidade?: string | null
           updated_at?: string | null
           user_id?: string | null
           valor_litro_combustivel?: number | null

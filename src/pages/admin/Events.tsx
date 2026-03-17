@@ -119,6 +119,7 @@ export default function AdminEvents() {
     horario_saida_base: '',
     selectedProfiles: [] as string[],
     client_id: '',
+    tipo_unidade: '',
   });
 
   const fetchData = async () => {
@@ -215,6 +216,7 @@ export default function AdminEvents() {
       horario_saida_base: '',
       selectedProfiles: [],
       client_id: '',
+      tipo_unidade: '',
     });
     setEditingEvent(null);
   };
@@ -223,7 +225,7 @@ export default function AdminEvents() {
     setEditingEvent(event);
     const fetchEventDetails = async () => {
       const [eventRes, budgetRes] = await Promise.all([
-        supabase.from('events').select('user_id, base_id, min_antes_saida_base, horario_saida_base').eq('id', event.id).single(),
+        supabase.from('events').select('user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade').eq('id', event.id).single(),
         supabase.from('event_budgets').select('client_id').eq('event_id', event.id).maybeSingle(),
       ]);
       const data = eventRes.data;
@@ -244,6 +246,7 @@ export default function AdminEvents() {
         horario_saida_base: (data as any)?.horario_saida_base ? isoToLocalDatetime((data as any).horario_saida_base) : '',
         selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
         client_id: (budgetRes.data as any)?.client_id || '',
+        tipo_unidade: (data as any)?.tipo_unidade || '',
       });
     };
     fetchEventDetails();
@@ -312,6 +315,7 @@ export default function AdminEvents() {
       consumo_medio_km_litro: formData.consumo_medio_km_litro ? parseFloat(formData.consumo_medio_km_litro) : 10,
       min_antes_saida_base: formData.min_antes_saida_base ? parseInt(formData.min_antes_saida_base) : null,
       horario_saida_base: formData.horario_saida_base ? localDatetimeToISO(formData.horario_saida_base) : null,
+      tipo_unidade: formData.tipo_unidade || null,
     };
 
     let eventId: string;
@@ -549,6 +553,26 @@ export default function AdminEvents() {
                   className="input-touch"
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo de Unidade</Label>
+                <Select
+                  value={formData.tipo_unidade}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, tipo_unidade: v }))}
+                >
+                  <SelectTrigger className="input-touch">
+                    <SelectValue placeholder="Selecione o tipo de unidade (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Semi Presencial">Semi Presencial</SelectItem>
+                    <SelectItem value="Presencial">Presencial</SelectItem>
+                    <SelectItem value="USB dois Técnicos">USB dois Técnicos</SelectItem>
+                    <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
+                    <SelectItem value="Ambulatório">Ambulatório</SelectItem>
+                    <SelectItem value="USB somente condutor">USB somente condutor</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
