@@ -1,21 +1,38 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, Clock, CheckCircle2, AlertCircle, Fuel, Search, Eye, LogIn, LogOut, Navigation } from 'lucide-react';
-import { CepInput } from '@/components/CepInput';
-import { localDatetimeToISO, isoToLocalDatetime } from '@/lib/utils';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Plus,
+  Calendar,
+  MapPin,
+  Truck,
+  Users,
+  Edit,
+  Trash2,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Fuel,
+  Search,
+  Eye,
+  LogIn,
+  LogOut,
+  Navigation,
+} from "lucide-react";
+import { CepInput } from "@/components/CepInput";
+import { localDatetimeToISO, isoToLocalDatetime } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Vehicle {
   id: string;
@@ -92,7 +109,7 @@ export default function AdminEvents() {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [profileSearch, setProfileSearch] = useState('');
+  const [profileSearch, setProfileSearch] = useState("");
   const [pendingBudgetId, setPendingBudgetId] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -103,57 +120,57 @@ export default function AdminEvents() {
   }, []);
 
   const [formData, setFormData] = useState({
-    nome_evento: '',
-    data_inicio: '',
-    data_fim: '',
-    local: '',
-    cep_local: '',
-    base_id: '',
-    viatura_id: '',
-    user_id: '',
+    nome_evento: "",
+    data_inicio: "",
+    data_fim: "",
+    local: "",
+    cep_local: "",
+    base_id: "",
+    viatura_id: "",
+    user_id: "",
     equipe_completa: false,
     equipe_minima: 2,
-    valor_litro_combustivel: '',
-    consumo_medio_km_litro: '10',
-    min_antes_saida_base: '',
-    horario_saida_base: '',
+    valor_litro_combustivel: "",
+    consumo_medio_km_litro: "10",
+    min_antes_saida_base: "",
+    horario_saida_base: "",
     selectedProfiles: [] as string[],
-    client_id: '',
-    tipo_unidade: '',
+    client_id: "",
+    tipo_unidade: "",
   });
 
   const fetchData = async () => {
     setIsLoading(true);
-    
+
     const [eventsRes, allVehiclesRes, availableVehiclesRes, profilesRes, clientsRes, basesRes] = await Promise.all([
-      supabase.from('events').select('*, vehicles(*)').order('data_inicio', { ascending: false }),
-      supabase.from('vehicles').select('*').order('prefixo'),
-      supabase.from('vehicles').select('*').neq('status', 'manutencao'),
-      supabase.from('profiles').select('*').eq('hidden', false).eq('is_account_only', false).order('nome'),
-      supabase.from('clients').select('id, nome, endereco').order('nome'),
-      supabase.from('bases').select('id, nome, sigla').order('sigla'),
+      supabase.from("events").select("*, vehicles(*)").order("data_inicio", { ascending: false }),
+      supabase.from("vehicles").select("*").order("prefixo"),
+      supabase.from("vehicles").select("*").neq("status", "manutencao"),
+      supabase.from("profiles").select("*").eq("hidden", false).eq("is_account_only", false).order("nome"),
+      supabase.from("clients").select("id, nome, endereco").order("nome"),
+      supabase.from("bases").select("id, nome, sigla").order("sigla"),
     ]);
 
     if (eventsRes.data) {
       setEvents(eventsRes.data);
-      
+
       // Fetch assignments for all events
-      const eventIds = eventsRes.data.map(e => e.id);
+      const eventIds = eventsRes.data.map((e) => e.id);
       if (eventIds.length > 0) {
         const { data: assignmentsData } = await supabase
-          .from('event_assignments')
-          .select('*, profiles(*)')
-          .in('event_id', eventIds);
-        
+          .from("event_assignments")
+          .select("*, profiles(*)")
+          .in("event_id", eventIds);
+
         const grouped: Record<string, EventAssignment[]> = {};
-        assignmentsData?.forEach(a => {
+        assignmentsData?.forEach((a) => {
           if (!grouped[a.event_id]) grouped[a.event_id] = [];
           grouped[a.event_id].push(a);
         });
         setAssignments(grouped);
       }
     }
-    
+
     if (allVehiclesRes.data) setAllVehicles(allVehiclesRes.data);
     if (availableVehiclesRes.data) setVehicles(availableVehiclesRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
@@ -162,13 +179,13 @@ export default function AdminEvents() {
 
     // Fetch user accounts (profiles with user_id)
     const { data: accountsData } = await supabase
-      .from('profiles')
-      .select('id, nome, user_id')
-      .not('user_id', 'is', null)
-      .eq('hidden', false)
-      .order('nome');
+      .from("profiles")
+      .select("id, nome, user_id")
+      .not("user_id", "is", null)
+      .eq("hidden", false)
+      .order("nome");
     if (accountsData) setUserAccounts(accountsData as UserAccount[]);
-    
+
     setIsLoading(false);
   };
 
@@ -178,19 +195,19 @@ export default function AdminEvents() {
 
   // Open dialog from budget redirect
   useEffect(() => {
-    if (searchParams.get('new') === 'true') {
-      const nome = searchParams.get('nome') || '';
-      const local = searchParams.get('local') || '';
-      const dataInicio = searchParams.get('data_inicio') || '';
-      const dataFim = searchParams.get('data_fim') || '';
-      const budgetId = searchParams.get('budget_id') || null;
+    if (searchParams.get("new") === "true") {
+      const nome = searchParams.get("nome") || "";
+      const local = searchParams.get("local") || "";
+      const dataInicio = searchParams.get("data_inicio") || "";
+      const dataFim = searchParams.get("data_fim") || "";
+      const budgetId = searchParams.get("budget_id") || null;
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         nome_evento: nome,
         local: local,
-        data_inicio: dataInicio ? dataInicio.slice(0, 16) : '',
-        data_fim: dataFim ? dataFim.slice(0, 16) : '',
+        data_inicio: dataInicio ? dataInicio.slice(0, 16) : "",
+        data_fim: dataFim ? dataFim.slice(0, 16) : "",
       }));
       setPendingBudgetId(budgetId);
       setDialogOpen(true);
@@ -200,23 +217,23 @@ export default function AdminEvents() {
 
   const resetForm = () => {
     setFormData({
-      nome_evento: '',
-      data_inicio: '',
-      data_fim: '',
-      local: '',
-      cep_local: '',
-      base_id: '',
-      viatura_id: '',
-      user_id: '',
+      nome_evento: "",
+      data_inicio: "",
+      data_fim: "",
+      local: "",
+      cep_local: "",
+      base_id: "",
+      viatura_id: "",
+      user_id: "",
       equipe_completa: false,
       equipe_minima: 2,
-      valor_litro_combustivel: '',
-      consumo_medio_km_litro: '10',
-      min_antes_saida_base: '',
-      horario_saida_base: '',
+      valor_litro_combustivel: "",
+      consumo_medio_km_litro: "10",
+      min_antes_saida_base: "",
+      horario_saida_base: "",
       selectedProfiles: [],
-      client_id: '',
-      tipo_unidade: '',
+      client_id: "",
+      tipo_unidade: "",
     });
     setEditingEvent(null);
   };
@@ -225,8 +242,12 @@ export default function AdminEvents() {
     setEditingEvent(event);
     const fetchEventDetails = async () => {
       const [eventRes, budgetRes] = await Promise.all([
-        supabase.from('events').select('user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade').eq('id', event.id).single(),
-        supabase.from('event_budgets').select('client_id').eq('event_id', event.id).maybeSingle(),
+        supabase
+          .from("events")
+          .select("user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade")
+          .eq("id", event.id)
+          .single(),
+        supabase.from("event_budgets").select("client_id").eq("event_id", event.id).maybeSingle(),
       ]);
       const data = eventRes.data;
       setFormData({
@@ -234,34 +255,41 @@ export default function AdminEvents() {
         data_inicio: isoToLocalDatetime(event.data_inicio),
         data_fim: isoToLocalDatetime(event.data_fim),
         local: event.local,
-        cep_local: '',
-        base_id: (data as any)?.base_id || '',
-        viatura_id: event.viatura_id || '',
-        user_id: (data as any)?.user_id || '',
+        cep_local: "",
+        base_id: (data as any)?.base_id || "",
+        viatura_id: event.viatura_id || "",
+        user_id: (data as any)?.user_id || "",
         equipe_completa: event.equipe_completa || false,
         equipe_minima: event.equipe_minima || 2,
-        valor_litro_combustivel: event.valor_litro_combustivel?.toString() || '',
-        consumo_medio_km_litro: event.consumo_medio_km_litro?.toString() || '10',
-        min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || '',
-        horario_saida_base: (data as any)?.horario_saida_base ? isoToLocalDatetime((data as any).horario_saida_base) : '',
-        selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
-        client_id: (budgetRes.data as any)?.client_id || '',
-        tipo_unidade: (data as any)?.tipo_unidade || '',
+        valor_litro_combustivel: event.valor_litro_combustivel?.toString() || "",
+        consumo_medio_km_litro: event.consumo_medio_km_litro?.toString() || "10",
+        min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || "",
+        horario_saida_base: (data as any)?.horario_saida_base
+          ? isoToLocalDatetime((data as any).horario_saida_base)
+          : "",
+        selectedProfiles: assignments[event.id]?.map((a) => a.profile_id) || [],
+        client_id: (budgetRes.data as any)?.client_id || "",
+        tipo_unidade: (data as any)?.tipo_unidade || "",
       });
     };
     fetchEventDetails();
     setDialogOpen(true);
   };
 
-  const checkVehicleConflict = async (viaturaId: string, dataInicio: string, dataFim: string, editingEventId?: string) => {
+  const checkVehicleConflict = async (
+    viaturaId: string,
+    dataInicio: string,
+    dataFim: string,
+    editingEventId?: string,
+  ) => {
     let query = supabase
-      .from('events')
-      .select('id, nome_evento, data_inicio, data_fim')
-      .eq('viatura_id', viaturaId)
-      .neq('status', 'finalizado');
+      .from("events")
+      .select("id, nome_evento, data_inicio, data_fim")
+      .eq("viatura_id", viaturaId)
+      .neq("status", "finalizado");
 
     if (editingEventId) {
-      query = query.neq('id', editingEventId);
+      query = query.neq("id", editingEventId);
     }
 
     const { data } = await query;
@@ -270,7 +298,7 @@ export default function AdminEvents() {
     const novoInicio = new Date(dataInicio);
     const novoFim = new Date(dataFim);
 
-    return data.filter(ev => {
+    return data.filter((ev) => {
       const evInicio = new Date(ev.data_inicio);
       const evFim = new Date(ev.data_fim);
       return novoInicio < evFim && novoFim > evInicio;
@@ -285,17 +313,12 @@ export default function AdminEvents() {
 
     // Validar conflito de viatura
     if (formData.viatura_id) {
-      const conflitos = await checkVehicleConflict(
-        formData.viatura_id,
-        dataInicioISO,
-        dataFimISO,
-        editingEvent?.id
-      );
+      const conflitos = await checkVehicleConflict(formData.viatura_id, dataInicioISO, dataFimISO, editingEvent?.id);
       if (conflitos.length > 0) {
         toast({
-          title: 'Viatura indisponível neste horário',
+          title: "Viatura indisponível neste horário",
           description: `A viatura já está empenhada no evento "${conflitos[0].nome_evento}" neste período.`,
-          variant: 'destructive',
+          variant: "destructive",
         });
         return;
       }
@@ -322,95 +345,90 @@ export default function AdminEvents() {
     const oldViaturaId = editingEvent?.viatura_id;
 
     if (editingEvent) {
-      const { error } = await supabase
-        .from('events')
-        .update(eventData)
-        .eq('id', editingEvent.id);
+      const { error } = await supabase.from("events").update(eventData).eq("id", editingEvent.id);
 
       if (error) {
-        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+        toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
         return;
       }
       eventId = editingEvent.id;
 
       // Remove old assignments
-      await supabase.from('event_assignments').delete().eq('event_id', eventId);
+      await supabase.from("event_assignments").delete().eq("event_id", eventId);
 
       // Update old vehicle status if changed
       if (oldViaturaId && oldViaturaId !== formData.viatura_id) {
-        await supabase.from('vehicles').update({ status: 'disponivel' }).eq('id', oldViaturaId);
+        await supabase.from("vehicles").update({ status: "disponivel" }).eq("id", oldViaturaId);
       }
     } else {
       const { data, error } = await supabase
-        .from('events')
+        .from("events")
         .insert(eventData as any)
         .select()
         .single();
 
       if (error) {
-        toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' });
+        toast({ title: "Erro ao criar", description: error.message, variant: "destructive" });
         return;
       }
       eventId = data.id;
 
       // Link budget to the new event if created from budget
       if (pendingBudgetId) {
-        await supabase.from('event_budgets').update({ event_id: eventId }).eq('id', pendingBudgetId);
+        await supabase.from("event_budgets").update({ event_id: eventId }).eq("id", pendingBudgetId);
         setPendingBudgetId(null);
       }
     }
 
     // Update new vehicle status to 'em_uso'
     if (formData.viatura_id) {
-      await supabase.from('vehicles').update({ status: 'em_uso' }).eq('id', formData.viatura_id);
+      await supabase.from("vehicles").update({ status: "em_uso" }).eq("id", formData.viatura_id);
     }
 
     // Add new assignments
     if (formData.selectedProfiles.length > 0) {
-      const assignmentsToInsert = formData.selectedProfiles.map(profileId => ({
+      const assignmentsToInsert = formData.selectedProfiles.map((profileId) => ({
         event_id: eventId,
         profile_id: profileId,
       }));
 
-      const { error: assignError } = await supabase
-        .from('event_assignments')
-        .insert(assignmentsToInsert);
+      const { error: assignError } = await supabase.from("event_assignments").insert(assignmentsToInsert);
 
       if (assignError) {
-        toast({ title: 'Erro ao escalar equipe', description: assignError.message, variant: 'destructive' });
+        toast({ title: "Erro ao escalar equipe", description: assignError.message, variant: "destructive" });
       }
     }
 
-    toast({ title: editingEvent ? 'Evento atualizado!' : 'Evento criado!' });
+    toast({ title: editingEvent ? "Evento atualizado!" : "Evento criado!" });
     setDialogOpen(false);
     resetForm();
     fetchData();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este evento?')) return;
+    if (!confirm("Tem certeza que deseja excluir este evento?")) return;
 
-    const event = events.find(e => e.id === id);
-    
-    const { error } = await supabase.from('events').delete().eq('id', id);
+    const event = events.find((e) => e.id === id);
+
+    const { error } = await supabase.from("events").delete().eq("id", id);
 
     if (error) {
-      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     } else {
       // Release the vehicle if any
       if (event?.viatura_id) {
-        await supabase.from('vehicles').update({ status: 'disponivel' }).eq('id', event.viatura_id);
+        await supabase.from("vehicles").update({ status: "disponivel" }).eq("id", event.viatura_id);
       }
-      toast({ title: 'Evento excluído!' });
+      toast({ title: "Evento excluído!" });
       fetchData();
     }
   };
 
   const toggleProfile = (profileId: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       selectedProfiles: prev.selectedProfiles.includes(profileId)
-        ? prev.selectedProfiles.filter(id => id !== profileId)
+        ? prev.selectedProfiles.filter((id) => id !== profileId)
         : [...prev.selectedProfiles, profileId],
     }));
   };
@@ -418,8 +436,8 @@ export default function AdminEvents() {
   // Get vehicles for select (available + current event's vehicle if editing)
   const getAvailableVehicles = () => {
     if (editingEvent?.viatura_id) {
-      const currentVehicle = allVehicles.find(v => v.id === editingEvent.viatura_id);
-      if (currentVehicle && !vehicles.find(v => v.id === currentVehicle.id)) {
+      const currentVehicle = allVehicles.find((v) => v.id === editingEvent.viatura_id);
+      if (currentVehicle && !vehicles.find((v) => v.id === currentVehicle.id)) {
         return [...vehicles, currentVehicle];
       }
     }
@@ -430,15 +448,15 @@ export default function AdminEvents() {
     const eventAssignments = assignments[event.id] || [];
     const teamSize = eventAssignments.length;
     const isComplete = event.equipe_completa || teamSize >= event.equipe_minima;
-    const checkinCount = eventAssignments.filter(a => a.checkin_at).length;
-    const checkoutCount = eventAssignments.filter(a => a.checkout_at).length;
+    const checkinCount = eventAssignments.filter((a) => a.checkin_at).length;
+    const checkoutCount = eventAssignments.filter((a) => a.checkout_at).length;
     const totalKm = eventAssignments.reduce((sum, a) => {
       if (a.km_inicial && a.km_final) {
         return sum + (a.km_final - a.km_inicial);
       }
       return sum;
     }, 0);
-    
+
     return {
       size: teamSize,
       minRequired: event.equipe_minima,
@@ -467,7 +485,13 @@ export default function AdminEvents() {
           <p className="text-muted-foreground">Gerencie eventos e escalas da equipe</p>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="btn-touch gap-2">
               <Plus className="w-5 h-5" />
@@ -476,14 +500,14 @@ export default function AdminEvents() {
           </DialogTrigger>
           <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingEvent ? 'Editar Evento' : 'Novo Evento'}</DialogTitle>
+              <DialogTitle>{editingEvent ? "Editar Evento" : "Novo Evento"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Nome do Evento</Label>
                 <Input
                   value={formData.nome_evento}
-                  onChange={(e) => setFormData(prev => ({ ...prev, nome_evento: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, nome_evento: e.target.value }))}
                   placeholder="Ex: Show Rock in Rio"
                   className="input-touch"
                   required
@@ -496,7 +520,7 @@ export default function AdminEvents() {
                   <Input
                     type="datetime-local"
                     value={formData.data_inicio}
-                    onChange={(e) => setFormData(prev => ({ ...prev, data_inicio: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, data_inicio: e.target.value }))}
                     className="input-touch"
                     required
                   />
@@ -506,7 +530,7 @@ export default function AdminEvents() {
                   <Input
                     type="datetime-local"
                     value={formData.data_fim}
-                    onChange={(e) => setFormData(prev => ({ ...prev, data_fim: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, data_fim: e.target.value }))}
                     className="input-touch"
                     required
                   />
@@ -518,10 +542,10 @@ export default function AdminEvents() {
                 <Select
                   value={formData.client_id || undefined}
                   onValueChange={(clientId) => {
-                    setFormData(prev => ({ ...prev, client_id: clientId }));
-                    const client = clients.find(c => c.id === clientId);
+                    setFormData((prev) => ({ ...prev, client_id: clientId }));
+                    const client = clients.find((c) => c.id === clientId);
                     if (client?.endereco) {
-                      setFormData(prev => ({ ...prev, local: client.endereco! }));
+                      setFormData((prev) => ({ ...prev, local: client.endereco! }));
                     }
                   }}
                 >
@@ -530,7 +554,9 @@ export default function AdminEvents() {
                   </SelectTrigger>
                   <SelectContent>
                     {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -539,16 +565,16 @@ export default function AdminEvents() {
               <div className="space-y-2">
                 <Label>CEP do Local</Label>
                 <CepInput
-                  value={formData.cep_local || ''}
-                  onChange={(cep) => setFormData(prev => ({ ...prev, cep_local: cep }))}
-                  onAddressFound={(addr) => setFormData(prev => ({ ...prev, local: addr.endereco }))}
+                  value={formData.cep_local || ""}
+                  onChange={(cep) => setFormData((prev) => ({ ...prev, cep_local: cep }))}
+                  onAddressFound={(addr) => setFormData((prev) => ({ ...prev, local: addr.endereco }))}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Local</Label>
                 <Input
                   value={formData.local}
-                  onChange={(e) => setFormData(prev => ({ ...prev, local: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, local: e.target.value }))}
                   placeholder="Endereço do evento"
                   className="input-touch"
                   required
@@ -559,7 +585,7 @@ export default function AdminEvents() {
                 <Label>Tipo de Unidade</Label>
                 <Select
                   value={formData.tipo_unidade}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, tipo_unidade: v }))}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, tipo_unidade: v }))}
                 >
                   <SelectTrigger className="input-touch">
                     <SelectValue placeholder="Selecione o tipo de unidade (opcional)" />
@@ -571,6 +597,8 @@ export default function AdminEvents() {
                     <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
                     <SelectItem value="Ambulatório">Ambulatório</SelectItem>
                     <SelectItem value="USB somente condutor">USB somente condutor</SelectItem>
+                    <SelectItem value="USB Noormal">USB Normal</SelectItem>
+                    <SelectItem value="USA">USA</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -579,14 +607,16 @@ export default function AdminEvents() {
                 <Label>Base</Label>
                 <Select
                   value={formData.base_id}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, base_id: v }))}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, base_id: v }))}
                 >
                   <SelectTrigger className="input-touch">
                     <SelectValue placeholder="Selecione a base" />
                   </SelectTrigger>
                   <SelectContent>
                     {bases.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>{b.sigla} — {b.nome}</SelectItem>
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.sigla} — {b.nome}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -596,7 +626,7 @@ export default function AdminEvents() {
                 <Label>Conta Responsável</Label>
                 <Select
                   value={formData.user_id}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, user_id: v }))}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, user_id: v }))}
                 >
                   <SelectTrigger className="input-touch">
                     <SelectValue placeholder="Selecione a conta responsável" />
@@ -615,7 +645,7 @@ export default function AdminEvents() {
                 <Label>Viatura</Label>
                 <Select
                   value={formData.viatura_id}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, viatura_id: v }))}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, viatura_id: v }))}
                 >
                   <SelectTrigger className="input-touch">
                     <SelectValue placeholder="Selecione uma viatura" />
@@ -625,13 +655,17 @@ export default function AdminEvents() {
                       .filter((v) => {
                         // Filter by selected base - only show vehicles assigned to this base or unassigned
                         if (!formData.base_id) return true;
-                        return v.id === editingEvent?.viatura_id || (v as any).base_id === formData.base_id || !(v as any).base_id;
+                        return (
+                          v.id === editingEvent?.viatura_id ||
+                          (v as any).base_id === formData.base_id ||
+                          !(v as any).base_id
+                        );
                       })
                       .map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.prefixo} - {v.modelo} ({v.placa})
-                      </SelectItem>
-                    ))}
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.prefixo} - {v.modelo} ({v.placa})
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -649,7 +683,7 @@ export default function AdminEvents() {
                       step="0.01"
                       min={0}
                       value={formData.valor_litro_combustivel}
-                      onChange={(e) => setFormData(prev => ({ ...prev, valor_litro_combustivel: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, valor_litro_combustivel: e.target.value }))}
                       placeholder="Ex: 5.89"
                       className="input-touch"
                     />
@@ -661,7 +695,7 @@ export default function AdminEvents() {
                       step="0.1"
                       min={1}
                       value={formData.consumo_medio_km_litro}
-                      onChange={(e) => setFormData(prev => ({ ...prev, consumo_medio_km_litro: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, consumo_medio_km_litro: e.target.value }))}
                       placeholder="Ex: 10"
                       className="input-touch"
                     />
@@ -684,7 +718,7 @@ export default function AdminEvents() {
                     <Input
                       type="datetime-local"
                       value={formData.horario_saida_base}
-                      onChange={(e) => setFormData(prev => ({ ...prev, horario_saida_base: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, horario_saida_base: e.target.value }))}
                       className="input-touch"
                     />
                   </div>
@@ -694,14 +728,15 @@ export default function AdminEvents() {
                       type="number"
                       min={0}
                       value={formData.min_antes_saida_base}
-                      onChange={(e) => setFormData(prev => ({ ...prev, min_antes_saida_base: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, min_antes_saida_base: e.target.value }))}
                       placeholder="Ex: 30"
                       className="input-touch"
                     />
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Profissionais só poderão fazer check-in dentro do período configurado antes do horário de saída da base
+                  Profissionais só poderão fazer check-in dentro do período configurado antes do horário de saída da
+                  base
                 </p>
               </div>
 
@@ -714,7 +749,9 @@ export default function AdminEvents() {
                       type="number"
                       min={1}
                       value={formData.equipe_minima}
-                      onChange={(e) => setFormData(prev => ({ ...prev, equipe_minima: parseInt(e.target.value) || 2 }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, equipe_minima: parseInt(e.target.value) || 2 }))
+                      }
                       className="input-touch"
                     />
                   </div>
@@ -722,7 +759,7 @@ export default function AdminEvents() {
                     <Checkbox
                       id="equipe_completa"
                       checked={formData.equipe_completa}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, equipe_completa: !!checked }))}
+                      onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, equipe_completa: !!checked }))}
                     />
                     <Label htmlFor="equipe_completa" className="text-sm cursor-pointer">
                       Marcar equipe como completa
@@ -750,44 +787,50 @@ export default function AdminEvents() {
                 </div>
                 <div className="border rounded-xl p-3 space-y-2 max-h-48 overflow-y-auto">
                   {profiles
-                    .filter(p => 
-                      p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                      p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                      p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())
+                    .filter(
+                      (p) =>
+                        p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                        p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                        p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase()),
                     )
                     .map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => toggleProfile(p.id)}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors flex items-center justify-between ${
-                        formData.selectedProfiles.includes(p.id)
-                          ? 'bg-primary/10 border-2 border-primary'
-                          : 'bg-muted hover:bg-muted/80 border-2 border-transparent'
-                      }`}
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{p.nome}</p>
-                        <p className="text-xs text-muted-foreground">{p.especialidade} • {p.registro_profissional}</p>
+                      <div
+                        key={p.id}
+                        onClick={() => toggleProfile(p.id)}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors flex items-center justify-between ${
+                          formData.selectedProfiles.includes(p.id)
+                            ? "bg-primary/10 border-2 border-primary"
+                            : "bg-muted hover:bg-muted/80 border-2 border-transparent"
+                        }`}
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{p.nome}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {p.especialidade} • {p.registro_profissional}
+                          </p>
+                        </div>
+                        {formData.selectedProfiles.includes(p.id) && (
+                          <Badge variant="default" className="bg-primary">
+                            Selecionado
+                          </Badge>
+                        )}
                       </div>
-                      {formData.selectedProfiles.includes(p.id) && (
-                        <Badge variant="default" className="bg-primary">Selecionado</Badge>
-                      )}
-                    </div>
-                  ))}
-                  {profiles.filter(p => 
-                    p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                    p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                    p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())
+                    ))}
+                  {profiles.filter(
+                    (p) =>
+                      p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                      p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                      p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase()),
                   ).length === 0 && (
                     <p className="text-center text-sm text-muted-foreground py-4">
-                      {profiles.length === 0 ? 'Nenhum profissional cadastrado' : 'Nenhum profissional encontrado'}
+                      {profiles.length === 0 ? "Nenhum profissional cadastrado" : "Nenhum profissional encontrado"}
                     </p>
                   )}
                 </div>
               </div>
 
               <Button type="submit" className="w-full btn-touch">
-                {editingEvent ? 'Salvar Alterações' : 'Criar Evento'}
+                {editingEvent ? "Salvar Alterações" : "Criar Evento"}
               </Button>
             </form>
           </DialogContent>
@@ -812,7 +855,7 @@ export default function AdminEvents() {
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <CardTitle className="text-lg">{event.nome_evento}</CardTitle>
-                        {event.status === 'finalizado' ? (
+                        {event.status === "finalizado" ? (
                           <Badge className="bg-muted text-muted-foreground">Finalizado</Badge>
                         ) : new Date(event.data_fim) < new Date(now) ? (
                           <Badge className="bg-warning/20 text-warning border-warning/30 gap-1 animate-pulse-soft">
@@ -834,7 +877,8 @@ export default function AdminEvents() {
                       <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {format(new Date(event.data_inicio), "dd/MM/yyyy", { locale: ptBR })} das {format(new Date(event.data_inicio), "HH:mm")} às {format(new Date(event.data_fim), "HH:mm")}
+                          {format(new Date(event.data_inicio), "dd/MM/yyyy", { locale: ptBR })} das{" "}
+                          {format(new Date(event.data_inicio), "HH:mm")} às {format(new Date(event.data_fim), "HH:mm")}
                         </span>
                         <span className="flex items-center gap-1">
                           <MapPin className="w-4 h-4" />
@@ -843,9 +887,9 @@ export default function AdminEvents() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="gap-1"
                         onClick={() => navigate(`/admin/events/${event.id}`)}
                       >
@@ -868,11 +912,17 @@ export default function AdminEvents() {
                       <div className="flex items-center gap-4 text-sm">
                         <span className="flex items-center gap-1 text-muted-foreground">
                           <LogIn className="w-4 h-4" />
-                          Check-ins: <span className="font-medium text-foreground">{teamStatus.checkinCount}/{teamStatus.size}</span>
+                          Check-ins:{" "}
+                          <span className="font-medium text-foreground">
+                            {teamStatus.checkinCount}/{teamStatus.size}
+                          </span>
                         </span>
                         <span className="flex items-center gap-1 text-muted-foreground">
                           <LogOut className="w-4 h-4" />
-                          Checkouts: <span className="font-medium text-foreground">{teamStatus.checkoutCount}/{teamStatus.size}</span>
+                          Checkouts:{" "}
+                          <span className="font-medium text-foreground">
+                            {teamStatus.checkoutCount}/{teamStatus.size}
+                          </span>
                         </span>
                         {teamStatus.totalKm > 0 && (
                           <span className="flex items-center gap-1 text-muted-foreground">
@@ -881,17 +931,20 @@ export default function AdminEvents() {
                           </span>
                         )}
                       </div>
-                      <Progress value={(() => {
-                        if (event.status === 'finalizado') return 100;
-                        const inicio = new Date(event.data_inicio).getTime();
-                        const fim = new Date(event.data_fim).getTime();
-                        if (now < inicio) return 0;
-                        if (now > fim) return 100;
-                        return ((now - inicio) / (fim - inicio)) * 100;
-                      })()} className="h-1.5" />
+                      <Progress
+                        value={(() => {
+                          if (event.status === "finalizado") return 100;
+                          const inicio = new Date(event.data_inicio).getTime();
+                          const fim = new Date(event.data_fim).getTime();
+                          if (now < inicio) return 0;
+                          if (now > fim) return 100;
+                          return ((now - inicio) / (fim - inicio)) * 100;
+                        })()}
+                        className="h-1.5"
+                      />
                     </div>
                   )}
-                  
+
                   {/* Team Badges */}
                   <div className="flex flex-wrap gap-2">
                     {event.vehicles && (
@@ -904,12 +957,8 @@ export default function AdminEvents() {
                       <Badge key={a.id} variant="outline" className="gap-1">
                         <Users className="w-3 h-3" />
                         {a.profiles?.nome}
-                        {a.checkin_at && !a.checkout_at && (
-                          <span className="ml-1 text-stable">●</span>
-                        )}
-                        {a.checkout_at && (
-                          <CheckCircle2 className="w-3 h-3 ml-1 text-stable" />
-                        )}
+                        {a.checkin_at && !a.checkout_at && <span className="ml-1 text-stable">●</span>}
+                        {a.checkout_at && <CheckCircle2 className="w-3 h-3 ml-1 text-stable" />}
                       </Badge>
                     ))}
                   </div>
