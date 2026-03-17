@@ -186,7 +186,15 @@ export default function EventReport() {
     em_andamento: "Em andamento",
     finalizado: "Finalizado",
     cancelado: "Cancelado",
+    aguardando_finalizacao: "Aguardando Finalização",
   };
+
+  // Compute display status for report
+  const computedStatus = event.status === 'finalizado' 
+    ? 'finalizado' 
+    : new Date(event.data_fim) < new Date() 
+      ? 'aguardando_finalizacao' 
+      : event.status;
 
   return (
     <div className="report-page bg-white min-h-screen" id="event-report">
