@@ -128,25 +128,34 @@ export default function EventDetail() {
       return;
     }
 
-    let eventData = eventRes.data;
-    // Fetch responsible profile if user_id exists
+ let eventData = eventRes.data;
+    let responsibleProfileData = null;
+
+    // 1. Busca o perfil responsável separadamente
     if (eventData?.user_id) {
       const { data: profileData } = await supabase
         .from("profiles")
         .select("nome, telefone")
         .eq("user_id", eventData.user_id)
         .single();
-      eventData = { ...eventData, responsible_profile: profileData };
+      responsibleProfileData = profileData;
     }
 
-    setEvent(eventData as unknown as Event);
+    // 2. Monta o objeto final garantindo a tipagem da interface Event
+    const finalEvent: Event = {
+      ...eventData,
+      // Garante que o responsible_profile seja injetado respeitando a interface
+      responsible_profile: responsibleProfileData,
+    } as unknown as Event;
+
+    // 3. Atualiza os estados
+    setEvent(finalEvent);
     setKmInicial(eventData.km_inicial?.toString() || "");
     setKmFinal(eventData.km_final?.toString() || "");
     setAttendances(attendancesRes.data || []);
     setTeam((teamRes.data || []).filter((m: any) => m.profiles) as TeamMember[]);
     setSignatures((sigRes.data || []) as SignatureRecord[]);
     setIsLoading(false);
-  };
 
   useEffect(() => {
     fetchData();
