@@ -315,7 +315,7 @@ export default function BaseEvents() {
     const end = new Date(event.data_fim);
     if (now < start) return { label: 'Agendado', color: 'bg-muted text-muted-foreground' };
     if (now >= start && now <= end) return { label: 'Em andamento', color: 'bg-warning/20 text-warning' };
-    return { label: 'Finalizado', color: 'bg-stable/20 text-stable' };
+    return { label: 'Aguardando Finalização', color: 'bg-warning/20 text-warning animate-pulse-soft' };
   };
 
   if (isLoading) {

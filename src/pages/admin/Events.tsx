@@ -790,6 +790,11 @@ export default function AdminEvents() {
                         <CardTitle className="text-lg">{event.nome_evento}</CardTitle>
                         {event.status === 'finalizado' ? (
                           <Badge className="bg-muted text-muted-foreground">Finalizado</Badge>
+                        ) : new Date(event.data_fim) < new Date(now) ? (
+                          <Badge className="bg-warning/20 text-warning border-warning/30 gap-1 animate-pulse-soft">
+                            <AlertCircle className="w-3 h-3" />
+                            Aguardando Finalização
+                          </Badge>
                         ) : teamStatus.isComplete ? (
                           <Badge className="bg-stable/20 text-stable border-stable/30 gap-1">
                             <CheckCircle2 className="w-3 h-3" />
