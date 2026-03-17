@@ -124,6 +124,11 @@ export default function TeamEvents() {
                               Em Andamento
                             </Badge>
                           )}
+                          {status === 'aguardando_finalizacao' && (
+                            <Badge className="bg-warning/20 text-warning border-warning/30 animate-pulse-soft">
+                              Aguardando Finalização
+                            </Badge>
+                          )}
                           {status === 'proximo' && (
                             <Badge variant="secondary">Próximo</Badge>
                           )}

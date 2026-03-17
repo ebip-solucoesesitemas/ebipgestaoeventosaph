@@ -261,9 +261,11 @@ export default function AdminEventDetail() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{event.nome_evento}</h1>
-            {event.status === 'finalizado' && (
+            {event.status === 'finalizado' ? (
               <Badge className="bg-muted text-muted-foreground">Finalizado</Badge>
-            )}
+            ) : new Date(event.data_fim) < new Date() ? (
+              <Badge className="bg-warning/20 text-warning border-warning/30 animate-pulse-soft">Aguardando Finalização</Badge>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
