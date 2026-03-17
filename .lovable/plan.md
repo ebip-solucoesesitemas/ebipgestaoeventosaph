@@ -1,29 +1,48 @@
 
-# Plano de Melhorias — EBIP Eventos
 
-## Status das Fases
+# Adicionar "Tipo de Unidade", "Responsável" e "Telefone" ao cadastro e detalhes de eventos
 
-| Fase | Melhoria | Status |
-|------|----------|--------|
-| 1 | Dashboard KPIs | ✅ Implementado |
-| 2 | Exportação PDF | ✅ Implementado |
-| 3 | Histórico Profissional | 🔜 Pendente |
-| 4 | Manutenção Viaturas | ❌ Removido (substituído por campo observação oficina) |
-| 5 | Modo Escuro | ✅ Implementado |
-| 6 | Variáveis Contrato | ✅ Já existia |
-| — | Nota de oficina na viatura | ✅ Implementado |
+## Problema
 
-## Auditoria de Segurança
+O campo **Tipo de Unidade** (USB, USA, etc.) só aparece no formulário de orçamento, mas não no cadastro direto de eventos. O mesmo ocorre com o **nome do responsável** e **telefone** — só visíveis no orçamento. Esses dados precisam estar disponíveis no cadastro de eventos e nas telas de detalhes (admin e equipe).
 
-| # | Correção | Status |
-|---|----------|--------|
-| 1 | AdminRoute — rotas /admin/* protegidas | ✅ Implementado |
-| 2 | ProtectedRoute — rotas /events/* protegidas | ✅ Implementado |
-| 3 | CORS restrito em create-user e delete-user | ✅ Implementado |
-| 4 | CORS bootstrap-admin atualizado com domínios corretos | ✅ Implementado |
-| 5 | Policy redundante `allow select events` removida | ✅ Implementado |
-| 6 | Policy redundante `user can see own events` removida | ✅ Implementado |
-| 7 | Idle timeout 30min com logout automático | ✅ Implementado |
-| 8 | Utilitário de validação UUID criado | ✅ Implementado |
-| 9 | Leaked Password Protection | ⚠️ Requer configuração manual |
-| 10 | WITH CHECK em profiles UPDATE (proteção cargo/is_account_only) | ✅ Implementado |
+## Alterações
+
+### 1. Migration: adicionar coluna `tipo_unidade` na tabela `events`
+
+```sql
+ALTER TABLE public.events ADD COLUMN tipo_unidade text;
+```
+
+A tabela `events` já possui `user_id` (responsável) e `client_id`, então não precisa de novas colunas para responsável/telefone — basta buscar o perfil vinculado ao `user_id`.
+
+### 2. Formulário de criação/edição de eventos (`src/pages/admin/Events.tsx`)
+
+- Adicionar `tipo_unidade` ao `formData` e `resetForm`
+- Adicionar campo Select com as opções (USB, USA, Semi Presencial, etc.) no formulário
+- Incluir `tipo_unidade` no `eventData` enviado ao banco
+- Carregar `tipo_unidade` ao editar evento existente
+
+### 3. Formulário na tela de base (`src/pages/admin/base/BaseEvents.tsx`)
+
+- Mesmo tratamento: adicionar campo `tipo_unidade` ao formulário de criação/edição
+
+### 4. Detalhes do evento admin (`src/pages/admin/EventDetail.tsx`)
+
+- Buscar `tipo_unidade` do evento e exibir como Badge no header
+- Buscar `telefone` do perfil responsável (já busca `nome` via `user_id`) e exibir junto ao nome do responsável
+
+### 5. Detalhes do evento equipe (`src/pages/team/EventDetail.tsx`)
+
+- Buscar perfil responsável (nome + telefone) via `user_id` do evento
+- Exibir nome do responsável e telefone no header
+- Buscar e exibir `tipo_unidade`
+
+| Arquivo | Alteração |
+|---------|-----------|
+| Migration SQL | `ALTER TABLE events ADD COLUMN tipo_unidade text` |
+| `src/pages/admin/Events.tsx` | Campo tipo_unidade no form + salvar/carregar |
+| `src/pages/admin/base/BaseEvents.tsx` | Campo tipo_unidade no form + salvar/carregar |
+| `src/pages/admin/EventDetail.tsx` | Exibir tipo_unidade + telefone do responsável |
+| `src/pages/team/EventDetail.tsx` | Exibir tipo_unidade + responsável (nome + telefone) |
+
