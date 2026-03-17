@@ -186,7 +186,15 @@ export default function EventReport() {
     em_andamento: "Em andamento",
     finalizado: "Finalizado",
     cancelado: "Cancelado",
+    aguardando_finalizacao: "Aguardando Finalização",
   };
+
+  // Compute display status for report
+  const computedStatus = event.status === 'finalizado' 
+    ? 'finalizado' 
+    : new Date(event.data_fim) < new Date() 
+      ? 'aguardando_finalizacao' 
+      : event.status;
 
   return (
     <div className="report-page bg-white min-h-screen" id="event-report">
@@ -235,7 +243,7 @@ export default function EventReport() {
               </div>
               <div className="border-b border-gray-300 px-3 py-1.5">
                 <span className="text-[10px] text-gray-500 block">Status</span>
-                <span className="font-semibold">{statusLabel[event.status] || event.status}</span>
+                <span className="font-semibold">{statusLabel[computedStatus] || event.status}</span>
               </div>
             </div>
             <div className="grid grid-cols-1">

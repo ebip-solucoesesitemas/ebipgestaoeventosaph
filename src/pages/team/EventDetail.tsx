@@ -199,9 +199,11 @@ export default function EventDetail() {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-foreground">{event.nome_evento}</h1>
-            {isEventFinalized && (
+            {isEventFinalized ? (
               <Badge className="bg-stable/20 text-stable">Finalizado</Badge>
-            )}
+            ) : new Date(event.data_fim) < new Date() ? (
+              <Badge className="bg-warning/20 text-warning border-warning/30 animate-pulse-soft">Aguardando Finalização</Badge>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">

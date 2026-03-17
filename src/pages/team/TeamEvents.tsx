@@ -80,7 +80,7 @@ export default function TeamEvents() {
   const getEventStatus = (event: Event) => {
     if (event.status === 'finalizado') return 'finalizado';
     const now = new Date();
-    if (new Date(event.data_fim) <= now) return 'finalizado';
+    if (new Date(event.data_fim) <= now) return 'aguardando_finalizacao';
     if (new Date(event.data_inicio) > now) return 'proximo';
     return 'em_andamento';
   };
@@ -122,6 +122,11 @@ export default function TeamEvents() {
                           {status === 'em_andamento' && (
                             <Badge className="bg-stable text-stable-foreground animate-pulse-soft">
                               Em Andamento
+                            </Badge>
+                          )}
+                          {status === 'aguardando_finalizacao' && (
+                            <Badge className="bg-warning/20 text-warning border-warning/30 animate-pulse-soft">
+                              Aguardando Finalização
                             </Badge>
                           )}
                           {status === 'proximo' && (

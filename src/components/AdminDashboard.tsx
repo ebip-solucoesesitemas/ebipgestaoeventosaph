@@ -218,7 +218,7 @@ export default function AdminDashboard() {
                   const now = new Date();
                   const inicio = new Date(event.data_inicio);
                   const fim = new Date(event.data_fim);
-                  const displayStatus = inicio > now ? 'agendado' : fim < now ? 'finalizado' : 'em_andamento';
+                  const displayStatus = event.status === 'finalizado' ? 'finalizado' : inicio > now ? 'agendado' : fim < now ? 'aguardando_finalizacao' : 'em_andamento';
 
                   return (
                   <Link
