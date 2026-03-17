@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine, Gauge, Save, CheckCircle2, Printer, Ambulance } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, Truck, Users, FileText, Clock, Fuel, PenLine, Gauge, Save, CheckCircle2, Printer, Ambulance, Phone, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import APHForm from '@/components/APHForm';
@@ -29,7 +29,10 @@ interface Event {
   km_final: number | null;
   min_antes_saida_base: number | null;
   horario_saida_base: string | null;
+  tipo_unidade: string | null;
+  user_id: string | null;
   vehicles?: { prefixo: string; modelo: string };
+  responsible_profile?: { nome: string; telefone: string | null } | null;
 }
 
 interface Attendance {
@@ -94,9 +97,20 @@ export default function EventDetail() {
       return;
     }
 
-    setEvent(eventRes.data as unknown as Event);
-    setKmInicial(eventRes.data.km_inicial?.toString() || '');
-    setKmFinal(eventRes.data.km_final?.toString() || '');
+    let eventData = eventRes.data;
+    // Fetch responsible profile if user_id exists
+    if (eventData?.user_id) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('nome, telefone')
+        .eq('user_id', eventData.user_id)
+        .single();
+      eventData = { ...eventData, responsible_profile: profileData };
+    }
+
+    setEvent(eventData as unknown as Event);
+    setKmInicial(eventData.km_inicial?.toString() || '');
+    setKmFinal(eventData.km_final?.toString() || '');
     setAttendances(attendancesRes.data || []);
     setTeam((teamRes.data || []).filter((m: any) => m.profiles) as TeamMember[]);
     setSignatures((sigRes.data || []) as SignatureRecord[]);
@@ -197,8 +211,11 @@ export default function EventDetail() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold text-foreground">{event.nome_evento}</h1>
+            {event.tipo_unidade && (
+              <Badge className="bg-primary/10 text-primary border-primary/20">{event.tipo_unidade}</Badge>
+            )}
             {isEventFinalized ? (
               <Badge className="bg-stable/20 text-stable">Finalizado</Badge>
             ) : new Date(event.data_fim) < new Date() ? (
@@ -214,6 +231,18 @@ export default function EventDetail() {
               <MapPin className="w-4 h-4" />
               {event.local}
             </span>
+            {event.responsible_profile && (
+              <span className="flex items-center gap-1">
+                <User className="w-4 h-4" />
+                Responsável: {event.responsible_profile.nome}
+                {event.responsible_profile.telefone && (
+                  <a href={`tel:${event.responsible_profile.telefone}`} className="flex items-center gap-1 text-primary hover:underline ml-1">
+                    <Phone className="w-3 h-3" />
+                    {event.responsible_profile.telefone}
+                  </a>
+                )}
+              </span>
+            )}
           </div>
         </div>
         {(profile?.cargo === 'admin' || profile?.cargo === 'gestor') && (

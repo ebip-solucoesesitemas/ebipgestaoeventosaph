@@ -97,6 +97,7 @@ export default function BaseEvents() {
     horario_saida_base: '',
     user_id: '',
     selectedProfiles: [] as string[],
+    tipo_unidade: '',
   });
 
   const fetchData = async () => {
@@ -148,14 +149,14 @@ export default function BaseEvents() {
       nome_evento: '', data_inicio: '', data_fim: '', local: '', cep_local: '',
       viatura_id: '', client_id: '', equipe_completa: false, equipe_minima: 2,
       min_antes_saida_base: '', horario_saida_base: '', user_id: '',
-      selectedProfiles: [],
+      selectedProfiles: [], tipo_unidade: '',
     });
     setEditingEvent(null);
   };
 
   const openEditDialog = async (event: Event) => {
     setEditingEvent(event);
-    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base, client_id, user_id').eq('id', event.id).single();
+    const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base, client_id, user_id, tipo_unidade').eq('id', event.id).single();
     setFormData({
       nome_evento: event.nome_evento,
       data_inicio: isoToLocalDatetime(event.data_inicio),
@@ -170,6 +171,7 @@ export default function BaseEvents() {
       horario_saida_base: (data as any)?.horario_saida_base ? isoToLocalDatetime((data as any).horario_saida_base) : '',
       user_id: (data as any)?.user_id || '',
       selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
+      tipo_unidade: (data as any)?.tipo_unidade || '',
     });
     setDialogOpen(true);
   };
@@ -235,6 +237,7 @@ export default function BaseEvents() {
       horario_saida_base: formData.horario_saida_base ? localDatetimeToISO(formData.horario_saida_base) : null,
       user_id: formData.user_id || null,
       base_id: baseId,
+      tipo_unidade: formData.tipo_unidade || null,
     };
 
     let eventId: string;
@@ -426,7 +429,21 @@ export default function BaseEvents() {
                       <SelectItem key={v.id} value={v.id}>{v.prefixo} - {v.modelo} ({v.placa})</SelectItem>
                     ))}
                   </SelectContent>
+              </Select>
+              <div className="space-y-2">
+                <Label>Tipo de Unidade</Label>
+                <Select value={formData.tipo_unidade} onValueChange={(v) => setFormData(prev => ({ ...prev, tipo_unidade: v }))}>
+                  <SelectTrigger className="input-touch"><SelectValue placeholder="Selecione o tipo de unidade (opcional)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Semi Presencial">Semi Presencial</SelectItem>
+                    <SelectItem value="Presencial">Presencial</SelectItem>
+                    <SelectItem value="USB dois Técnicos">USB dois Técnicos</SelectItem>
+                    <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
+                    <SelectItem value="Ambulatório">Ambulatório</SelectItem>
+                    <SelectItem value="USB somente condutor">USB somente condutor</SelectItem>
+                  </SelectContent>
                 </Select>
+              </div>
               </div>
               <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
                 <Label className="text-base font-semibold flex items-center gap-2">
