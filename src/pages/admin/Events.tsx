@@ -597,7 +597,7 @@ export default function AdminEvents() {
                     <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
                     <SelectItem value="Ambulatório">Ambulatório</SelectItem>
                     <SelectItem value="USB somente condutor">USB somente condutor</SelectItem>
-                    <SelectItem value="USB Noormal">USB Normal</SelectItem>
+                    <SelectItem value="USB Normal">USB Normal</SelectItem>
                     <SelectItem value="USA">USA</SelectItem>
                   </SelectContent>
                 </Select>
