@@ -37,8 +37,10 @@ interface Event {
     placa: string;
     prefixo: string;
   };
+  tipo_unidade?: string | null;
   responsible_profile?: {
     nome: string;
+    telefone: string | null;
   } | null;
 }
 
@@ -144,7 +146,7 @@ export default function AdminEventDetail() {
       if (eventData?.user_id) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('nome')
+          .select('nome, telefone')
           .eq('user_id', eventData.user_id)
           .single();
         eventData = { ...eventData, responsible_profile: profileData };
@@ -261,6 +263,9 @@ export default function AdminEventDetail() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{event.nome_evento}</h1>
+            {event.tipo_unidade && (
+              <Badge className="bg-primary/10 text-primary border-primary/20">{event.tipo_unidade}</Badge>
+            )}
             {event.status === 'finalizado' ? (
               <Badge className="bg-muted text-muted-foreground">Finalizado</Badge>
             ) : new Date(event.data_fim) < new Date() ? (
@@ -285,7 +290,13 @@ export default function AdminEventDetail() {
             {event.responsible_profile && (
               <span className="flex items-center gap-1">
                 <User className="w-4 h-4" />
-                Conta: {event.responsible_profile.nome}
+                Responsável: {event.responsible_profile.nome}
+                {event.responsible_profile.telefone && (
+                  <a href={`tel:${event.responsible_profile.telefone}`} className="flex items-center gap-1 text-primary hover:underline ml-1">
+                    <Phone className="w-3 h-3" />
+                    {event.responsible_profile.telefone}
+                  </a>
+                )}
               </span>
             )}
           </div>
