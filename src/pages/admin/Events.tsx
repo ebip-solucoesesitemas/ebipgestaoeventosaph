@@ -590,15 +590,17 @@ export default function AdminEvents() {
                   <SelectTrigger className="input-touch">
                     <SelectValue placeholder="Selecione o tipo de unidade (opcional)" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Semi Presencial">Semi Presencial</SelectItem>
-                    <SelectItem value="Presencial">Presencial</SelectItem>
-                    <SelectItem value="USB dois Técnicos">USB dois Técnicos</SelectItem>
-                    <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
-                    <SelectItem value="Ambulatório">Ambulatório</SelectItem>
-                    <SelectItem value="USB somente condutor">USB somente condutor</SelectItem>
-                    <SelectItem value="USB Normal">USB Normal</SelectItem>
-                    <SelectItem value="USA">USA</SelectItem>
+                  <SelectContent className="z-[100] min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-80">
+                    <div className="max-h-[250px] overflow-y-auto p-1">
+                      <SelectItem value="Semi Presencial">Semi Presencial</SelectItem>
+                      <SelectItem value="Presencial">Presencial</SelectItem>
+                      <SelectItem value="USB dois Técnicos">USB dois Técnicos</SelectItem>
+                      <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
+                      <SelectItem value="Ambulatório">Ambulatório</SelectItem>
+                      <SelectItem value="USB somente condutor">USB somente condutor</SelectItem>
+                      <SelectItem value="USB Normal">USB Normal</SelectItem>
+                      <SelectItem value="USA">USA</SelectItem>
+                    </div>
                   </SelectContent>
                 </Select>
               </div>
