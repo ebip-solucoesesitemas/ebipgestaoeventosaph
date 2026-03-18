@@ -65,8 +65,11 @@ export default function AdminVehicles() {
       setVehicles(data || []);
 
       const vehicleIds = data?.filter((v) => v.status === "em_uso").map((v) => v.id) || [];
+
       if (vehicleIds.length > 0) {
-        const now = new Date();
+        // Pega o horário atual exato
+        const now = new Date().getTime();
+
         const { data: eventsData } = await supabase
           .from("events")
           .select("id, nome_evento, data_inicio, data_fim, viatura_id")
@@ -74,11 +77,16 @@ export default function AdminVehicles() {
           .neq("status", "finalizado");
 
         const eventsMap: Record<string, VehicleEvent | null> = {};
-        eventsData?.forEach((event) => {
-          const eventStart = new Date(event.data_inicio);
-          const eventEnd = new Date(event.data_fim);
 
-          if (now >= eventStart && now <= eventEnd) {
+        eventsData?.forEach((event) => {
+          // Converte as datas do banco para o timestamp numérico para comparação segura
+          const start = new Date(event.data_inicio).getTime();
+          const end = new Date(event.data_fim).getTime();
+
+          // DEBUG: Descomente a linha abaixo no seu console para ver o que está acontecendo
+          // console.log(`Viatura: ${event.viatura_id} | Agora: ${now} | Início: ${start} | Fim: ${end}`);
+
+          if (now >= start && now <= end) {
             eventsMap[event.viatura_id] = {
               id: event.id,
               nome_evento: event.nome_evento,
@@ -250,6 +258,9 @@ export default function AdminVehicles() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {vehicles.map((vehicle) => {
           const activeEvent = vehicleEvents[vehicle.id];
+
+          // Se no banco está 'em_uso', mas o activeEvent está vazio (porque o horário não bate),
+          // ele VAI ser 'disponivel'.
           const displayStatus: VehicleStatus =
             vehicle.status === "em_uso" && !activeEvent ? "disponivel" : vehicle.status;
 
