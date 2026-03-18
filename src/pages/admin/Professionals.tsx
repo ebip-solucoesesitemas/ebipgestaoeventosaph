@@ -1,28 +1,30 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { formatCPF } from '@/lib/masks';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { formatCPF } from "@/lib/masks";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2, Key, Phone, MapPin, DollarSign } from 'lucide-react';
+  Users,
+  Shield,
+  Stethoscope,
+  UserRound,
+  Ambulance,
+  Plus,
+  Edit,
+  Trash2,
+  Key,
+  Phone,
+  MapPin,
+  DollarSign,
+} from "lucide-react";
 
+// ADIÇÃO: telefone_celular na interface
 interface Profile {
   id: string;
   nome: string;
@@ -31,6 +33,7 @@ interface Profile {
   cargo: string;
   user_id: string | null;
   telefone: string | null;
+  telefone_celular?: string | null; // 👈 ADICIONADO
   cpf: string | null;
   chave_pix: string | null;
   base_id: string | null;
@@ -47,13 +50,13 @@ interface Base {
 }
 
 const especialidadeIcons: Record<string, typeof Stethoscope> = {
-  'Médico': Stethoscope,
-  'Enfermeiro': UserRound,
-  'Técnico': UserRound,
-  'Socorrista': Ambulance,
+  Médico: Stethoscope,
+  Enfermeiro: UserRound,
+  Técnico: UserRound,
+  Socorrista: Ambulance,
 };
 
-const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR', 'Operacional'];
+const especialidades = ["Médico", "Enfermeiro", "Técnico", "Socorrista", "VTR", "Operacional"];
 
 export default function AdminProfessionals() {
   const { toast } = useToast();
@@ -66,28 +69,29 @@ export default function AdminProfessionals() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    nome: '',
-    especialidade: '',
-    registro_profissional: '',
-    cargo: 'equipe',
-    cpf: '',
-    chave_pix: '',
-    base_id: '',
-    email: '',
-    password: '',
-    valor_hora: '',
-    valor_evento: '',
+    nome: "",
+    especialidade: "",
+    registro_profissional: "",
+    cargo: "equipe",
+    cpf: "",
+    chave_pix: "",
+    base_id: "",
+    email: "",
+    password: "",
+    valor_hora: "",
+    valor_evento: "",
+    telefone_celular: "", // 👈 JÁ EXISTIA
   });
 
   const fetchProfiles = async () => {
     setIsLoading(true);
     const [profilesRes, ratesRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('hidden', false).eq('is_account_only', false).order('nome'),
-      supabase.from('professional_rates').select('*'),
+      supabase.from("profiles").select("*").eq("hidden", false).eq("is_account_only", false).order("nome"),
+      supabase.from("professional_rates").select("*"),
     ]);
 
     if (profilesRes.error) {
-      toast({ title: 'Erro ao carregar', description: profilesRes.error.message, variant: 'destructive' });
+      toast({ title: "Erro ao carregar", description: profilesRes.error.message, variant: "destructive" });
     } else {
       setProfiles(profilesRes.data || []);
     }
@@ -101,7 +105,7 @@ export default function AdminProfessionals() {
   };
 
   const fetchBases = async () => {
-    const { data } = await supabase.from('bases').select('id, nome, sigla').order('nome');
+    const { data } = await supabase.from("bases").select("id, nome, sigla").order("nome");
     setBases(data || []);
   };
 
@@ -111,7 +115,20 @@ export default function AdminProfessionals() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', chave_pix: '', base_id: '', email: '', password: '', valor_hora: '', valor_evento: '' });
+    setFormData({
+      nome: "",
+      especialidade: "",
+      registro_profissional: "",
+      cargo: "equipe",
+      cpf: "",
+      chave_pix: "",
+      base_id: "",
+      email: "",
+      password: "",
+      valor_hora: "",
+      valor_evento: "",
+      telefone_celular: "", // 👈 ADICIONADO
+    });
     setEditingProfile(null);
   };
 
@@ -123,13 +140,14 @@ export default function AdminProfessionals() {
       especialidade: profile.especialidade,
       registro_profissional: profile.registro_profissional,
       cargo: profile.cargo,
-      cpf: profile.cpf || '',
-      chave_pix: profile.chave_pix || '',
-      base_id: profile.base_id || '',
-      email: '',
-      password: '',
-      valor_hora: rate?.valor_hora ? String(rate.valor_hora) : '',
-      valor_evento: rate?.valor_evento ? String(rate.valor_evento) : '',
+      cpf: profile.cpf || "",
+      telefone_celular: profile.telefone_celular || "",
+      chave_pix: profile.chave_pix || "",
+      base_id: profile.base_id || "",
+      email: "",
+      password: "",
+      valor_hora: rate?.valor_hora ? String(rate.valor_hora) : "",
+      valor_evento: rate?.valor_evento ? String(rate.valor_evento) : "",
     });
     setDialogOpen(true);
   };
@@ -142,21 +160,19 @@ export default function AdminProfessionals() {
       // Update existing profile
       const payload = {
         nome: formData.nome,
-        especialidade: formData.especialidade as 'Médico' | 'Enfermeiro' | 'Técnico' | 'Socorrista',
+        especialidade: formData.especialidade as "Médico" | "Enfermeiro" | "Técnico" | "Socorrista",
         registro_profissional: formData.registro_profissional,
-        cargo: formData.cargo as 'admin' | 'equipe',
+        cargo: formData.cargo as "admin" | "equipe",
         cpf: formData.cpf || null,
         chave_pix: formData.chave_pix || null,
         base_id: formData.base_id || null,
+        telefone_celular: formData.telefone_celular,
       };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(payload)
-        .eq('id', editingProfile.id);
+      const { error } = await supabase.from("profiles").update(payload).eq("id", editingProfile.id);
 
       if (error) {
-        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+        toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
         setIsSubmitting(false);
         return;
       }
@@ -167,19 +183,19 @@ export default function AdminProfessionals() {
         valor_hora: parseFloat(formData.valor_hora) || 0,
         valor_evento: parseFloat(formData.valor_evento) || 0,
       };
-      await supabase.from('professional_rates').upsert(ratePayload, { onConflict: 'profile_id' });
+      await supabase.from("professional_rates").upsert(ratePayload, { onConflict: "profile_id" });
 
-      toast({ title: 'Profissional atualizado!' });
+      toast({ title: "Profissional atualizado!" });
     } else {
       // If email and password provided, create user + profile via edge function
       if (formData.email && formData.password) {
         if (formData.password.length < 6) {
-          toast({ title: 'Senha deve ter no mínimo 6 caracteres', variant: 'destructive' });
+          toast({ title: "Senha deve ter no mínimo 6 caracteres", variant: "destructive" });
           setIsSubmitting(false);
           return;
         }
 
-        const { data, error } = await supabase.functions.invoke('create-user', {
+        const { data, error } = await supabase.functions.invoke("create-user", {
           body: {
             email: formData.email,
             password: formData.password,
@@ -188,63 +204,77 @@ export default function AdminProfessionals() {
               especialidade: formData.especialidade,
               registro_profissional: formData.registro_profissional,
               cargo: formData.cargo,
+              telefone_celular: formData.telefone_celular,
             },
           },
         });
 
         if (error) {
-          toast({ title: 'Erro ao criar usuário', description: error.message, variant: 'destructive' });
+          toast({ title: "Erro ao criar usuário", description: error.message, variant: "destructive" });
           setIsSubmitting(false);
           return;
         }
 
         if (data?.error) {
-          toast({ title: 'Erro ao criar usuário', description: data.error, variant: 'destructive' });
+          toast({ title: "Erro ao criar usuário", description: data.error, variant: "destructive" });
           setIsSubmitting(false);
           return;
         }
 
         // Save rates for the new profile created via edge function
         if (data?.profileId && (formData.valor_hora || formData.valor_evento)) {
-          await supabase.from('professional_rates').upsert({
-            profile_id: data.profileId,
-            valor_hora: parseFloat(formData.valor_hora) || 0,
-            valor_evento: parseFloat(formData.valor_evento) || 0,
-          }, { onConflict: 'profile_id' });
+          await supabase.from("professional_rates").upsert(
+            {
+              profile_id: data.profileId,
+              valor_hora: parseFloat(formData.valor_hora) || 0,
+              valor_evento: parseFloat(formData.valor_evento) || 0,
+            },
+            { onConflict: "profile_id" },
+          );
         }
-        toast({ title: 'Profissional cadastrado com sucesso!', description: `Login: ${formData.email}` });
+        toast({ title: "Profissional cadastrado com sucesso!", description: `Login: ${formData.email}` });
       } else {
         // Insert profile directly without auth user
-        const { error } = await supabase.from('profiles').insert({
+        const { error } = await supabase.from("profiles").insert({
           user_id: null,
           nome: formData.nome,
           especialidade: formData.especialidade as any,
-          registro_profissional: formData.registro_profissional || '',
+          registro_profissional: formData.registro_profissional || "",
           cargo: formData.cargo as any,
           cpf: formData.cpf || null,
           chave_pix: formData.chave_pix || null,
           base_id: formData.base_id || null,
+          telefone_celular: formData.telefone_celular || null, // 👈 ADICIONADO
         });
 
         if (error) {
-          toast({ title: 'Erro ao cadastrar', description: error.message, variant: 'destructive' });
+          toast({ title: "Erro ao cadastrar", description: error.message, variant: "destructive" });
           setIsSubmitting(false);
           return;
         }
 
         // Save rates: need to find the newly created profile
         if (formData.valor_hora || formData.valor_evento) {
-          const { data: newProfiles } = await supabase.from('profiles').select('id').eq('nome', formData.nome).eq('user_id', null as any).order('created_at', { ascending: false }).limit(1);
+          const { data: newProfiles } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("nome", formData.nome)
+            .eq("user_id", null as any)
+            .order("created_at", { ascending: false })
+            .limit(1);
           if (newProfiles?.[0]) {
-            await supabase.from('professional_rates').upsert({
-              profile_id: newProfiles[0].id,
-              valor_hora: parseFloat(formData.valor_hora) || 0,
-              valor_evento: parseFloat(formData.valor_evento) || 0,
-            }, { onConflict: 'profile_id' });
+            await supabase.from("professional_rates").upsert(
+              {
+                profile_id: newProfiles[0].id,
+                valor_hora: parseFloat(formData.valor_hora) || 0,
+                valor_evento: parseFloat(formData.valor_evento) || 0,
+              },
+              { onConflict: "profile_id" },
+            );
           }
         }
 
-        toast({ title: 'Profissional cadastrado com sucesso!' });
+        toast({ title: "Profissional cadastrado com sucesso!" });
       }
     }
 
@@ -255,35 +285,35 @@ export default function AdminProfessionals() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este profissional? Isso também removerá o acesso ao sistema.')) return;
+    if (!confirm("Tem certeza que deseja excluir este profissional? Isso também removerá o acesso ao sistema.")) return;
 
-    const { data, error } = await supabase.functions.invoke('delete-user', {
+    const { data, error } = await supabase.functions.invoke("delete-user", {
       body: { profileId: id },
     });
 
     if (error) {
-      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
       return;
     }
 
     if (data?.error) {
-      toast({ title: 'Erro ao excluir', description: data.error, variant: 'destructive' });
+      toast({ title: "Erro ao excluir", description: data.error, variant: "destructive" });
       return;
     }
 
-    toast({ title: 'Profissional excluído!' });
+    toast({ title: "Profissional excluído!" });
     fetchProfiles();
   };
 
   const toggleCargo = async (profile: Profile) => {
-    const newCargo = profile.cargo === 'admin' ? 'equipe' : 'admin';
-    
-    const { error } = await (supabase.rpc as any)('toggle_user_role', {
+    const newCargo = profile.cargo === "admin" ? "equipe" : "admin";
+
+    const { error } = await (supabase.rpc as any)("toggle_user_role", {
       p_profile_id: profile.id,
     });
 
     if (error) {
-      toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
     } else {
       toast({ title: `Cargo alterado para ${newCargo}` });
       fetchProfiles();
@@ -306,7 +336,13 @@ export default function AdminProfessionals() {
           <p className="text-muted-foreground">Gerencie a equipe médica</p>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="btn-touch gap-2">
               <Plus className="w-5 h-5" />
@@ -315,14 +351,14 @@ export default function AdminProfessionals() {
           </DialogTrigger>
           <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingProfile ? 'Editar Profissional' : 'Novo Profissional'}</DialogTitle>
+              <DialogTitle>{editingProfile ? "Editar Profissional" : "Novo Profissional"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Nome Completo *</Label>
                 <Input
                   value={formData.nome}
-                  onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, nome: e.target.value }))}
                   placeholder="Ex: Dr. João Silva"
                   required
                 />
@@ -332,14 +368,16 @@ export default function AdminProfessionals() {
                 <Label>Especialidade *</Label>
                 <Select
                   value={formData.especialidade}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, especialidade: v }))}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, especialidade: v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a especialidade" />
                   </SelectTrigger>
                   <SelectContent>
                     {especialidades.map((esp) => (
-                      <SelectItem key={esp} value={esp}>{esp}</SelectItem>
+                      <SelectItem key={esp} value={esp}>
+                        {esp}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -349,7 +387,7 @@ export default function AdminProfessionals() {
                 <Label>Registro Profissional</Label>
                 <Input
                   value={formData.registro_profissional}
-                  onChange={(e) => setFormData(prev => ({ ...prev, registro_profissional: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, registro_profissional: e.target.value }))}
                   placeholder="Ex: CRM 12345"
                 />
               </div>
@@ -358,9 +396,22 @@ export default function AdminProfessionals() {
                 <Label>CPF</Label>
                 <Input
                   value={formData.cpf}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cpf: e.target.value }))}
-                  onBlur={(e) => setFormData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, cpf: e.target.value }))}
+                  onBlur={(e) => setFormData((prev) => ({ ...prev, cpf: formatCPF(e.target.value) }))}
                   placeholder="000.000.000-00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefone Celular</Label>
+                <Input
+                  value={formData.telefone_celular}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      telefone_celular: e.target.value,
+                    }))
+                  }
+                  placeholder="(48) 99999-9999"
                 />
               </div>
 
@@ -368,17 +419,14 @@ export default function AdminProfessionals() {
                 <Label>Chave PIX</Label>
                 <Input
                   value={formData.chave_pix}
-                  onChange={(e) => setFormData(prev => ({ ...prev, chave_pix: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, chave_pix: e.target.value }))}
                   placeholder="CPF, email, telefone ou chave aleatória"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Cargo</Label>
-                <Select
-                  value={formData.cargo}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, cargo: v }))}
-                >
+                <Select value={formData.cargo} onValueChange={(v) => setFormData((prev) => ({ ...prev, cargo: v }))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -396,7 +444,7 @@ export default function AdminProfessionals() {
                 <Label>Base</Label>
                 <Select
                   value={formData.base_id}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, base_id: v === '_none' ? '' : v }))}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, base_id: v === "_none" ? "" : v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a base (opcional)" />
@@ -404,7 +452,9 @@ export default function AdminProfessionals() {
                   <SelectContent>
                     <SelectItem value="_none">Nenhuma</SelectItem>
                     {bases.map((base) => (
-                      <SelectItem key={base.id} value={base.id}>{base.nome} ({base.sigla})</SelectItem>
+                      <SelectItem key={base.id} value={base.id}>
+                        {base.nome} ({base.sigla})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -422,7 +472,7 @@ export default function AdminProfessionals() {
                       type="number"
                       step="0.01"
                       value={formData.valor_hora}
-                      onChange={(e) => setFormData(prev => ({ ...prev, valor_hora: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, valor_hora: e.target.value }))}
                       placeholder="0,00"
                     />
                   </div>
@@ -432,7 +482,7 @@ export default function AdminProfessionals() {
                       type="number"
                       step="0.01"
                       value={formData.valor_evento}
-                      onChange={(e) => setFormData(prev => ({ ...prev, valor_evento: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, valor_evento: e.target.value }))}
                       placeholder="0,00"
                     />
                   </div>
@@ -456,7 +506,7 @@ export default function AdminProfessionals() {
                     <Input
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                       placeholder="profissional@email.com"
                     />
                   </div>
@@ -466,7 +516,7 @@ export default function AdminProfessionals() {
                     <Input
                       type="password"
                       value={formData.password}
-                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
                       placeholder="Mínimo 6 caracteres"
                       minLength={6}
                     />
@@ -478,7 +528,7 @@ export default function AdminProfessionals() {
               )}
 
               <Button type="submit" className="w-full btn-touch" disabled={isSubmitting}>
-                {isSubmitting ? 'Processando...' : editingProfile ? 'Salvar Alterações' : 'Cadastrar Profissional'}
+                {isSubmitting ? "Processando..." : editingProfile ? "Salvar Alterações" : "Cadastrar Profissional"}
               </Button>
             </form>
           </DialogContent>
@@ -491,9 +541,7 @@ export default function AdminProfessionals() {
             <CardContent className="py-12 text-center">
               <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Nenhum profissional cadastrado</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Clique em "Novo Profissional" para adicionar
-              </p>
+              <p className="text-sm text-muted-foreground mt-1">Clique em "Novo Profissional" para adicionar</p>
             </CardContent>
           </Card>
         ) : (
@@ -523,34 +571,32 @@ export default function AdminProfessionals() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    {profile.registro_profissional}
-                  </p>
-                  {profile.cpf && (
-                    <p className="text-sm text-muted-foreground">CPF: {profile.cpf}</p>
-                  )}
+                  <p className="text-sm text-muted-foreground">{profile.registro_profissional}</p>
+                  {profile.cpf && <p className="text-sm text-muted-foreground">CPF: {profile.cpf}</p>}
                   {(rates[profile.id]?.valor_hora > 0 || rates[profile.id]?.valor_evento > 0) && (
                     <div className="flex items-center gap-2 flex-wrap">
                       <DollarSign className="w-3 h-3 text-muted-foreground" />
                       {rates[profile.id]?.valor_hora > 0 && (
-                        <Badge variant="outline" className="text-xs">R$ {rates[profile.id].valor_hora.toFixed(2)}/h</Badge>
+                        <Badge variant="outline" className="text-xs">
+                          R$ {rates[profile.id].valor_hora.toFixed(2)}/h
+                        </Badge>
                       )}
                       {rates[profile.id]?.valor_evento > 0 && (
-                        <Badge variant="outline" className="text-xs">R$ {rates[profile.id].valor_evento.toFixed(2)}/evento</Badge>
+                        <Badge variant="outline" className="text-xs">
+                          R$ {rates[profile.id].valor_evento.toFixed(2)}/evento
+                        </Badge>
                       )}
                     </div>
                   )}
-                  {profile.chave_pix && (
-                    <p className="text-sm text-muted-foreground">PIX: {profile.chave_pix}</p>
-                  )}
-                  {profile.telefone && (
+                  {profile.chave_pix && <p className="text-sm text-muted-foreground">PIX: {profile.chave_pix}</p>}
+                  {profile.telefone_celular && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Phone className="w-3 h-3" /> {profile.telefone}
+                      <Phone className="w-3 h-3" /> {profile.telefone_celular}
                     </p>
                   )}
                   {profile.base_id && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> {bases.find(b => b.id === profile.base_id)?.nome || 'Base'}
+                      <MapPin className="w-3 h-3" /> {bases.find((b) => b.id === profile.base_id)?.nome || "Base"}
                     </p>
                   )}
                   <div className="flex items-center gap-2">
@@ -566,16 +612,12 @@ export default function AdminProfessionals() {
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <Badge variant={profile.cargo === 'admin' ? 'default' : 'secondary'}>
-                      {profile.cargo === 'admin' && <Shield className="w-3 h-3 mr-1" />}
-                      {profile.cargo === 'admin' ? 'Administrador' : 'Equipe'}
+                    <Badge variant={profile.cargo === "admin" ? "default" : "secondary"}>
+                      {profile.cargo === "admin" && <Shield className="w-3 h-3 mr-1" />}
+                      {profile.cargo === "admin" ? "Administrador" : "Equipe"}
                     </Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleCargo(profile)}
-                    >
-                      {profile.cargo === 'admin' ? 'Remover Admin' : 'Tornar Admin'}
+                    <Button variant="outline" size="sm" onClick={() => toggleCargo(profile)}>
+                      {profile.cargo === "admin" ? "Remover Admin" : "Tornar Admin"}
                     </Button>
                   </div>
                 </CardContent>
