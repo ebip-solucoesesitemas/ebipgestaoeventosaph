@@ -458,6 +458,24 @@ export default function AdminEventDetail() {
                       {a.profiles.telefone && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <Phone className="w-3 h-3" /> {a.profiles.telefone}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 ml-1"
+                            title="Enviar confirmação via WhatsApp"
+                            onClick={() => {
+                              const phone = a.profiles.telefone!.replace(/\D/g, '');
+                              const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`;
+                              const dataInicio = format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+                              const dataFim = format(new Date(event.data_fim), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+                              let message = `*Confirmação de Evento*\n\n📋 *Evento:* ${event.nome_evento}\n📅 *Início:* ${dataInicio}\n📅 *Fim:* ${dataFim}\n📍 *Local:* ${event.local}\n`;
+                              if (event.vehicles) message += `🚑 *VTR:* ${event.vehicles.prefixo} - ${event.vehicles.modelo}\n`;
+                              message += `\nPor favor, confirme sua presença.`;
+                              window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank');
+                            }}
+                          >
+                            <MessageCircle className="w-3 h-3 text-stable" />
+                          </Button>
                         </p>
                       )}
                     </div>
