@@ -115,9 +115,6 @@ export default function AdminEvents() {
   const [profileSearch, setProfileSearch] = useState("");
   const [pendingBudgetId, setPendingBudgetId] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
-  const [filterMonth, setFilterMonth] = useState<string>("");
-  const [filterYear, setFilterYear] = useState<string>("");
-  const [filterDate, setFilterDate] = useState<string>("");
 
   // Update `now` every 60s for temporal progress bar
   useEffect(() => {
@@ -450,78 +447,6 @@ export default function AdminEvents() {
     return vehicles;
   };
 
-  const duplicateEvent = (event: Event) => {
-    setEditingEvent(null);
-    const fetchEventDetails = async () => {
-      const { data } = await supabase
-        .from("events")
-        .select("user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade, valor_litro_combustivel, consumo_medio_km_litro")
-        .eq("id", event.id)
-        .single();
-      setFormData({
-        nome_evento: event.nome_evento,
-        data_inicio: "",
-        data_fim: "",
-        local: event.local,
-        cep_local: "",
-        base_id: (data as any)?.base_id || "",
-        viatura_id: "",
-        user_id: (data as any)?.user_id || "",
-        equipe_completa: false,
-        equipe_minima: event.equipe_minima || 2,
-        valor_litro_combustivel: (data as any)?.valor_litro_combustivel?.toString() || "",
-        consumo_medio_km_litro: (data as any)?.consumo_medio_km_litro?.toString() || "10",
-        min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || "",
-        horario_saida_base: "",
-        selectedProfiles: assignments[event.id]?.map((a) => a.profile_id) || [],
-        client_id: "",
-        tipo_unidade: (data as any)?.tipo_unidade || "",
-      });
-    };
-    fetchEventDetails();
-    setDialogOpen(true);
-    toast({ title: "Evento duplicado", description: "Ajuste as datas e salve como novo evento." });
-  };
-
-  const sendWhatsApp = (event: Event, profileId: string) => {
-    const profile = profiles.find((p) => p.id === profileId);
-    if (!profile) return;
-
-    // Get phone from profile - need to fetch
-    const sendMessage = async () => {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("telefone")
-        .eq("id", profileId)
-        .single();
-
-      const telefone = (profileData as any)?.telefone;
-      if (!telefone) {
-        toast({ title: "Profissional sem telefone cadastrado", variant: "destructive" });
-        return;
-      }
-
-      const vehicle = event.vehicles;
-      const dataInicio = format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-      const dataFim = format(new Date(event.data_fim), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-
-      let message = `*Confirmação de Evento*\n\n`;
-      message += `📋 *Evento:* ${event.nome_evento}\n`;
-      message += `📅 *Início:* ${dataInicio}\n`;
-      message += `📅 *Fim:* ${dataFim}\n`;
-      message += `📍 *Local:* ${event.local}\n`;
-      if (vehicle) {
-        message += `🚑 *VTR:* ${vehicle.prefixo} - ${vehicle.modelo} (${vehicle.placa})\n`;
-      }
-      message += `\nPor favor, confirme sua presença.`;
-
-      const phone = telefone.replace(/\D/g, "");
-      const phoneWithCountry = phone.startsWith("55") ? phone : `55${phone}`;
-      window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, "_blank");
-    };
-    sendMessage();
-  };
-
   const getTeamStatus = (event: Event) => {
     const eventAssignments = assignments[event.id] || [];
     const teamSize = eventAssignments.length;
@@ -547,26 +472,40 @@ export default function AdminEvents() {
     };
   };
 
-  // Filter events
-  const filteredEvents = events.filter((event) => {
-    const eventDate = new Date(event.data_inicio);
-    if (filterDate) {
-      const fd = new Date(filterDate);
-      if (eventDate.getFullYear() !== fd.getFullYear() || eventDate.getMonth() !== fd.getMonth() || eventDate.getDate() !== fd.getDate()) {
-        return false;
-      }
-    }
-    if (filterMonth && !filterDate) {
-      if ((eventDate.getMonth() + 1).toString() !== filterMonth) return false;
-    }
-    if (filterYear && !filterDate) {
-      if (eventDate.getFullYear().toString() !== filterYear) return false;
-    }
-    return true;
-  });
+  // ─── NOVO: Enviar confirmação de evento via WhatsApp ───────────────────────
+  const sendWhatsApp = (event: Event, profileId: string) => {
+    const sendMessage = async () => {
+      const { data: profileData } = await supabase.from("profiles").select("telefone").eq("id", profileId).single();
 
-  // Get available years from events
-  const availableYears = [...new Set(events.map((e) => new Date(e.data_inicio).getFullYear()))].sort((a, b) => b - a);
+      const telefone = (profileData as any)?.telefone;
+
+      if (!telefone) {
+        toast({ title: "Profissional sem telefone cadastrado", variant: "destructive" });
+        return;
+      }
+
+      const vehicle = event.vehicles;
+      const dataInicio = format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+      const dataFim = format(new Date(event.data_fim), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+
+      let message = `*Confirmação de Evento*\n\n`;
+      message += `📋 *Evento:* ${event.nome_evento}\n`;
+      message += `📅 *Início:* ${dataInicio}\n`;
+      message += `📅 *Fim:* ${dataFim}\n`;
+      message += `📍 *Local:* ${event.local}\n`;
+      if (vehicle) {
+        message += `🚑 *VTR:* ${vehicle.prefixo} - ${vehicle.modelo} (${vehicle.placa})\n`;
+      }
+      message += `\nPor favor, confirme sua presença.`;
+
+      const phone = telefone.replace(/\D/g, "");
+      const phoneWithCountry = phone.startsWith("55") ? phone : `55${phone}`;
+      window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, "_blank");
+    };
+
+    sendMessage();
+  };
+  // ──────────────────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -936,69 +875,16 @@ export default function AdminEvents() {
         </Dialog>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-end">
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1"><Filter className="w-3 h-3" /> Data</Label>
-          <Input
-            type="date"
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-            className="input-touch w-44"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Mês</Label>
-          <Select value={filterMonth || "all"} onValueChange={(v) => setFilterMonth(v === "all" ? "" : v)}>
-            <SelectTrigger className="input-touch w-36"><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="1">Janeiro</SelectItem>
-              <SelectItem value="2">Fevereiro</SelectItem>
-              <SelectItem value="3">Março</SelectItem>
-              <SelectItem value="4">Abril</SelectItem>
-              <SelectItem value="5">Maio</SelectItem>
-              <SelectItem value="6">Junho</SelectItem>
-              <SelectItem value="7">Julho</SelectItem>
-              <SelectItem value="8">Agosto</SelectItem>
-              <SelectItem value="9">Setembro</SelectItem>
-              <SelectItem value="10">Outubro</SelectItem>
-              <SelectItem value="11">Novembro</SelectItem>
-              <SelectItem value="12">Dezembro</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Ano</Label>
-          <Select value={filterYear || "all"} onValueChange={(v) => setFilterYear(v === "all" ? "" : v)}>
-            <SelectTrigger className="input-touch w-28"><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {availableYears.map((y) => (
-                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {(filterDate || filterMonth || filterYear) && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterDate(""); setFilterMonth(""); setFilterYear(""); }}>
-            Limpar filtros
-          </Button>
-        )}
-      </div>
-
       <div className="grid gap-4">
-        {filteredEvents.length === 0 ? (
+        {events.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                {events.length === 0 ? "Nenhum evento cadastrado" : "Nenhum evento encontrado com os filtros aplicados"}
-              </p>
+              <p className="text-muted-foreground">Nenhum evento cadastrado</p>
             </CardContent>
           </Card>
         ) : (
-          filteredEvents.map((event) => {
+          events.map((event) => {
             const teamStatus = getTeamStatus(event);
             return (
               <Card key={event.id} className="overflow-hidden">
@@ -1038,7 +924,7 @@ export default function AdminEvents() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -1047,9 +933,6 @@ export default function AdminEvents() {
                       >
                         <Eye className="w-4 h-4" />
                         Detalhes
-                      </Button>
-                      <Button variant="ghost" size="icon" title="Duplicar evento" onClick={() => duplicateEvent(event)}>
-                        <Copy className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
                         <Edit className="w-4 h-4" />
@@ -1108,8 +991,9 @@ export default function AdminEvents() {
                         {event.vehicles.prefixo}
                       </Badge>
                     )}
+                    {/* ─── ALTERADO: badge + botão WhatsApp por profissional ─── */}
                     {assignments[event.id]?.map((a) => (
-                      <div key={a.id} className="flex items-center gap-0.5">
+                      <div key={a.id} className="flex items-center gap-1">
                         <Badge variant="outline" className="gap-1">
                           <Users className="w-3 h-3" />
                           {a.profiles?.nome}
@@ -1120,13 +1004,17 @@ export default function AdminEvents() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          title="Enviar confirmação via WhatsApp"
-                          onClick={(e) => { e.stopPropagation(); sendWhatsApp(event, a.profile_id); }}
+                          title={`Enviar WhatsApp para ${a.profiles?.nome}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sendWhatsApp(event, a.profile_id);
+                          }}
                         >
-                          <MessageCircle className="w-3 h-3 text-stable" />
+                          <MessageCircle className="w-3 h-3 text-green-500" />
                         </Button>
                       </div>
                     ))}
+                    {/* ──────────────────────────────────────────────────────── */}
                   </div>
                 </CardContent>
               </Card>
