@@ -1,16 +1,16 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { Plus, Truck, Edit, Trash2, Calendar, Clock } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Truck, Edit, Trash2, Calendar } from 'lucide-react';
 
-type VehicleStatus = "disponivel" | "em_uso" | "manutencao";
+type VehicleStatus = 'disponivel' | 'em_uso' | 'manutencao';
 
 interface Vehicle {
   id: string;
@@ -29,15 +29,15 @@ interface VehicleEvent {
 }
 
 const statusLabels: Record<VehicleStatus, string> = {
-  disponivel: "Disponível",
-  em_uso: "Em Uso",
-  manutencao: "Manutenção",
+  disponivel: 'Disponível',
+  em_uso: 'Em Uso',
+  manutencao: 'Manutenção',
 };
 
 const statusColors: Record<VehicleStatus, string> = {
-  disponivel: "bg-emerald-500 text-white",
-  em_uso: "bg-amber-500 text-white",
-  manutencao: "bg-red-500 text-white",
+  disponivel: 'bg-stable text-stable-foreground',
+  em_uso: 'bg-warning text-warning-foreground',
+  manutencao: 'bg-critical text-critical-foreground',
 };
 
 export default function AdminVehicles() {
@@ -49,47 +49,52 @@ export default function AdminVehicles() {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
 
   const [formData, setFormData] = useState({
-    modelo: "",
-    placa: "",
-    prefixo: "",
-    status: "disponivel" as VehicleStatus,
-    observacao_manutencao: "",
+    modelo: '',
+    placa: '',
+    prefixo: '',
+    status: 'disponivel' as VehicleStatus,
+    observacao_manutencao: '',
   });
 
   const fetchVehicles = async () => {
-    const { data, error } = await supabase.from("vehicles").select("*").order("prefixo");
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('*')
+      .order('prefixo');
 
     if (error) {
-      toast({ title: "Erro ao carregar", description: error.message, variant: "destructive" });
+      toast({ title: 'Erro ao carregar', description: error.message, variant: 'destructive' });
     } else {
       setVehicles(data || []);
-
-      const vehicleIds = data?.filter((v) => v.status === "em_uso").map((v) => v.id) || [];
+      
+      // Fetch events for vehicles that are in use - check if currently within event hours (Brasilia time)
+      const vehicleIds = data?.filter(v => v.status === 'em_uso').map(v => v.id) || [];
       if (vehicleIds.length > 0) {
-        const now = new Date();
-        const inicioHoje = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime();
-        const fimHoje = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).getTime();
-
+        const now = new Date().toISOString();
         const { data: eventsData } = await supabase
-          .from("events")
-          .select("id, nome_evento, data_inicio, data_fim, viatura_id")
-          .in("viatura_id", vehicleIds)
-          .neq("status", "finalizado");
+          .from('events')
+          .select('id, nome_evento, data_inicio, data_fim, viatura_id')
+          .in('viatura_id', vehicleIds)
+          .neq('status', 'finalizado')
+          .order('data_inicio');
 
         const eventsMap: Record<string, VehicleEvent | null> = {};
-        eventsData?.forEach((event) => {
-          const start = new Date(event.data_inicio).getTime();
-          const end = new Date(event.data_fim).getTime();
-          const agora = now.getTime();
-
-          // Lógica: Se o evento é hoje OU se está acontecendo agora
-          if ((start >= inicioHoje && start <= fimHoje) || (agora >= start && agora <= end)) {
-            eventsMap[event.viatura_id] = {
-              id: event.id,
-              nome_evento: event.nome_evento,
-              data_inicio: event.data_inicio,
-              data_fim: event.data_fim,
-            };
+        eventsData?.forEach(event => {
+          if (event.viatura_id && !eventsMap[event.viatura_id]) {
+            // Only show as "empenhada" if current time is within event period
+            const eventStart = new Date(event.data_inicio);
+            const eventEnd = new Date(event.data_fim);
+            const currentTime = new Date(now);
+            
+            if (currentTime >= eventStart && currentTime <= eventEnd) {
+              eventsMap[event.viatura_id] = {
+                id: event.id,
+                nome_evento: event.nome_evento,
+                data_inicio: event.data_inicio,
+                data_fim: event.data_fim,
+              };
+            }
           }
         });
         setVehicleEvents(eventsMap);
@@ -100,12 +105,10 @@ export default function AdminVehicles() {
 
   useEffect(() => {
     fetchVehicles();
-    const interval = setInterval(fetchVehicles, 30000); // Atualiza a cada 30 segundos
-    return () => clearInterval(interval);
   }, []);
 
   const resetForm = () => {
-    setFormData({ modelo: "", placa: "", prefixo: "", status: "disponivel", observacao_manutencao: "" });
+    setFormData({ modelo: '', placa: '', prefixo: '', status: 'disponivel', observacao_manutencao: '' });
     setEditingVehicle(null);
   };
 
@@ -116,7 +119,7 @@ export default function AdminVehicles() {
       placa: vehicle.placa,
       prefixo: vehicle.prefixo,
       status: vehicle.status,
-      observacao_manutencao: vehicle.observacao_manutencao || "",
+      observacao_manutencao: vehicle.observacao_manutencao || '',
     });
     setDialogOpen(true);
   };
@@ -125,23 +128,32 @@ export default function AdminVehicles() {
     e.preventDefault();
     const payload = {
       ...formData,
-      observacao_manutencao: formData.status === "manutencao" ? formData.observacao_manutencao || null : null,
+      observacao_manutencao: formData.status === 'manutencao' ? (formData.observacao_manutencao || null) : null,
     };
 
     if (editingVehicle) {
-      const { error } = await supabase.from("vehicles").update(payload).eq("id", editingVehicle.id);
+      const { error } = await supabase
+        .from('vehicles')
+        .update(payload)
+        .eq('id', editingVehicle.id);
+
       if (error) {
-        toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
         return;
       }
-      toast({ title: "Viatura atualizada!" });
+      toast({ title: 'Viatura atualizada!' });
     } else {
-      const { error } = await supabase.from("vehicles").insert(payload);
+      const { error } = await supabase.from('vehicles').insert(payload);
+
       if (error) {
-        toast({ title: "Erro ao criar", description: error.message, variant: "destructive" });
+        if (error.message.includes('duplicate')) {
+          toast({ title: 'Placa já cadastrada', variant: 'destructive' });
+        } else {
+          toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' });
+        }
         return;
       }
-      toast({ title: "Viatura cadastrada!" });
+      toast({ title: 'Viatura cadastrada!' });
     }
 
     setDialogOpen(false);
@@ -150,12 +162,14 @@ export default function AdminVehicles() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta viatura?")) return;
-    const { error } = await supabase.from("vehicles").delete().eq("id", id);
+    if (!confirm('Tem certeza que deseja excluir esta viatura?')) return;
+
+    const { error } = await supabase.from('vehicles').delete().eq('id', id);
+
     if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: "Viatura excluída!" });
+      toast({ title: 'Viatura excluída!' });
       fetchVehicles();
     }
   };
@@ -172,81 +186,85 @@ export default function AdminVehicles() {
     <div className="space-y-6 animate-slide-up">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Viaturas</h1>
-          <p className="text-muted-foreground">Gestão de frota e disponibilidade</p>
+          <h1 className="text-2xl font-bold text-foreground">Viaturas</h1>
+          <p className="text-muted-foreground">Gerencie a frota de ambulâncias</p>
         </div>
 
-        <Dialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) resetForm();
-          }}
-        >
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-5 h-5" /> Nova Viatura
+            <Button className="btn-touch gap-2">
+              <Plus className="w-5 h-5" />
+              Nova Viatura
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingVehicle ? "Editar Viatura" : "Nova Viatura"}</DialogTitle>
+              <DialogTitle>{editingVehicle ? 'Editar Viatura' : 'Nova Viatura'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Prefixo</Label>
                 <Input
                   value={formData.prefixo}
-                  onChange={(e) => setFormData((p) => ({ ...p, prefixo: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, prefixo: e.target.value }))}
                   placeholder="Ex: USA-01"
+                  className="input-touch"
                   required
                 />
               </div>
+
               <div className="space-y-2">
                 <Label>Modelo</Label>
                 <Input
                   value={formData.modelo}
-                  onChange={(e) => setFormData((p) => ({ ...p, modelo: e.target.value }))}
-                  placeholder="Ex: Mercedes Sprinter"
+                  onChange={(e) => setFormData(prev => ({ ...prev, modelo: e.target.value }))}
+                  placeholder="Ex: Sprinter 415"
+                  className="input-touch"
                   required
                 />
               </div>
+
               <div className="space-y-2">
                 <Label>Placa</Label>
                 <Input
                   value={formData.placa}
-                  onChange={(e) => setFormData((p) => ({ ...p, placa: e.target.value.toUpperCase() }))}
-                  placeholder="ABC1D23"
+                  onChange={(e) => setFormData(prev => ({ ...prev, placa: e.target.value.toUpperCase() }))}
+                  placeholder="ABC-1234"
+                  className="input-touch"
                   required
                 />
               </div>
+
               <div className="space-y-2">
-                <Label>Status Geral</Label>
+                <Label>Status</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(v) => setFormData((p) => ({ ...p, status: v as VehicleStatus }))}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, status: v as VehicleStatus }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="input-touch">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="disponivel">Disponível</SelectItem>
-                    <SelectItem value="em_uso">Em Uso (Agendada)</SelectItem>
+                    <SelectItem value="em_uso">Em Uso</SelectItem>
                     <SelectItem value="manutencao">Manutenção</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {formData.status === "manutencao" && (
+
+              {formData.status === 'manutencao' && (
                 <div className="space-y-2">
-                  <Label>Motivo da Manutenção</Label>
+                  <Label>Motivo / Observação da Oficina</Label>
                   <Input
                     value={formData.observacao_manutencao}
-                    onChange={(e) => setFormData((p) => ({ ...p, observacao_manutencao: e.target.value }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, observacao_manutencao: e.target.value }))}
+                    placeholder="Ex: Motor com superaquecimento, revisão preventiva..."
+                    className="input-touch"
                   />
                 </div>
               )}
-              <Button type="submit" className="w-full">
-                Salvar Viatura
+              <Button type="submit" className="w-full btn-touch">
+                {editingVehicle ? 'Salvar' : 'Cadastrar'}
               </Button>
             </form>
           </DialogContent>
@@ -254,80 +272,70 @@ export default function AdminVehicles() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {vehicles.map((vehicle) => {
-          const activeEvent = vehicleEvents[vehicle.id];
-          const agora = new Date().getTime();
-          const eventoJaIniciou = activeEvent && agora >= new Date(activeEvent.data_inicio).getTime();
-
-          // Se tem evento mas não iniciou o horário, Badge fica Verde (Disponível)
-          const displayStatus: VehicleStatus =
-            vehicle.status === "em_uso" && !eventoJaIniciou ? "disponivel" : vehicle.status;
-
-          return (
-            <Card key={vehicle.id} className={!eventoJaIniciou && activeEvent ? "border-blue-300 shadow-md" : ""}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center ${!eventoJaIniciou && activeEvent ? "bg-blue-100" : "bg-primary/10"}`}
-                    >
-                      <Truck
-                        className={`w-6 h-6 ${!eventoJaIniciou && activeEvent ? "text-blue-600" : "text-primary"}`}
-                      />
+        {vehicles.length === 0 ? (
+          <Card className="md:col-span-2 lg:col-span-3">
+            <CardContent className="py-12 text-center">
+              <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Nenhuma viatura cadastrada</p>
+            </CardContent>
+          </Card>
+        ) : (
+          vehicles.map((vehicle) => {
+            const event = vehicleEvents[vehicle.id];
+            return (
+              <Card key={vehicle.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Truck className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{vehicle.prefixo}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{vehicle.modelo}</p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{vehicle.prefixo}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{vehicle.modelo}</p>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(vehicle)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(vehicle.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(vehicle)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(vehicle.id)}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{vehicle.placa}</span>
+                    <Badge className={statusColors[vehicle.status]}>
+                      {statusLabels[vehicle.status]}
+                    </Badge>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-mono font-bold">{vehicle.placa}</span>
-                  <Badge className={statusColors[displayStatus]}>{statusLabels[displayStatus]}</Badge>
-                </div>
-
-                {activeEvent && (
-                  <div
-                    className={`p-3 rounded-lg border-2 ${eventoJaIniciou ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-200"}`}
-                  >
-                    <div
-                      className={`flex items-center gap-2 text-[10px] font-black uppercase ${eventoJaIniciou ? "text-amber-700" : "text-blue-700"}`}
-                    >
-                      {eventoJaIniciou ? <Clock className="w-3 h-3" /> : <Calendar className="w-3 h-3" />}
-                      {eventoJaIniciou ? "Em Operação Agora" : "Unidade Reservada"}
+                  {vehicle.status === 'em_uso' && event ? (
+                    <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
+                      <div className="flex items-center gap-2 text-sm text-warning">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Empenhada em:</span>
+                      </div>
+                      <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
                     </div>
-                    <p className="text-sm font-bold mt-1 text-slate-800">{activeEvent.nome_evento}</p>
-                    {!eventoJaIniciou && (
-                      <p className="text-[11px] text-blue-600 font-medium mt-1">
-                        Início às{" "}
-                        {new Date(activeEvent.data_inicio).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {vehicle.status === "manutencao" && (
-                  <div className="p-2 rounded-lg bg-red-50 border border-red-100 text-red-700 text-xs italic">
-                    {vehicle.observacao_manutencao || "Em manutenção preventiva"}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+                  ) : vehicle.status === 'em_uso' && !event ? (
+                    <p className="text-xs text-muted-foreground italic">
+                      Fora do horário do evento atual
+                    </p>
+                  ) : null}
+                  {vehicle.status === 'manutencao' && vehicle.observacao_manutencao && (
+                    <div className="p-2 rounded-lg bg-critical/10 border border-critical/20">
+                      <p className="text-xs font-medium text-critical">Oficina:</p>
+                      <p className="text-sm mt-0.5">{vehicle.observacao_manutencao}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );
