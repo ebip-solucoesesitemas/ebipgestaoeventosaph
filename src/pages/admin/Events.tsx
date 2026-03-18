@@ -115,6 +115,9 @@ export default function AdminEvents() {
   const [profileSearch, setProfileSearch] = useState("");
   const [pendingBudgetId, setPendingBudgetId] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [filterMonth, setFilterMonth] = useState<string>("");
+  const [filterYear, setFilterYear] = useState<string>("");
+  const [filterDate, setFilterDate] = useState<string>("");
 
   // Update `now` every 60s for temporal progress bar
   useEffect(() => {
