@@ -936,16 +936,69 @@ export default function AdminEvents() {
         </Dialog>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1"><Filter className="w-3 h-3" /> Data</Label>
+          <Input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="input-touch w-44"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Mês</Label>
+          <Select value={filterMonth || "all"} onValueChange={(v) => setFilterMonth(v === "all" ? "" : v)}>
+            <SelectTrigger className="input-touch w-36"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="1">Janeiro</SelectItem>
+              <SelectItem value="2">Fevereiro</SelectItem>
+              <SelectItem value="3">Março</SelectItem>
+              <SelectItem value="4">Abril</SelectItem>
+              <SelectItem value="5">Maio</SelectItem>
+              <SelectItem value="6">Junho</SelectItem>
+              <SelectItem value="7">Julho</SelectItem>
+              <SelectItem value="8">Agosto</SelectItem>
+              <SelectItem value="9">Setembro</SelectItem>
+              <SelectItem value="10">Outubro</SelectItem>
+              <SelectItem value="11">Novembro</SelectItem>
+              <SelectItem value="12">Dezembro</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Ano</Label>
+          <Select value={filterYear || "all"} onValueChange={(v) => setFilterYear(v === "all" ? "" : v)}>
+            <SelectTrigger className="input-touch w-28"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {availableYears.map((y) => (
+                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {(filterDate || filterMonth || filterYear) && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterDate(""); setFilterMonth(""); setFilterYear(""); }}>
+            Limpar filtros
+          </Button>
+        )}
+      </div>
+
       <div className="grid gap-4">
-        {events.length === 0 ? (
+        {filteredEvents.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nenhum evento cadastrado</p>
+              <p className="text-muted-foreground">
+                {events.length === 0 ? "Nenhum evento cadastrado" : "Nenhum evento encontrado com os filtros aplicados"}
+              </p>
             </CardContent>
           </Card>
         ) : (
-          events.map((event) => {
+          filteredEvents.map((event) => {
             const teamStatus = getTeamStatus(event);
             return (
               <Card key={event.id} className="overflow-hidden">
@@ -985,7 +1038,7 @@ export default function AdminEvents() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       <Button
                         variant="outline"
                         size="sm"
@@ -994,6 +1047,9 @@ export default function AdminEvents() {
                       >
                         <Eye className="w-4 h-4" />
                         Detalhes
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Duplicar evento" onClick={() => duplicateEvent(event)}>
+                        <Copy className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
                         <Edit className="w-4 h-4" />
