@@ -311,6 +311,54 @@ export default function BaseEvents() {
     return vehicles;
   };
 
+  const duplicateEvent = (event: Event) => {
+    setEditingEvent(null);
+    const fetchDetails = async () => {
+      const { data } = await supabase.from('events').select('min_antes_saida_base, horario_saida_base, client_id, user_id, tipo_unidade').eq('id', event.id).single();
+      setFormData({
+        nome_evento: event.nome_evento,
+        data_inicio: '',
+        data_fim: '',
+        local: event.local,
+        cep_local: '',
+        viatura_id: '',
+        client_id: (data as any)?.client_id || '',
+        equipe_completa: false,
+        equipe_minima: event.equipe_minima || 2,
+        min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || '',
+        horario_saida_base: '',
+        user_id: (data as any)?.user_id || '',
+        selectedProfiles: assignments[event.id]?.map(a => a.profile_id) || [],
+        tipo_unidade: (data as any)?.tipo_unidade || '',
+      });
+    };
+    fetchDetails();
+    setDialogOpen(true);
+    toast({ title: 'Evento duplicado', description: 'Ajuste as datas e salve como novo evento.' });
+  };
+
+  const sendWhatsApp = (event: Event, profileId: string) => {
+    const sendMessage = async () => {
+      const { data: profileData } = await supabase.from('profiles').select('nome, telefone').eq('id', profileId).single();
+      const telefone = (profileData as any)?.telefone;
+      if (!telefone) {
+        toast({ title: 'Profissional sem telefone cadastrado', variant: 'destructive' });
+        return;
+      }
+      const dataInicio = format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+      const dataFim = format(new Date(event.data_fim), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+      let message = `*Confirmação de Evento*\n\n📋 *Evento:* ${event.nome_evento}\n📅 *Início:* ${dataInicio}\n📅 *Fim:* ${dataFim}\n📍 *Local:* ${event.local}\n`;
+      if (event.vehicles) {
+        message += `🚑 *VTR:* ${event.vehicles.prefixo} - ${event.vehicles.modelo} (${(event.vehicles as any).placa})\n`;
+      }
+      message += `\nPor favor, confirme sua presença.`;
+      const phone = telefone.replace(/\D/g, '');
+      const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`;
+      window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank');
+    };
+    sendMessage();
+  };
+
   const getEventStatus = (event: Event) => {
     if (event.status === 'finalizado') return { label: 'Finalizado', color: 'bg-stable/20 text-stable' };
     const now = new Date();
