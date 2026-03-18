@@ -575,6 +575,7 @@ export default function BaseEvents() {
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-base">{event.nome_evento}</CardTitle>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" title="Duplicar" onClick={() => duplicateEvent(event)}><Copy className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}><Edit className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(event.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                     </div>
