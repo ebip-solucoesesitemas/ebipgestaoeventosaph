@@ -1109,12 +1109,23 @@ export default function AdminEvents() {
                       </Badge>
                     )}
                     {assignments[event.id]?.map((a) => (
-                      <Badge key={a.id} variant="outline" className="gap-1">
-                        <Users className="w-3 h-3" />
-                        {a.profiles?.nome}
-                        {a.checkin_at && !a.checkout_at && <span className="ml-1 text-stable">●</span>}
-                        {a.checkout_at && <CheckCircle2 className="w-3 h-3 ml-1 text-stable" />}
-                      </Badge>
+                      <div key={a.id} className="flex items-center gap-0.5">
+                        <Badge variant="outline" className="gap-1">
+                          <Users className="w-3 h-3" />
+                          {a.profiles?.nome}
+                          {a.checkin_at && !a.checkout_at && <span className="ml-1 text-stable">●</span>}
+                          {a.checkout_at && <CheckCircle2 className="w-3 h-3 ml-1 text-stable" />}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          title="Enviar confirmação via WhatsApp"
+                          onClick={(e) => { e.stopPropagation(); sendWhatsApp(event, a.profile_id); }}
+                        >
+                          <MessageCircle className="w-3 h-3 text-stable" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 </CardContent>
