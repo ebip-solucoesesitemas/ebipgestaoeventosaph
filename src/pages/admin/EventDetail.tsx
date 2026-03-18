@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, Calendar, MapPin, Truck, Users, Clock, 
   CheckCircle2, AlertCircle, Fuel, FileText, DollarSign,
-  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save, Printer, Phone, Ambulance
+  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save, Printer, Phone, Ambulance, MessageCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
