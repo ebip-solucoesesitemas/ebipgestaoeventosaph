@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Truck, Edit, Trash2, Calendar } from "lucide-react";
+import { Plus, Truck, Edit, Trash2, Calendar, Clock } from "lucide-react";
 
 type VehicleStatus = "disponivel" | "em_uso" | "manutencao";
 
@@ -65,10 +65,10 @@ export default function AdminVehicles() {
       setVehicles(data || []);
 
       const vehicleIds = data?.filter((v) => v.status === "em_uso").map((v) => v.id) || [];
-
       if (vehicleIds.length > 0) {
-        // Pega o horário atual exato
-        const now = new Date().getTime();
+        const now = new Date();
+        const inicioHoje = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime();
+        const fimHoje = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).getTime();
 
         const { data: eventsData } = await supabase
           .from("events")
@@ -77,16 +77,13 @@ export default function AdminVehicles() {
           .neq("status", "finalizado");
 
         const eventsMap: Record<string, VehicleEvent | null> = {};
-
         eventsData?.forEach((event) => {
-          // Converte as datas do banco para o timestamp numérico para comparação segura
           const start = new Date(event.data_inicio).getTime();
           const end = new Date(event.data_fim).getTime();
+          const agora = now.getTime();
 
-          // DEBUG: Descomente a linha abaixo no seu console para ver o que está acontecendo
-          // console.log(`Viatura: ${event.viatura_id} | Agora: ${now} | Início: ${start} | Fim: ${end}`);
-
-          if (now >= start && now <= end) {
+          // Lógica: Se o evento é hoje OU se está acontecendo agora
+          if ((start >= inicioHoje && start <= fimHoje) || (agora >= start && agora <= end)) {
             eventsMap[event.viatura_id] = {
               id: event.id,
               nome_evento: event.nome_evento,
@@ -96,8 +93,6 @@ export default function AdminVehicles() {
           }
         });
         setVehicleEvents(eventsMap);
-      } else {
-        setVehicleEvents({});
       }
     }
     setIsLoading(false);
@@ -105,7 +100,7 @@ export default function AdminVehicles() {
 
   useEffect(() => {
     fetchVehicles();
-    const interval = setInterval(fetchVehicles, 60000);
+    const interval = setInterval(fetchVehicles, 30000); // Atualiza a cada 30 segundos
     return () => clearInterval(interval);
   }, []);
 
@@ -178,7 +173,7 @@ export default function AdminVehicles() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Viaturas</h1>
-          <p className="text-muted-foreground">Gestão de frota em tempo real</p>
+          <p className="text-muted-foreground">Gestão de frota e disponibilidade</p>
         </div>
 
         <Dialog
@@ -203,6 +198,7 @@ export default function AdminVehicles() {
                 <Input
                   value={formData.prefixo}
                   onChange={(e) => setFormData((p) => ({ ...p, prefixo: e.target.value }))}
+                  placeholder="Ex: USA-01"
                   required
                 />
               </div>
@@ -211,6 +207,7 @@ export default function AdminVehicles() {
                 <Input
                   value={formData.modelo}
                   onChange={(e) => setFormData((p) => ({ ...p, modelo: e.target.value }))}
+                  placeholder="Ex: Mercedes Sprinter"
                   required
                 />
               </div>
@@ -219,11 +216,12 @@ export default function AdminVehicles() {
                 <Input
                   value={formData.placa}
                   onChange={(e) => setFormData((p) => ({ ...p, placa: e.target.value.toUpperCase() }))}
+                  placeholder="ABC1D23"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label>Status Base (no sistema)</Label>
+                <Label>Status Geral</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(v) => setFormData((p) => ({ ...p, status: v as VehicleStatus }))}
@@ -240,7 +238,7 @@ export default function AdminVehicles() {
               </div>
               {formData.status === "manutencao" && (
                 <div className="space-y-2">
-                  <Label>Observação</Label>
+                  <Label>Motivo da Manutenção</Label>
                   <Input
                     value={formData.observacao_manutencao}
                     onChange={(e) => setFormData((p) => ({ ...p, observacao_manutencao: e.target.value }))}
@@ -248,7 +246,7 @@ export default function AdminVehicles() {
                 </div>
               )}
               <Button type="submit" className="w-full">
-                Salvar
+                Salvar Viatura
               </Button>
             </form>
           </DialogContent>
@@ -258,19 +256,24 @@ export default function AdminVehicles() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {vehicles.map((vehicle) => {
           const activeEvent = vehicleEvents[vehicle.id];
+          const agora = new Date().getTime();
+          const eventoJaIniciou = activeEvent && agora >= new Date(activeEvent.data_inicio).getTime();
 
-          // Se no banco está 'em_uso', mas o activeEvent está vazio (porque o horário não bate),
-          // ele VAI ser 'disponivel'.
+          // Se tem evento mas não iniciou o horário, Badge fica Verde (Disponível)
           const displayStatus: VehicleStatus =
-            vehicle.status === "em_uso" && !activeEvent ? "disponivel" : vehicle.status;
+            vehicle.status === "em_uso" && !eventoJaIniciou ? "disponivel" : vehicle.status;
 
           return (
-            <Card key={vehicle.id}>
+            <Card key={vehicle.id} className={!eventoJaIniciou && activeEvent ? "border-blue-300 shadow-md" : ""}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Truck className="w-6 h-6 text-primary" />
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center ${!eventoJaIniciou && activeEvent ? "bg-blue-100" : "bg-primary/10"}`}
+                    >
+                      <Truck
+                        className={`w-6 h-6 ${!eventoJaIniciou && activeEvent ? "text-blue-600" : "text-primary"}`}
+                      />
                     </div>
                     <div>
                       <CardTitle className="text-lg">{vehicle.prefixo}</CardTitle>
@@ -289,25 +292,37 @@ export default function AdminVehicles() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-mono">{vehicle.placa}</span>
+                  <span className="text-sm font-mono font-bold">{vehicle.placa}</span>
                   <Badge className={statusColors[displayStatus]}>{statusLabels[displayStatus]}</Badge>
                 </div>
 
-                {activeEvent ? (
-                  <div className="p-2 rounded-lg bg-amber-50 border border-amber-200">
-                    <div className="flex items-center gap-2 text-xs text-amber-700 font-bold">
-                      <Calendar className="w-3 h-3" /> EM OPERAÇÃO AGORA:
+                {activeEvent && (
+                  <div
+                    className={`p-3 rounded-lg border-2 ${eventoJaIniciou ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-200"}`}
+                  >
+                    <div
+                      className={`flex items-center gap-2 text-[10px] font-black uppercase ${eventoJaIniciou ? "text-amber-700" : "text-blue-700"}`}
+                    >
+                      {eventoJaIniciou ? <Clock className="w-3 h-3" /> : <Calendar className="w-3 h-3" />}
+                      {eventoJaIniciou ? "Em Operação Agora" : "Unidade Reservada"}
                     </div>
-                    <p className="text-sm font-medium">{activeEvent.nome_evento}</p>
-                  </div>
-                ) : (
-                  vehicle.status === "em_uso" && (
-                    <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
-                      <p className="text-[10px] uppercase font-bold text-slate-400 italic">
-                        Aguardando Horário do Evento
+                    <p className="text-sm font-bold mt-1 text-slate-800">{activeEvent.nome_evento}</p>
+                    {!eventoJaIniciou && (
+                      <p className="text-[11px] text-blue-600 font-medium mt-1">
+                        Início às{" "}
+                        {new Date(activeEvent.data_inicio).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
-                    </div>
-                  )
+                    )}
+                  </div>
+                )}
+
+                {vehicle.status === "manutencao" && (
+                  <div className="p-2 rounded-lg bg-red-50 border border-red-100 text-red-700 text-xs italic">
+                    {vehicle.observacao_manutencao || "Em manutenção preventiva"}
+                  </div>
                 )}
               </CardContent>
             </Card>
