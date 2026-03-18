@@ -437,6 +437,8 @@ export default function BaseEvents() {
                   <SelectContent>
                     <SelectItem value="Semi Presencial">Semi Presencial</SelectItem>
                     <SelectItem value="Presencial">Presencial</SelectItem>
+                    <SelectItem value="USB Normal">USB Normal</SelectItem>
+                    <SelectItem value="USA">USA</SelectItem>
                     <SelectItem value="USB dois Técnicos">USB dois Técnicos</SelectItem>
                     <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
                     <SelectItem value="Ambulatório">Ambulatório</SelectItem>
