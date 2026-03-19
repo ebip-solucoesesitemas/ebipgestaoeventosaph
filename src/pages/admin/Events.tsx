@@ -317,16 +317,14 @@ export default function AdminEvents() {
     const dataInicioISO = localDatetimeToISO(formData.data_inicio);
     const dataFimISO = localDatetimeToISO(formData.data_fim);
 
-    // Validar conflito de viatura
+    // Validar conflito de viatura - show confirmation instead of blocking
     if (formData.viatura_id) {
       const conflitos = await checkVehicleConflict(formData.viatura_id, dataInicioISO, dataFimISO, editingEvent?.id);
       if (conflitos.length > 0) {
-        toast({
-          title: "Viatura indisponível neste horário",
-          description: `A viatura já está empenhada no evento "${conflitos[0].nome_evento}" neste período.`,
-          variant: "destructive",
-        });
-        return;
+        const confirmar = confirm(
+          `A viatura já está reservada para o evento "${conflitos[0].nome_evento}" neste período.\n\nDeseja continuar mesmo assim?`
+        );
+        if (!confirmar) return;
       }
     }
 
@@ -635,6 +633,20 @@ export default function AdminEvents() {
                   />
                 </div>
               </div>
+              {formData.data_inicio && formData.data_fim && (() => {
+                const diff = new Date(formData.data_fim).getTime() - new Date(formData.data_inicio).getTime();
+                if (diff > 0) {
+                  const totalMin = Math.round(diff / 60000);
+                  const h = Math.floor(totalMin / 60);
+                  const m = totalMin % 60;
+                  return (
+                    <p className="text-sm text-muted-foreground font-medium">
+                      ⏱ Duração: {h > 0 ? `${h}h` : ''}{m > 0 ? ` ${m}min` : ''}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
 
               <div className="space-y-2">
                 <Label>Cliente</Label>

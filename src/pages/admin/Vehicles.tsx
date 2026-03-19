@@ -26,6 +26,7 @@ interface VehicleEvent {
   nome_evento: string;
   data_inicio: string;
   data_fim: string;
+  type: 'empenhada' | 'reservada' | 'aguardando';
 }
 
 const statusLabels: Record<VehicleStatus, string> = {
@@ -68,10 +69,10 @@ export default function AdminVehicles() {
     } else {
       setVehicles(data || []);
       
-      // Fetch events for vehicles that are in use - check if currently within event hours (Brasilia time)
-      const vehicleIds = data?.filter(v => v.status === 'em_uso').map(v => v.id) || [];
+      // Fetch events for all non-finalized vehicles
+      const vehicleIds = data?.map(v => v.id) || [];
       if (vehicleIds.length > 0) {
-        const now = new Date().toISOString();
+        const now = new Date();
         const { data: eventsData } = await supabase
           .from('events')
           .select('id, nome_evento, data_inicio, data_fim, viatura_id')
@@ -79,22 +80,28 @@ export default function AdminVehicles() {
           .neq('status', 'finalizado')
           .order('data_inicio');
 
-        const eventsMap: Record<string, VehicleEvent | null> = {};
+        const eventsMap: Record<string, VehicleEvent & { type: 'empenhada' | 'reservada' | 'aguardando' } | null> = {};
         eventsData?.forEach(event => {
           if (event.viatura_id && !eventsMap[event.viatura_id]) {
-            // Only show as "empenhada" if current time is within event period
             const eventStart = new Date(event.data_inicio);
             const eventEnd = new Date(event.data_fim);
-            const currentTime = new Date(now);
             
-            if (currentTime >= eventStart && currentTime <= eventEnd) {
-              eventsMap[event.viatura_id] = {
-                id: event.id,
-                nome_evento: event.nome_evento,
-                data_inicio: event.data_inicio,
-                data_fim: event.data_fim,
-              };
+            let type: 'empenhada' | 'reservada' | 'aguardando';
+            if (now >= eventStart && now <= eventEnd) {
+              type = 'empenhada';
+            } else if (now < eventStart) {
+              type = 'reservada';
+            } else {
+              type = 'aguardando';
             }
+            
+            eventsMap[event.viatura_id] = {
+              id: event.id,
+              nome_evento: event.nome_evento,
+              data_inicio: event.data_inicio,
+              data_fim: event.data_fim,
+              type,
+            };
           }
         });
         setVehicleEvents(eventsMap);
@@ -312,7 +319,7 @@ export default function AdminVehicles() {
                       {statusLabels[vehicle.status]}
                     </Badge>
                   </div>
-                  {vehicle.status === 'em_uso' && event ? (
+                  {event && event.type === 'empenhada' && (
                     <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
                       <div className="flex items-center gap-2 text-sm text-warning">
                         <Calendar className="w-4 h-4" />
@@ -320,11 +327,28 @@ export default function AdminVehicles() {
                       </div>
                       <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
                     </div>
-                  ) : vehicle.status === 'em_uso' && !event ? (
-                    <p className="text-xs text-muted-foreground italic">
-                      Fora do horário do evento atual
-                    </p>
-                  ) : null}
+                  )}
+                  {event && event.type === 'reservada' && (
+                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                      <div className="flex items-center gap-2 text-sm text-primary">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Reservada para:</span>
+                      </div>
+                      <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(event.data_inicio).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  )}
+                  {event && event.type === 'aguardando' && (
+                    <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
+                      <div className="flex items-center gap-2 text-sm text-warning animate-pulse-soft">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Aguardando finalização:</span>
+                      </div>
+                      <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
+                    </div>
+                  )}
                   {vehicle.status === 'manutencao' && vehicle.observacao_manutencao && (
                     <div className="p-2 rounded-lg bg-critical/10 border border-critical/20">
                       <p className="text-xs font-medium text-critical">Oficina:</p>

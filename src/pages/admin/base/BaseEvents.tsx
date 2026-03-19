@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, ArrowLeft, Eye, Clock, Copy, MessageCircle } from 'lucide-react';
+import { Plus, Calendar, MapPin, Truck, Users, Edit, Trash2, ArrowLeft, Eye, Clock, Copy, MessageCircle, Search, Filter } from 'lucide-react';
 import { CepInput } from '@/components/CepInput';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -82,6 +82,12 @@ export default function BaseEvents() {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [profileSearch, setProfileSearch] = useState('');
+  const [filterEventName, setFilterEventName] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [filterProfessional, setFilterProfessional] = useState('');
 
   const [formData, setFormData] = useState({
     nome_evento: '',
@@ -215,12 +221,10 @@ export default function BaseEvents() {
         editingEvent?.id
       );
       if (conflitos.length > 0) {
-        toast({
-          title: 'Viatura indisponível neste horário',
-          description: `A viatura já está empenhada no evento "${conflitos[0].nome_evento}" neste período.`,
-          variant: 'destructive',
-        });
-        return;
+        const confirmar = confirm(
+          `A viatura já está reservada para o evento "${conflitos[0].nome_evento}" neste período.\n\nDeseja continuar mesmo assim?`
+        );
+        if (!confirmar) return;
       }
     }
 
@@ -422,6 +426,20 @@ export default function BaseEvents() {
                   <Input type="datetime-local" value={formData.data_fim} onChange={(e) => setFormData(prev => ({ ...prev, data_fim: e.target.value }))} className="input-touch" required />
                 </div>
               </div>
+              {formData.data_inicio && formData.data_fim && (() => {
+                const diff = new Date(formData.data_fim).getTime() - new Date(formData.data_inicio).getTime();
+                if (diff > 0) {
+                  const totalMin = Math.round(diff / 60000);
+                  const h = Math.floor(totalMin / 60);
+                  const m = totalMin % 60;
+                  return (
+                    <p className="text-sm text-muted-foreground font-medium">
+                      ⏱ Duração: {h > 0 ? `${h}h` : ''}{m > 0 ? ` ${m}min` : ''}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
               <div className="space-y-2">
                 <Label>Cliente</Label>
                 <Select
@@ -541,8 +559,19 @@ export default function BaseEvents() {
               </div>
               <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
                 <Label className="text-base font-semibold">Escalar Profissionais</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar profissional..."
+                    value={profileSearch}
+                    onChange={(e) => setProfileSearch(e.target.value)}
+                    className="pl-10 input-touch"
+                  />
+                </div>
                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
-                  {profiles.map((p) => (
+                  {profiles
+                    .filter(p => p.nome.toLowerCase().includes(profileSearch.toLowerCase()) || p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()))
+                    .map((p) => (
                     <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 p-1.5 rounded">
                       <Checkbox checked={formData.selectedProfiles.includes(p.id)} onCheckedChange={() => toggleProfile(p.id)} />
                       <span>{p.nome}</span>
@@ -557,18 +586,92 @@ export default function BaseEvents() {
         </Dialog>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1"><Filter className="w-3 h-3" /> Nome</Label>
+          <Input
+            placeholder="Buscar evento..."
+            value={filterEventName}
+            onChange={(e) => setFilterEventName(e.target.value)}
+            className="input-touch w-44"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Data</Label>
+          <Input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="input-touch w-44" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Mês</Label>
+          <Select value={filterMonth || 'all'} onValueChange={(v) => setFilterMonth(v === 'all' ? '' : v)}>
+            <SelectTrigger className="input-touch w-36"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m, i) => (
+                <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Ano</Label>
+          <Select value={filterYear || 'all'} onValueChange={(v) => setFilterYear(v === 'all' ? '' : v)}>
+            <SelectTrigger className="input-touch w-28"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {[...new Set(events.map(e => new Date(e.data_inicio).getFullYear()))].sort((a, b) => b - a).map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Profissional</Label>
+          <Input
+            placeholder="Nome do profissional..."
+            value={filterProfessional}
+            onChange={(e) => setFilterProfessional(e.target.value)}
+            className="input-touch w-44"
+          />
+        </div>
+        {(filterEventName || filterDate || filterMonth || filterYear || filterProfessional) && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterEventName(''); setFilterDate(''); setFilterMonth(''); setFilterYear(''); setFilterProfessional(''); }}>
+            Limpar filtros
+          </Button>
+        )}
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {events.length === 0 ? (
-          <Card className="md:col-span-2 lg:col-span-3">
-            <CardContent className="py-12 text-center">
-              <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nenhum evento nesta base</p>
-            </CardContent>
-          </Card>
-        ) : (
-          events.map((event) => {
+        {(() => {
+          const filtered = events.filter(event => {
+            if (filterEventName && !event.nome_evento.toLowerCase().includes(filterEventName.toLowerCase())) return false;
+            const eventDate = new Date(event.data_inicio);
+            if (filterDate) {
+              const fd = new Date(filterDate);
+              if (eventDate.getFullYear() !== fd.getFullYear() || eventDate.getMonth() !== fd.getMonth() || eventDate.getDate() !== fd.getDate()) return false;
+            }
+            if (filterMonth && !filterDate && (eventDate.getMonth() + 1).toString() !== filterMonth) return false;
+            if (filterYear && !filterDate && eventDate.getFullYear().toString() !== filterYear) return false;
+            if (filterProfessional) {
+              const eventAssigns = assignments[event.id] || [];
+              const match = eventAssigns.some(a => a.profiles?.nome?.toLowerCase().includes(filterProfessional.toLowerCase()));
+              if (!match) return false;
+            }
+            return true;
+          });
+          
+          if (filtered.length === 0) return (
+            <Card className="md:col-span-2 lg:col-span-3">
+              <CardContent className="py-12 text-center">
+                <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">{events.length === 0 ? 'Nenhum evento nesta base' : 'Nenhum evento encontrado com os filtros aplicados'}</p>
+              </CardContent>
+            </Card>
+          );
+          
+          return filtered.map((event) => {
             const status = getEventStatus(event);
-            const teamSize = (assignments[event.id] || []).length;
+            const eventAssigns = assignments[event.id] || [];
             return (
               <Card key={event.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/admin/events/${event.id}`)}>
                 <CardHeader className="pb-3">
@@ -593,21 +696,35 @@ export default function BaseEvents() {
                     <MapPin className="w-3.5 h-3.5" />
                     <span className="truncate">{event.local}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <Users className="w-3.5 h-3.5" /> {teamSize}/{event.equipe_minima}
-                    </span>
+                  <div className="flex flex-wrap gap-2">
                     {event.vehicles && (
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Truck className="w-3.5 h-3.5" /> {event.vehicles.prefixo}
-                      </span>
+                      <Badge variant="secondary" className="gap-1">
+                        <Truck className="w-3 h-3" /> {event.vehicles.prefixo}
+                      </Badge>
                     )}
+                    {eventAssigns.map((a) => (
+                      <div key={a.id} className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                        <Badge variant="outline" className="gap-1">
+                          <Users className="w-3 h-3" />
+                          {a.profiles?.nome}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          title="Enviar confirmação via WhatsApp"
+                          onClick={() => sendWhatsApp(event, a.profile_id)}
+                        >
+                          <MessageCircle className="w-3 h-3 text-stable" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
             );
-          })
-        )}
+          });
+        })()}
       </div>
     </div>
   );

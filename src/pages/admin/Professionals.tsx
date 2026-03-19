@@ -71,6 +71,7 @@ export default function AdminProfessionals() {
     registro_profissional: '',
     cargo: 'equipe',
     cpf: '',
+    telefone: '',
     chave_pix: '',
     base_id: '',
     email: '',
@@ -111,7 +112,7 @@ export default function AdminProfessionals() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', chave_pix: '', base_id: '', email: '', password: '', valor_hora: '', valor_evento: '' });
+    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', telefone: '', chave_pix: '', base_id: '', email: '', password: '', valor_hora: '', valor_evento: '' });
     setEditingProfile(null);
   };
 
@@ -124,6 +125,7 @@ export default function AdminProfessionals() {
       registro_profissional: profile.registro_profissional,
       cargo: profile.cargo,
       cpf: profile.cpf || '',
+      telefone: profile.telefone || '',
       chave_pix: profile.chave_pix || '',
       base_id: profile.base_id || '',
       email: '',
@@ -146,6 +148,7 @@ export default function AdminProfessionals() {
         registro_profissional: formData.registro_profissional,
         cargo: formData.cargo as 'admin' | 'equipe',
         cpf: formData.cpf || null,
+        telefone: formData.telefone || null,
         chave_pix: formData.chave_pix || null,
         base_id: formData.base_id || null,
       };
@@ -222,6 +225,7 @@ export default function AdminProfessionals() {
           registro_profissional: formData.registro_profissional || '',
           cargo: formData.cargo as any,
           cpf: formData.cpf || null,
+          telefone: formData.telefone || null,
           chave_pix: formData.chave_pix || null,
           base_id: formData.base_id || null,
         });
@@ -361,6 +365,15 @@ export default function AdminProfessionals() {
                   onChange={(e) => setFormData(prev => ({ ...prev, cpf: e.target.value }))}
                   onBlur={(e) => setFormData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
                   placeholder="000.000.000-00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Telefone / Celular</Label>
+                <Input
+                  value={formData.telefone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, telefone: e.target.value }))}
+                  placeholder="(00) 00000-0000"
                 />
               </div>
 
