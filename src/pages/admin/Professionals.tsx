@@ -125,6 +125,7 @@ export default function AdminProfessionals() {
       registro_profissional: profile.registro_profissional,
       cargo: profile.cargo,
       cpf: profile.cpf || '',
+      telefone: profile.telefone || '',
       chave_pix: profile.chave_pix || '',
       base_id: profile.base_id || '',
       email: '',
