@@ -317,16 +317,14 @@ export default function AdminEvents() {
     const dataInicioISO = localDatetimeToISO(formData.data_inicio);
     const dataFimISO = localDatetimeToISO(formData.data_fim);
 
-    // Validar conflito de viatura
+    // Validar conflito de viatura - show confirmation instead of blocking
     if (formData.viatura_id) {
       const conflitos = await checkVehicleConflict(formData.viatura_id, dataInicioISO, dataFimISO, editingEvent?.id);
       if (conflitos.length > 0) {
-        toast({
-          title: "Viatura indisponível neste horário",
-          description: `A viatura já está empenhada no evento "${conflitos[0].nome_evento}" neste período.`,
-          variant: "destructive",
-        });
-        return;
+        const confirmar = confirm(
+          `A viatura já está reservada para o evento "${conflitos[0].nome_evento}" neste período.\n\nDeseja continuar mesmo assim?`
+        );
+        if (!confirmar) return;
       }
     }
 
