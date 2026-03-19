@@ -318,7 +318,7 @@ export default function AdminVehicles() {
                       {statusLabels[vehicle.status]}
                     </Badge>
                   </div>
-                  {vehicle.status === 'em_uso' && event ? (
+                  {event && event.type === 'empenhada' && (
                     <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
                       <div className="flex items-center gap-2 text-sm text-warning">
                         <Calendar className="w-4 h-4" />
@@ -326,11 +326,28 @@ export default function AdminVehicles() {
                       </div>
                       <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
                     </div>
-                  ) : vehicle.status === 'em_uso' && !event ? (
-                    <p className="text-xs text-muted-foreground italic">
-                      Fora do horário do evento atual
-                    </p>
-                  ) : null}
+                  )}
+                  {event && event.type === 'reservada' && (
+                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                      <div className="flex items-center gap-2 text-sm text-primary">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Reservada para:</span>
+                      </div>
+                      <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(event.data_inicio).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  )}
+                  {event && event.type === 'aguardando' && (
+                    <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
+                      <div className="flex items-center gap-2 text-sm text-warning animate-pulse-soft">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Aguardando finalização:</span>
+                      </div>
+                      <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
+                    </div>
+                  )}
                   {vehicle.status === 'manutencao' && vehicle.observacao_manutencao && (
                     <div className="p-2 rounded-lg bg-critical/10 border border-critical/20">
                       <p className="text-xs font-medium text-critical">Oficina:</p>
