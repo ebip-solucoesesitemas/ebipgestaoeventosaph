@@ -72,31 +72,38 @@ export default function BaseVehicles() {
     if (vehiclesRes.data) {
       setVehicles(vehiclesRes.data as Vehicle[]);
 
-      // Fetch current events for in-use vehicles
-      const inUseIds = vehiclesRes.data.filter(v => v.status === 'em_uso').map(v => v.id);
-      if (inUseIds.length > 0) {
-        const now = new Date().toISOString();
+      const vehicleIds = vehiclesRes.data.map(v => v.id);
+      if (vehicleIds.length > 0) {
+        const now = new Date();
         const { data: eventsData } = await supabase
           .from('events')
           .select('id, nome_evento, data_inicio, data_fim, viatura_id')
-          .in('viatura_id', inUseIds)
+          .in('viatura_id', vehicleIds)
           .neq('status', 'finalizado')
           .order('data_inicio');
 
-        const eventsMap: Record<string, VehicleEvent | null> = {};
+        const eventsMap: Record<string, (VehicleEvent & { type: 'empenhada' | 'reservada' | 'aguardando' }) | null> = {};
         eventsData?.forEach(event => {
           if (event.viatura_id && !eventsMap[event.viatura_id]) {
             const eventStart = new Date(event.data_inicio);
             const eventEnd = new Date(event.data_fim);
-            const currentTime = new Date(now);
-            if (currentTime >= eventStart && currentTime <= eventEnd) {
-              eventsMap[event.viatura_id] = {
-                id: event.id,
-                nome_evento: event.nome_evento,
-                data_inicio: event.data_inicio,
-                data_fim: event.data_fim,
-              };
+            
+            let type: 'empenhada' | 'reservada' | 'aguardando';
+            if (now >= eventStart && now <= eventEnd) {
+              type = 'empenhada';
+            } else if (now < eventStart) {
+              type = 'reservada';
+            } else {
+              type = 'aguardando';
             }
+            
+            eventsMap[event.viatura_id] = {
+              id: event.id,
+              nome_evento: event.nome_evento,
+              data_inicio: event.data_inicio,
+              data_fim: event.data_fim,
+              type,
+            };
           }
         });
         setVehicleEvents(eventsMap);
@@ -235,11 +242,32 @@ export default function BaseVehicles() {
                       {statusLabels[vehicle.status]}
                     </Badge>
                   </div>
-                  {vehicle.status === 'em_uso' && event && (
+                  {event && (event as any).type === 'empenhada' && (
                     <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
                       <div className="flex items-center gap-2 text-sm text-warning">
                         <Calendar className="w-4 h-4" />
                         <span className="font-medium">Empenhada em:</span>
+                      </div>
+                      <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
+                    </div>
+                  )}
+                  {event && (event as any).type === 'reservada' && (
+                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                      <div className="flex items-center gap-2 text-sm text-primary">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Reservada para:</span>
+                      </div>
+                      <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(event.data_inicio).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  )}
+                  {event && (event as any).type === 'aguardando' && (
+                    <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
+                      <div className="flex items-center gap-2 text-sm text-warning animate-pulse-soft">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Aguardando finalização:</span>
                       </div>
                       <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
                     </div>
