@@ -559,8 +559,19 @@ export default function BaseEvents() {
               </div>
               <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
                 <Label className="text-base font-semibold">Escalar Profissionais</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar profissional..."
+                    value={profileSearch}
+                    onChange={(e) => setProfileSearch(e.target.value)}
+                    className="pl-10 input-touch"
+                  />
+                </div>
                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
-                  {profiles.map((p) => (
+                  {profiles
+                    .filter(p => p.nome.toLowerCase().includes(profileSearch.toLowerCase()) || p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()))
+                    .map((p) => (
                     <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 p-1.5 rounded">
                       <Checkbox checked={formData.selectedProfiles.includes(p.id)} onCheckedChange={() => toggleProfile(p.id)} />
                       <span>{p.nome}</span>
