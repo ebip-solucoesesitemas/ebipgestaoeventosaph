@@ -26,6 +26,7 @@ interface VehicleEvent {
   nome_evento: string;
   data_inicio: string;
   data_fim: string;
+  type: 'empenhada' | 'reservada' | 'aguardando';
 }
 
 const statusLabels: Record<VehicleStatus, string> = {
