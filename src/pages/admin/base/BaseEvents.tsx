@@ -586,18 +586,92 @@ export default function BaseEvents() {
         </Dialog>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1"><Filter className="w-3 h-3" /> Nome</Label>
+          <Input
+            placeholder="Buscar evento..."
+            value={filterEventName}
+            onChange={(e) => setFilterEventName(e.target.value)}
+            className="input-touch w-44"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Data</Label>
+          <Input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="input-touch w-44" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Mês</Label>
+          <Select value={filterMonth || 'all'} onValueChange={(v) => setFilterMonth(v === 'all' ? '' : v)}>
+            <SelectTrigger className="input-touch w-36"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m, i) => (
+                <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Ano</Label>
+          <Select value={filterYear || 'all'} onValueChange={(v) => setFilterYear(v === 'all' ? '' : v)}>
+            <SelectTrigger className="input-touch w-28"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {[...new Set(events.map(e => new Date(e.data_inicio).getFullYear()))].sort((a, b) => b - a).map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Profissional</Label>
+          <Input
+            placeholder="Nome do profissional..."
+            value={filterProfessional}
+            onChange={(e) => setFilterProfessional(e.target.value)}
+            className="input-touch w-44"
+          />
+        </div>
+        {(filterEventName || filterDate || filterMonth || filterYear || filterProfessional) && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterEventName(''); setFilterDate(''); setFilterMonth(''); setFilterYear(''); setFilterProfessional(''); }}>
+            Limpar filtros
+          </Button>
+        )}
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {events.length === 0 ? (
-          <Card className="md:col-span-2 lg:col-span-3">
-            <CardContent className="py-12 text-center">
-              <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nenhum evento nesta base</p>
-            </CardContent>
-          </Card>
-        ) : (
-          events.map((event) => {
+        {(() => {
+          const filtered = events.filter(event => {
+            if (filterEventName && !event.nome_evento.toLowerCase().includes(filterEventName.toLowerCase())) return false;
+            const eventDate = new Date(event.data_inicio);
+            if (filterDate) {
+              const fd = new Date(filterDate);
+              if (eventDate.getFullYear() !== fd.getFullYear() || eventDate.getMonth() !== fd.getMonth() || eventDate.getDate() !== fd.getDate()) return false;
+            }
+            if (filterMonth && !filterDate && (eventDate.getMonth() + 1).toString() !== filterMonth) return false;
+            if (filterYear && !filterDate && eventDate.getFullYear().toString() !== filterYear) return false;
+            if (filterProfessional) {
+              const eventAssigns = assignments[event.id] || [];
+              const match = eventAssigns.some(a => a.profiles?.nome?.toLowerCase().includes(filterProfessional.toLowerCase()));
+              if (!match) return false;
+            }
+            return true;
+          });
+          
+          if (filtered.length === 0) return (
+            <Card className="md:col-span-2 lg:col-span-3">
+              <CardContent className="py-12 text-center">
+                <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">{events.length === 0 ? 'Nenhum evento nesta base' : 'Nenhum evento encontrado com os filtros aplicados'}</p>
+              </CardContent>
+            </Card>
+          );
+          
+          return filtered.map((event) => {
             const status = getEventStatus(event);
-            const teamSize = (assignments[event.id] || []).length;
+            const eventAssigns = assignments[event.id] || [];
             return (
               <Card key={event.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/admin/events/${event.id}`)}>
                 <CardHeader className="pb-3">
@@ -622,21 +696,35 @@ export default function BaseEvents() {
                     <MapPin className="w-3.5 h-3.5" />
                     <span className="truncate">{event.local}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <Users className="w-3.5 h-3.5" /> {teamSize}/{event.equipe_minima}
-                    </span>
+                  <div className="flex flex-wrap gap-2">
                     {event.vehicles && (
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Truck className="w-3.5 h-3.5" /> {event.vehicles.prefixo}
-                      </span>
+                      <Badge variant="secondary" className="gap-1">
+                        <Truck className="w-3 h-3" /> {event.vehicles.prefixo}
+                      </Badge>
                     )}
+                    {eventAssigns.map((a) => (
+                      <div key={a.id} className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                        <Badge variant="outline" className="gap-1">
+                          <Users className="w-3 h-3" />
+                          {a.profiles?.nome}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          title="Enviar confirmação via WhatsApp"
+                          onClick={() => sendWhatsApp(event, a.profile_id)}
+                        >
+                          <MessageCircle className="w-3 h-3 text-stable" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
             );
-          })
-        )}
+          });
+        })()}
       </div>
     </div>
   );
