@@ -426,6 +426,20 @@ export default function BaseEvents() {
                   <Input type="datetime-local" value={formData.data_fim} onChange={(e) => setFormData(prev => ({ ...prev, data_fim: e.target.value }))} className="input-touch" required />
                 </div>
               </div>
+              {formData.data_inicio && formData.data_fim && (() => {
+                const diff = new Date(formData.data_fim).getTime() - new Date(formData.data_inicio).getTime();
+                if (diff > 0) {
+                  const totalMin = Math.round(diff / 60000);
+                  const h = Math.floor(totalMin / 60);
+                  const m = totalMin % 60;
+                  return (
+                    <p className="text-sm text-muted-foreground font-medium">
+                      ⏱ Duração: {h > 0 ? `${h}h` : ''}{m > 0 ? ` ${m}min` : ''}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
               <div className="space-y-2">
                 <Label>Cliente</Label>
                 <Select
