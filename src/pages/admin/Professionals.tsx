@@ -369,6 +369,15 @@ export default function AdminProfessionals() {
               </div>
 
               <div className="space-y-2">
+                <Label>Telefone / Celular</Label>
+                <Input
+                  value={formData.telefone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, telefone: e.target.value }))}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label>Chave PIX</Label>
                 <Input
                   value={formData.chave_pix}
