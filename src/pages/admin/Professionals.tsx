@@ -148,6 +148,7 @@ export default function AdminProfessionals() {
         registro_profissional: formData.registro_profissional,
         cargo: formData.cargo as 'admin' | 'equipe',
         cpf: formData.cpf || null,
+        telefone: formData.telefone || null,
         chave_pix: formData.chave_pix || null,
         base_id: formData.base_id || null,
       };
