@@ -242,11 +242,32 @@ export default function BaseVehicles() {
                       {statusLabels[vehicle.status]}
                     </Badge>
                   </div>
-                  {vehicle.status === 'em_uso' && event && (
+                  {event && (event as any).type === 'empenhada' && (
                     <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
                       <div className="flex items-center gap-2 text-sm text-warning">
                         <Calendar className="w-4 h-4" />
                         <span className="font-medium">Empenhada em:</span>
+                      </div>
+                      <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
+                    </div>
+                  )}
+                  {event && (event as any).type === 'reservada' && (
+                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                      <div className="flex items-center gap-2 text-sm text-primary">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Reservada para:</span>
+                      </div>
+                      <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(event.data_inicio).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  )}
+                  {event && (event as any).type === 'aguardando' && (
+                    <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
+                      <div className="flex items-center gap-2 text-sm text-warning animate-pulse-soft">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Aguardando finalização:</span>
                       </div>
                       <p className="text-sm mt-1 font-medium">{event.nome_evento}</p>
                     </div>
