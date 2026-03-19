@@ -71,6 +71,7 @@ export default function AdminProfessionals() {
     registro_profissional: '',
     cargo: 'equipe',
     cpf: '',
+    telefone: '',
     chave_pix: '',
     base_id: '',
     email: '',
