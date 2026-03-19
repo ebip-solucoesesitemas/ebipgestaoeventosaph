@@ -221,12 +221,10 @@ export default function BaseEvents() {
         editingEvent?.id
       );
       if (conflitos.length > 0) {
-        toast({
-          title: 'Viatura indisponível neste horário',
-          description: `A viatura já está empenhada no evento "${conflitos[0].nome_evento}" neste período.`,
-          variant: 'destructive',
-        });
-        return;
+        const confirmar = confirm(
+          `A viatura já está reservada para o evento "${conflitos[0].nome_evento}" neste período.\n\nDeseja continuar mesmo assim?`
+        );
+        if (!confirmar) return;
       }
     }
 
