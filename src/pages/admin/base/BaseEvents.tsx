@@ -82,6 +82,12 @@ export default function BaseEvents() {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [profileSearch, setProfileSearch] = useState('');
+  const [filterEventName, setFilterEventName] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [filterProfessional, setFilterProfessional] = useState('');
 
   const [formData, setFormData] = useState({
     nome_evento: '',
