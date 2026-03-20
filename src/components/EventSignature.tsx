@@ -1,17 +1,17 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import SignaturePad, { SignaturePadRef } from '@/components/SignaturePad';
-import { PenLine, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import SignaturePad, { SignaturePadRef } from "@/components/SignaturePad";
+import { PenLine, CheckCircle2 } from "lucide-react";
 
 interface EventSignatureProps {
   eventId: string;
-  tipo: 'chegada' | 'saida';
+  tipo: "chegada" | "saida";
   label: string;
   disabled?: boolean;
   onSaved?: () => void;
@@ -29,7 +29,7 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
   const [signature, setSignature] = useState<SignatureRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [nomeResponsavel, setNomeResponsavel] = useState('');
+  const [nomeResponsavel, setNomeResponsavel] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const sigPadRef = useRef<SignaturePadRef>(null);
 
@@ -39,10 +39,10 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
 
   const fetchSignature = async () => {
     const { data } = await supabase
-      .from('event_signatures')
-      .select('*')
-      .eq('event_id', eventId)
-      .eq('tipo', tipo)
+      .from("event_signatures")
+      .select("*")
+      .eq("event_id", eventId)
+      .eq("tipo", tipo)
       .maybeSingle();
 
     setSignature(data);
@@ -51,11 +51,11 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
 
   const handleSave = async () => {
     if (!nomeResponsavel.trim()) {
-      toast({ title: 'Informe o nome do responsável', variant: 'destructive' });
+      toast({ title: "Informe o nome do responsável", variant: "destructive" });
       return;
     }
     if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
-      toast({ title: 'Assinatura é obrigatória', variant: 'destructive' });
+      toast({ title: "Assinatura é obrigatória", variant: "destructive" });
       return;
     }
 
@@ -64,22 +64,31 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
 
     // Upload signature image
     const fileName = `event_${eventId}_${tipo}_${Date.now()}.png`;
-    const base64Data = signatureDataUrl.split(',')[1];
-    const byteArray = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    const base64Data = signatureDataUrl.split(",")[1];
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
 
-    const { error: uploadError } = await supabase.storage
-      .from('signatures')
-      .upload(fileName, byteArray, { contentType: 'image/png', upsert: true });
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: "image/png" });
+
+    const { error: uploadError } = await supabase.storage.from("signatures").upload(fileName, blob, {
+      contentType: "image/png",
+      upsert: true,
+    });
 
     if (uploadError) {
-      toast({ title: 'Erro ao salvar assinatura', description: uploadError.message, variant: 'destructive' });
+      toast({ title: "Erro ao salvar assinatura", description: uploadError.message, variant: "destructive" });
       setIsSaving(false);
       return;
     }
 
-    const { data: urlData } = supabase.storage.from('signatures').getPublicUrl(fileName);
+    const { data: urlData } = supabase.storage.from("signatures").getPublicUrl(fileName);
 
-    const { error } = await supabase.from('event_signatures').insert({
+    const { error } = await supabase.from("event_signatures").insert({
       event_id: eventId,
       tipo,
       nome_responsavel: nomeResponsavel.trim(),
@@ -87,7 +96,7 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
     });
 
     if (error) {
-      toast({ title: 'Erro ao registrar assinatura', description: error.message, variant: 'destructive' });
+      toast({ title: "Erro ao registrar assinatura", description: error.message, variant: "destructive" });
     } else {
       toast({ title: `Assinatura de ${label.toLowerCase()} registrada!` });
       setShowForm(false);
@@ -108,9 +117,7 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
               <CheckCircle2 className="w-5 h-5 text-stable" />
               <div>
                 <p className="font-medium text-sm">{label}</p>
-                <p className="text-xs text-muted-foreground">
-                  Responsável: {signature.nome_responsavel}
-                </p>
+                <p className="text-xs text-muted-foreground">Responsável: {signature.nome_responsavel}</p>
               </div>
             </div>
             <Badge className="bg-stable/20 text-stable">Assinado</Badge>
@@ -139,7 +146,7 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
               placeholder="Nome completo do responsável"
               onFocus={(e) => {
                 // Scroll input into view so keyboard doesn't overlap signature
-                setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
               }}
             />
           </div>
@@ -152,7 +159,7 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={isSaving} className="flex-1">
-              {isSaving ? 'Salvando...' : 'Confirmar'}
+              {isSaving ? "Salvando..." : "Confirmar"}
             </Button>
           </div>
         </CardContent>
@@ -161,12 +168,7 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
   }
 
   return (
-    <Button
-      variant="outline"
-      className="w-full gap-2"
-      onClick={() => setShowForm(true)}
-      disabled={disabled}
-    >
+    <Button variant="outline" className="w-full gap-2" onClick={() => setShowForm(true)} disabled={disabled}>
       <PenLine className="w-4 h-4" />
       Registrar Assinatura de {label}
     </Button>
