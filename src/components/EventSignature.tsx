@@ -60,7 +60,7 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
     }
 
     setIsSaving(true);
-    const signatureDataUrl = sigPadRef.current.getDataUrl("image/png", 0.7);
+    const signatureDataUrl = sigPadRef.current.getDataUrl();
 
     // Upload signature image
     const fileName = `event_${eventId}_${tipo}_${Date.now()}.png`;
