@@ -1,7 +1,7 @@
-import { useRef, forwardRef, useImperativeHandle, useEffect, useState, useCallback } from 'react';
-import SignatureCanvas from 'react-signature-canvas';
-import { Button } from '@/components/ui/button';
-import { Eraser } from 'lucide-react';
+import { useRef, forwardRef, useImperativeHandle, useEffect, useState, useCallback } from "react";
+import SignatureCanvas from "react-signature-canvas";
+import { Button } from "@/components/ui/button";
+import { Eraser } from "lucide-react";
 
 interface SignaturePadProps {
   label: string;
@@ -34,12 +34,11 @@ const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label, on
   useImperativeHandle(ref, () => ({
     clear: () => sigCanvas.current?.clear(),
     isEmpty: () => sigCanvas.current?.isEmpty() ?? true,
-    getDataUrl: () => sigCanvas.current?.toDataURL('image/png') ?? '',
+    getDataUrl: (type = "image/png", quality = 1) => sigCanvas.current?.toDataURL(type, quality) ?? "",
   }));
-
   const handleEnd = () => {
     if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
-      onSave?.(sigCanvas.current.toDataURL('image/png'));
+      onSave?.(sigCanvas.current.toDataURL("image/png"));
     }
   };
 
@@ -58,8 +57,8 @@ const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label, on
           Limpar
         </Button>
       </div>
-      <div 
-        ref={containerRef} 
+      <div
+        ref={containerRef}
         className="border-2 border-dashed border-border rounded-xl overflow-hidden bg-white"
         style={canvasDimensions ? { width: canvasDimensions.width + 4, height: canvasDimensions.height } : undefined}
       >
@@ -71,19 +70,17 @@ const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label, on
             canvasProps={{
               width: canvasDimensions.width,
               height: canvasDimensions.height,
-              className: 'touch-none',
-              style: { width: `${canvasDimensions.width}px`, height: `${canvasDimensions.height}px` }
+              className: "touch-none",
+              style: { width: `${canvasDimensions.width}px`, height: `${canvasDimensions.height}px` },
             }}
           />
         )}
       </div>
-      <p className="text-xs text-muted-foreground text-center">
-        Assine dentro da área acima
-      </p>
+      <p className="text-xs text-muted-foreground text-center">Assine dentro da área acima</p>
     </div>
   );
 });
 
-SignaturePad.displayName = 'SignaturePad';
+SignaturePad.displayName = "SignaturePad";
 
 export default SignaturePad;
