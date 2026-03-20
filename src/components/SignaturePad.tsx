@@ -9,9 +9,9 @@ interface SignaturePadProps {
 }
 
 export interface SignaturePadRef {
-  clear: () => void;
+  getDataUrl: (type?: string, quality?: number) => string;
   isEmpty: () => boolean;
-  getDataUrl: () => string;
+  clear: () => void;
 }
 
 const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(({ label, onSave }, ref) => {
