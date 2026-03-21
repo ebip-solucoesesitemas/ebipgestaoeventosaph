@@ -123,6 +123,12 @@ export default function AdminEventDetail() {
   const [kmFinal, setKmFinal] = useState('');
   const [isSavingKm, setIsSavingKm] = useState(false);
 
+  // Admin event editing state
+  const [editingDates, setEditingDates] = useState(false);
+  const [editDataInicio, setEditDataInicio] = useState('');
+  const [editDataFim, setEditDataFim] = useState('');
+  const [isSavingDates, setIsSavingDates] = useState(false);
+
   const fetchData = async () => {
     if (!id) return;
     setIsLoading(true);
