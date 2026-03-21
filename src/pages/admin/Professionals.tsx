@@ -64,6 +64,7 @@ export default function AdminProfessionals() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchFilter, setSearchFilter] = useState('');
 
   const [formData, setFormData] = useState({
     nome: '',
