@@ -526,7 +526,7 @@ export default function AdminProfessionals() {
             </CardContent>
           </Card>
         ) : (
-          profiles.map((profile) => {
+          filteredProfiles.map((profile) => {
             const Icon = especialidadeIcons[profile.especialidade] || UserRound;
             return (
               <Card key={profile.id}>
