@@ -503,8 +503,19 @@ export default function AdminProfessionals() {
         </Dialog>
       </div>
 
+      {/* Search filter */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar profissional por nome..."
+          value={searchFilter}
+          onChange={(e) => setSearchFilter(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {profiles.length === 0 ? (
+        {filteredProfiles.length === 0 ? (
           <Card className="md:col-span-2 lg:col-span-3">
             <CardContent className="py-12 text-center">
               <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
