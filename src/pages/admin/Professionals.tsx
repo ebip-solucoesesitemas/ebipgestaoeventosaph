@@ -303,8 +303,6 @@ export default function AdminProfessionals() {
     );
   }
 
-  const [searchFilter, setSearchFilter] = useState('');
-
   const filteredProfiles = profiles.filter(p =>
     !searchFilter || p.nome.toLowerCase().includes(searchFilter.toLowerCase())
   );
