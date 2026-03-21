@@ -389,6 +389,47 @@ export default function AdminEventDetail() {
         </Button>
       )}
 
+      {/* Admin: Edit Event Dates */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Edit className="w-4 h-4" />
+              Editar Datas do Evento
+            </CardTitle>
+            {!editingDates && (
+              <Button variant="outline" size="sm" onClick={() => {
+                setEditDataInicio(isoToLocalDatetime(event.data_inicio));
+                setEditDataFim(isoToLocalDatetime(event.data_fim));
+                setEditingDates(true);
+              }}>
+                <Edit className="w-3 h-3 mr-1" /> Editar
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        {editingDates && (
+          <CardContent className="pt-0 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Início</Label>
+                <Input type="datetime-local" value={editDataInicio} onChange={(e) => setEditDataInicio(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Fim</Label>
+                <Input type="datetime-local" value={editDataFim} onChange={(e) => setEditDataFim(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditingDates(false)} className="flex-1">Cancelar</Button>
+              <Button size="sm" onClick={handleSaveDates} disabled={isSavingDates} className="flex-1">
+                <Save className="w-3 h-3 mr-1" /> {isSavingDates ? 'Salvando...' : 'Salvar Datas'}
+              </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
