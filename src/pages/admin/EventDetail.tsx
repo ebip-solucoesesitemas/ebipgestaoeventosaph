@@ -219,8 +219,53 @@ export default function AdminEventDetail() {
     }
     setIsSavingKm(false);
   };
+  const handleSaveDates = async () => {
+    if (!event) return;
+    setIsSavingDates(true);
+    const { error } = await supabase
+      .from('events')
+      .update({
+        data_inicio: localDatetimeToISO(editDataInicio),
+        data_fim: localDatetimeToISO(editDataFim),
+      })
+      .eq('id', event.id);
+    if (error) {
+      toast({ title: 'Erro ao salvar datas', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Datas atualizadas!' });
+      setEditingDates(false);
+      fetchData();
+    }
+    setIsSavingDates(false);
+  };
 
-  if (isLoading || !event) {
+  const handleManualCheckin = async (assignmentId: string) => {
+    const { error } = await supabase
+      .from('event_assignments')
+      .update({ checkin_at: new Date().toISOString() })
+      .eq('id', assignmentId);
+    if (error) {
+      toast({ title: 'Erro ao registrar check-in', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Check-in manual registrado!' });
+      fetchData();
+    }
+  };
+
+  const handleManualCheckout = async (assignmentId: string) => {
+    const { error } = await supabase
+      .from('event_assignments')
+      .update({ checkout_at: new Date().toISOString() })
+      .eq('id', assignmentId);
+    if (error) {
+      toast({ title: 'Erro ao registrar checkout', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Checkout manual registrado!' });
+      fetchData();
+    }
+  };
+
+
     return (
       <div className="flex items-center justify-center py-20">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
