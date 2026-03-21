@@ -195,8 +195,8 @@ export default function BaseProfessionals() {
                 </CardContent>
               </Card>
             );
-          })
-        )}
+          });
+        })()}
       </div>
     </div>
   );
