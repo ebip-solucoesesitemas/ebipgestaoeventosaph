@@ -595,8 +595,21 @@ export default function AdminEventDetail() {
                           : '—'}
                       </span>
                     </div>
-                  </div>
+                    </div>
 
+                  {/* Admin manual checkin/checkout buttons */}
+                  <div className="mt-2 flex gap-2">
+                    {!a.checkin_at && (
+                      <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => handleManualCheckin(a.id)}>
+                        <LogIn className="w-3 h-3" /> Check-in Manual
+                      </Button>
+                    )}
+                    {a.checkin_at && !a.checkout_at && (
+                      <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => handleManualCheckout(a.id)}>
+                        <LogOut className="w-3 h-3" /> Checkout Manual
+                      </Button>
+                    )}
+                  </div>
                   {(a.km_inicial || a.km_final) && (
                     <div className="mt-2 p-2 bg-muted/50 rounded-lg text-sm flex items-center gap-2">
                       <Navigation className="w-4 h-4 text-muted-foreground" />
