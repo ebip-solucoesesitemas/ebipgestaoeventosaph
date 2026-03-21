@@ -36,6 +36,7 @@ export default function BaseProfessionals() {
   const [base, setBase] = useState<Base | null>(null);
   const [professionals, setProfessionals] = useState<ProfessionalSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchFilter, setSearchFilter] = useState('');
 
   useEffect(() => {
     if (!baseId) return;
