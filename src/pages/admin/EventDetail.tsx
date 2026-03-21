@@ -9,10 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { isoToLocalDatetime, localDatetimeToISO } from '@/lib/utils';
 import { 
   ArrowLeft, Calendar, MapPin, Truck, Users, Clock, 
   CheckCircle2, AlertCircle, Fuel, FileText, DollarSign,
-  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save, Printer, Phone, Ambulance, MessageCircle
+  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save, Printer, Phone, Ambulance, MessageCircle, Edit
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
