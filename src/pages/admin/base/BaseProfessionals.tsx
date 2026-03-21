@@ -4,8 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Users, ArrowLeft, Stethoscope, UserRound, Ambulance, Calendar } from 'lucide-react';
+import { Users, ArrowLeft, Stethoscope, UserRound, Ambulance, Calendar, Search } from 'lucide-react';
 
 interface Base {
   id: string;
@@ -35,6 +36,7 @@ export default function BaseProfessionals() {
   const [base, setBase] = useState<Base | null>(null);
   const [professionals, setProfessionals] = useState<ProfessionalSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchFilter, setSearchFilter] = useState('');
 
   useEffect(() => {
     if (!baseId) return;
@@ -139,16 +141,33 @@ export default function BaseProfessionals() {
         </div>
       </div>
 
+      {/* Search filter */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar profissional por nome..."
+          value={searchFilter}
+          onChange={(e) => setSearchFilter(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {professionals.length === 0 ? (
+        {(() => {
+          const filtered = professionals.filter(p =>
+            !searchFilter || p.nome.toLowerCase().includes(searchFilter.toLowerCase())
+          );
+          if (filtered.length === 0) return (
           <Card className="md:col-span-2 lg:col-span-3">
             <CardContent className="py-12 text-center">
               <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nenhum profissional atuou nesta base ainda</p>
+              <p className="text-muted-foreground">
+                {searchFilter ? 'Nenhum profissional encontrado' : 'Nenhum profissional atuou nesta base ainda'}
+              </p>
             </CardContent>
           </Card>
-        ) : (
-          professionals.map((prof) => {
+          );
+          return filtered.map((prof) => {
             const Icon = especialidadeIcons[prof.especialidade] || UserRound;
             return (
               <Card key={prof.id}>
@@ -176,8 +195,8 @@ export default function BaseProfessionals() {
                 </CardContent>
               </Card>
             );
-          })
-        )}
+          });
+        })()}
       </div>
     </div>
   );
