@@ -645,13 +645,19 @@ export default function BaseEvents() {
         {(() => {
           const filtered = events.filter(event => {
             if (filterEventName && !event.nome_evento.toLowerCase().includes(filterEventName.toLowerCase())) return false;
-            const eventDate = new Date(event.data_inicio);
+            // Extract date parts from ISO string directly to avoid timezone issues
+            const eventDateStr = event.data_inicio.slice(0, 10);
             if (filterDate) {
-              const fd = new Date(filterDate);
-              if (eventDate.getFullYear() !== fd.getFullYear() || eventDate.getMonth() !== fd.getMonth() || eventDate.getDate() !== fd.getDate()) return false;
+              if (eventDateStr !== filterDate) return false;
             }
-            if (filterMonth && !filterDate && (eventDate.getMonth() + 1).toString() !== filterMonth) return false;
-            if (filterYear && !filterDate && eventDate.getFullYear().toString() !== filterYear) return false;
+            if (filterMonth && !filterDate) {
+              const eventMonth = parseInt(eventDateStr.split("-")[1], 10).toString();
+              if (eventMonth !== filterMonth) return false;
+            }
+            if (filterYear && !filterDate) {
+              const eventYear = eventDateStr.split("-")[0];
+              if (eventYear !== filterYear) return false;
+            }
             if (filterProfessional) {
               const eventAssigns = assignments[event.id] || [];
               const match = eventAssigns.some(a => a.profiles?.nome?.toLowerCase().includes(filterProfessional.toLowerCase()));

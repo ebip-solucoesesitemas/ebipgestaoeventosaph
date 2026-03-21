@@ -302,6 +302,12 @@ export default function AdminProfessionals() {
     );
   }
 
+  const [searchFilter, setSearchFilter] = useState('');
+
+  const filteredProfiles = profiles.filter(p =>
+    !searchFilter || p.nome.toLowerCase().includes(searchFilter.toLowerCase())
+  );
+
   return (
     <div className="space-y-6 animate-slide-up">
       <div className="flex items-center justify-between">
