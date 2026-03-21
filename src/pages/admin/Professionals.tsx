@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2, Key, Phone, MapPin, DollarSign } from 'lucide-react';
+import { Users, Shield, Stethoscope, UserRound, Ambulance, Plus, Edit, Trash2, Key, Phone, MapPin, DollarSign, Search } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -64,6 +64,7 @@ export default function AdminProfessionals() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchFilter, setSearchFilter] = useState('');
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -302,6 +303,10 @@ export default function AdminProfessionals() {
     );
   }
 
+  const filteredProfiles = profiles.filter(p =>
+    !searchFilter || p.nome.toLowerCase().includes(searchFilter.toLowerCase())
+  );
+
   return (
     <div className="space-y-6 animate-slide-up">
       <div className="flex items-center justify-between">
@@ -498,8 +503,19 @@ export default function AdminProfessionals() {
         </Dialog>
       </div>
 
+      {/* Search filter */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar profissional por nome..."
+          value={searchFilter}
+          onChange={(e) => setSearchFilter(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {profiles.length === 0 ? (
+        {filteredProfiles.length === 0 ? (
           <Card className="md:col-span-2 lg:col-span-3">
             <CardContent className="py-12 text-center">
               <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -510,7 +526,7 @@ export default function AdminProfessionals() {
             </CardContent>
           </Card>
         ) : (
-          profiles.map((profile) => {
+          filteredProfiles.map((profile) => {
             const Icon = especialidadeIcons[profile.especialidade] || UserRound;
             return (
               <Card key={profile.id}>

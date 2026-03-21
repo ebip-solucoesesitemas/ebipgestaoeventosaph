@@ -204,20 +204,36 @@ export default function AdminUsers() {
         is_account_only: form.is_account_only,
       };
 
-      const { error } = await supabase.from("profiles").update(payload).eq("id", editingUser.id);
+      const { error, data: updateData, count } = await supabase
+        .from("profiles")
+        .update(payload)
+        .eq("id", editingUser.id)
+        .select();
 
       if (error) throw new Error(error.message);
+      if (!updateData || updateData.length === 0) {
+        throw new Error("Falha ao atualizar perfil - verifique as permissões");
+      }
 
-      // Update role if cargo changed between admin and non-admin types
+      // Update user_roles if cargo changed and user has auth account
       if (editingUser.cargo !== form.cargo && editingUser.user_id) {
         const adminCargos = ["admin", "admin_bnu", "admin_fln"];
-        const wasAdmin = adminCargos.includes(editingUser.cargo);
-        const isNowAdmin = adminCargos.includes(form.cargo);
+        const adminLikeRoles = [...adminCargos, "gestor", "operacional"];
+        const wasAdminLike = adminLikeRoles.includes(editingUser.cargo);
+        const isNowAdminLike = adminLikeRoles.includes(form.cargo);
         
-        // For operacional/gestor: they need admin role for RLS, so don't remove it
-        // Only toggle when switching between admin and equipe
-        if (wasAdmin !== isNowAdmin && form.cargo !== "operacional" && form.cargo !== "gestor") {
-          await (supabase.rpc as any)("toggle_user_role", { p_profile_id: editingUser.id });
+        if (!wasAdminLike && isNowAdminLike) {
+          // Grant admin role
+          await supabase.from("user_roles").upsert(
+            { user_id: editingUser.user_id, role: "admin" as const },
+            { onConflict: "user_id,role" }
+          );
+        } else if (wasAdminLike && !isNowAdminLike) {
+          // Remove admin role
+          await supabase.from("user_roles")
+            .delete()
+            .eq("user_id", editingUser.user_id)
+            .eq("role", "admin");
         }
       }
 

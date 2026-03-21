@@ -9,10 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { isoToLocalDatetime, localDatetimeToISO } from '@/lib/utils';
 import { 
   ArrowLeft, Calendar, MapPin, Truck, Users, Clock, 
   CheckCircle2, AlertCircle, Fuel, FileText, DollarSign,
-  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save, Printer, Phone, Ambulance, MessageCircle
+  LogIn, LogOut, Navigation, Eye, X, Heart, Thermometer, User, Gauge, Save, Printer, Phone, Ambulance, MessageCircle, Edit
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -122,6 +123,12 @@ export default function AdminEventDetail() {
   const [kmFinal, setKmFinal] = useState('');
   const [isSavingKm, setIsSavingKm] = useState(false);
 
+  // Admin event editing state
+  const [editingDates, setEditingDates] = useState(false);
+  const [editDataInicio, setEditDataInicio] = useState('');
+  const [editDataFim, setEditDataFim] = useState('');
+  const [isSavingDates, setIsSavingDates] = useState(false);
+
   const fetchData = async () => {
     if (!id) return;
     setIsLoading(true);
@@ -211,6 +218,51 @@ export default function AdminEventDetail() {
       fetchData();
     }
     setIsSavingKm(false);
+  };
+  const handleSaveDates = async () => {
+    if (!event) return;
+    setIsSavingDates(true);
+    const { error } = await supabase
+      .from('events')
+      .update({
+        data_inicio: localDatetimeToISO(editDataInicio),
+        data_fim: localDatetimeToISO(editDataFim),
+      })
+      .eq('id', event.id);
+    if (error) {
+      toast({ title: 'Erro ao salvar datas', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Datas atualizadas!' });
+      setEditingDates(false);
+      fetchData();
+    }
+    setIsSavingDates(false);
+  };
+
+  const handleManualCheckin = async (assignmentId: string) => {
+    const { error } = await supabase
+      .from('event_assignments')
+      .update({ checkin_at: new Date().toISOString() })
+      .eq('id', assignmentId);
+    if (error) {
+      toast({ title: 'Erro ao registrar check-in', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Check-in manual registrado!' });
+      fetchData();
+    }
+  };
+
+  const handleManualCheckout = async (assignmentId: string) => {
+    const { error } = await supabase
+      .from('event_assignments')
+      .update({ checkout_at: new Date().toISOString() })
+      .eq('id', assignmentId);
+    if (error) {
+      toast({ title: 'Erro ao registrar checkout', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Checkout manual registrado!' });
+      fetchData();
+    }
   };
 
   if (isLoading || !event) {
@@ -336,6 +388,47 @@ export default function AdminEventDetail() {
           Finalizar Evento
         </Button>
       )}
+
+      {/* Admin: Edit Event Dates */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Edit className="w-4 h-4" />
+              Editar Datas do Evento
+            </CardTitle>
+            {!editingDates && (
+              <Button variant="outline" size="sm" onClick={() => {
+                setEditDataInicio(isoToLocalDatetime(event.data_inicio));
+                setEditDataFim(isoToLocalDatetime(event.data_fim));
+                setEditingDates(true);
+              }}>
+                <Edit className="w-3 h-3 mr-1" /> Editar
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        {editingDates && (
+          <CardContent className="pt-0 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Início</Label>
+                <Input type="datetime-local" value={editDataInicio} onChange={(e) => setEditDataInicio(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Fim</Label>
+                <Input type="datetime-local" value={editDataFim} onChange={(e) => setEditDataFim(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditingDates(false)} className="flex-1">Cancelar</Button>
+              <Button size="sm" onClick={handleSaveDates} disabled={isSavingDates} className="flex-1">
+                <Save className="w-3 h-3 mr-1" /> {isSavingDates ? 'Salvando...' : 'Salvar Datas'}
+              </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -502,8 +595,21 @@ export default function AdminEventDetail() {
                           : '—'}
                       </span>
                     </div>
-                  </div>
+                    </div>
 
+                  {/* Admin manual checkin/checkout buttons */}
+                  <div className="mt-2 flex gap-2">
+                    {!a.checkin_at && (
+                      <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => handleManualCheckin(a.id)}>
+                        <LogIn className="w-3 h-3" /> Check-in Manual
+                      </Button>
+                    )}
+                    {a.checkin_at && !a.checkout_at && (
+                      <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => handleManualCheckout(a.id)}>
+                        <LogOut className="w-3 h-3" /> Checkout Manual
+                      </Button>
+                    )}
+                  </div>
                   {(a.km_inicial || a.km_final) && (
                     <div className="mt-2 p-2 bg-muted/50 rounded-lg text-sm flex items-center gap-2">
                       <Navigation className="w-4 h-4 text-muted-foreground" />
