@@ -129,6 +129,10 @@ export default function AdminEventDetail() {
   const [editDataFim, setEditDataFim] = useState('');
   const [isSavingDates, setIsSavingDates] = useState(false);
 
+  // Manual checkin/checkout datetime state per assignment
+  const [manualCheckinTimes, setManualCheckinTimes] = useState<Record<string, string>>({});
+  const [manualCheckoutTimes, setManualCheckoutTimes] = useState<Record<string, string>>({});
+
   const fetchData = async () => {
     if (!id) return;
     setIsLoading(true);
