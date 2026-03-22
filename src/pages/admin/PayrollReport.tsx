@@ -102,7 +102,8 @@ export default function PayrollReport() {
       const ajudaCusto = hours > 6 ? ajudaCustoValor : 0;
       let lineTotal = 0;
       if (valorHora > 0) {
-        lineTotal = Math.round(hours * valorHora * 100) / 100;
+        const valorHoraCentavos = Math.round(valorHora * 100);
+        lineTotal = Math.round(hours * valorHoraCentavos) / 100;
       } else if (valorEvento > 0) {
         lineTotal = valorEvento;
       }
