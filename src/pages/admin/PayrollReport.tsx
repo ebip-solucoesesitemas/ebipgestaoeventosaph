@@ -368,7 +368,7 @@ export default function PayrollReport() {
                     <td colSpan={4} style={{ textAlign: "right", fontWeight: 600 }}>
                        Subtotal — {profile.profile_name}
                      </td>
-                     <td style={{ fontWeight: 600 }}>{totalHours.toFixed(1)}h</td>
+                     <td style={{ fontWeight: 600 }}>{subtotalDisplay}</td>
                      <td colSpan={3}></td>
                      <td style={{ textAlign: "right", fontWeight: 700 }}>
                        R$ {subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
