@@ -244,27 +244,35 @@ export default function AdminEventDetail() {
   };
 
   const handleManualCheckin = async (assignmentId: string) => {
+    const manualTime = manualCheckinTimes[assignmentId];
+    const checkinValue = manualTime ? localDatetimeToISO(manualTime) : new Date().toISOString();
+    
     const { error } = await supabase
       .from('event_assignments')
-      .update({ checkin_at: new Date().toISOString() })
+      .update({ checkin_at: checkinValue })
       .eq('id', assignmentId);
     if (error) {
       toast({ title: 'Erro ao registrar check-in', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Check-in manual registrado!' });
+      setManualCheckinTimes(prev => { const n = {...prev}; delete n[assignmentId]; return n; });
       fetchData();
     }
   };
 
   const handleManualCheckout = async (assignmentId: string) => {
+    const manualTime = manualCheckoutTimes[assignmentId];
+    const checkoutValue = manualTime ? localDatetimeToISO(manualTime) : new Date().toISOString();
+    
     const { error } = await supabase
       .from('event_assignments')
-      .update({ checkout_at: new Date().toISOString() })
+      .update({ checkout_at: checkoutValue })
       .eq('id', assignmentId);
     if (error) {
       toast({ title: 'Erro ao registrar checkout', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Checkout manual registrado!' });
+      setManualCheckoutTimes(prev => { const n = {...prev}; delete n[assignmentId]; return n; });
       fetchData();
     }
   };
