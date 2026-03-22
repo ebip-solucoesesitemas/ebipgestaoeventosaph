@@ -609,17 +609,89 @@ export default function AdminEventDetail() {
                     </div>
                     </div>
 
-                  {/* Admin manual checkin/checkout buttons */}
-                  <div className="mt-2 flex gap-2">
+                  {/* Admin manual checkin/checkout buttons with datetime */}
+                  <div className="mt-2 space-y-2">
                     {!a.checkin_at && (
-                      <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => handleManualCheckin(a.id)}>
-                        <LogIn className="w-3 h-3" /> Check-in Manual
-                      </Button>
+                      <div className="flex gap-2 items-end">
+                        <div className="flex-1 space-y-1">
+                          <Label className="text-xs text-muted-foreground">Horário Check-in</Label>
+                          <Input
+                            type="datetime-local"
+                            className="h-8 text-xs"
+                            value={manualCheckinTimes[a.id] || ''}
+                            onChange={(e) => setManualCheckinTimes(prev => ({ ...prev, [a.id]: e.target.value }))}
+                            placeholder="Deixe vazio para horário atual"
+                          />
+                        </div>
+                        <Button variant="outline" size="sm" className="text-xs gap-1 shrink-0" onClick={() => handleManualCheckin(a.id)}>
+                          <LogIn className="w-3 h-3" /> Check-in
+                        </Button>
+                      </div>
                     )}
                     {a.checkin_at && !a.checkout_at && (
-                      <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => handleManualCheckout(a.id)}>
-                        <LogOut className="w-3 h-3" /> Checkout Manual
-                      </Button>
+                      <div className="flex gap-2 items-end">
+                        <div className="flex-1 space-y-1">
+                          <Label className="text-xs text-muted-foreground">Horário Checkout</Label>
+                          <Input
+                            type="datetime-local"
+                            className="h-8 text-xs"
+                            value={manualCheckoutTimes[a.id] || ''}
+                            onChange={(e) => setManualCheckoutTimes(prev => ({ ...prev, [a.id]: e.target.value }))}
+                            placeholder="Deixe vazio para horário atual"
+                          />
+                        </div>
+                        <Button variant="outline" size="sm" className="text-xs gap-1 shrink-0" onClick={() => handleManualCheckout(a.id)}>
+                          <LogOut className="w-3 h-3" /> Checkout
+                        </Button>
+                      </div>
+                    )}
+                    {a.checkin_at && (
+                      <div className="flex gap-2 items-end">
+                        <div className="flex-1 space-y-1">
+                          <Label className="text-xs text-muted-foreground">Editar Check-in</Label>
+                          <Input
+                            type="datetime-local"
+                            className="h-8 text-xs"
+                            defaultValue={isoToLocalDatetime(a.checkin_at)}
+                            onChange={async (e) => {
+                              if (!e.target.value) return;
+                              const { error } = await supabase
+                                .from('event_assignments')
+                                .update({ checkin_at: localDatetimeToISO(e.target.value) })
+                                .eq('id', a.id);
+                              if (error) {
+                                toast({ title: 'Erro ao atualizar check-in', description: error.message, variant: 'destructive' });
+                              } else {
+                                toast({ title: 'Check-in atualizado!' });
+                                fetchData();
+                              }
+                            }}
+                          />
+                        </div>
+                        {a.checkout_at && (
+                          <div className="flex-1 space-y-1">
+                            <Label className="text-xs text-muted-foreground">Editar Checkout</Label>
+                            <Input
+                              type="datetime-local"
+                              className="h-8 text-xs"
+                              defaultValue={isoToLocalDatetime(a.checkout_at)}
+                              onChange={async (e) => {
+                                if (!e.target.value) return;
+                                const { error } = await supabase
+                                  .from('event_assignments')
+                                  .update({ checkout_at: localDatetimeToISO(e.target.value) })
+                                  .eq('id', a.id);
+                                if (error) {
+                                  toast({ title: 'Erro ao atualizar checkout', description: error.message, variant: 'destructive' });
+                                } else {
+                                  toast({ title: 'Checkout atualizado!' });
+                                  fetchData();
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                   {(a.km_inicial || a.km_final) && (
