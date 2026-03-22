@@ -102,7 +102,8 @@ export default function PayrollReport() {
       const ajudaCusto = hours > 6 ? ajudaCustoValor : 0;
       let lineTotal = 0;
       if (valorHora > 0) {
-        lineTotal = Math.round(hours * valorHora * 100) / 100;
+        const valorHoraCentavos = Math.round(valorHora * 100);
+        lineTotal = Math.round(hours * valorHoraCentavos) / 100;
       } else if (valorEvento > 0) {
         lineTotal = valorEvento;
       }
@@ -302,7 +303,10 @@ export default function PayrollReport() {
         {/* Table per profile group */}
         {Object.entries(profileGroups).map(([profileId, groupLines]) => {
           const subtotal = groupLines.reduce((s, l) => s + l.line_total, 0);
-          const totalHours = groupLines.reduce((s, l) => s + l.hours_worked, 0);
+          const totalMinutesAll = groupLines.reduce((s, l) => s + Math.round(l.hours_worked * 60), 0);
+          const subtotalH = Math.floor(totalMinutesAll / 60);
+          const subtotalM = totalMinutesAll % 60;
+          const subtotalDisplay = subtotalH > 0 && subtotalM > 0 ? `${subtotalH}h ${subtotalM}min` : subtotalH > 0 ? `${subtotalH}h` : `${subtotalM}min`;
           const profile = groupLines[0];
 
           return (
@@ -365,7 +369,7 @@ export default function PayrollReport() {
                     <td colSpan={4} style={{ textAlign: "right", fontWeight: 600 }}>
                        Subtotal — {profile.profile_name}
                      </td>
-                     <td style={{ fontWeight: 600 }}>{totalHours.toFixed(1)}h</td>
+                     <td style={{ fontWeight: 600 }}>{subtotalDisplay}</td>
                      <td colSpan={3}></td>
                      <td style={{ textAlign: "right", fontWeight: 700 }}>
                        R$ {subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
