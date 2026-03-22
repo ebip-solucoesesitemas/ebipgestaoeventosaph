@@ -652,20 +652,8 @@ export default function AdminEventDetail() {
                           <Input
                             type="datetime-local"
                             className="h-8 text-xs"
-                            defaultValue={isoToLocalDatetime(a.checkin_at)}
-                            onChange={async (e) => {
-                              if (!e.target.value) return;
-                              const { error } = await supabase
-                                .from('event_assignments')
-                                .update({ checkin_at: localDatetimeToISO(e.target.value) })
-                                .eq('id', a.id);
-                              if (error) {
-                                toast({ title: 'Erro ao atualizar check-in', description: error.message, variant: 'destructive' });
-                              } else {
-                                toast({ title: 'Check-in atualizado!' });
-                                fetchData();
-                              }
-                            }}
+                            value={manualCheckinTimes[`edit_${a.id}`] ?? isoToLocalDatetime(a.checkin_at)}
+                            onChange={(e) => setManualCheckinTimes(prev => ({ ...prev, [`edit_${a.id}`]: e.target.value }))}
                           />
                         </div>
                         {a.checkout_at && (
@@ -674,23 +662,45 @@ export default function AdminEventDetail() {
                             <Input
                               type="datetime-local"
                               className="h-8 text-xs"
-                              defaultValue={isoToLocalDatetime(a.checkout_at)}
-                              onChange={async (e) => {
-                                if (!e.target.value) return;
-                                const { error } = await supabase
-                                  .from('event_assignments')
-                                  .update({ checkout_at: localDatetimeToISO(e.target.value) })
-                                  .eq('id', a.id);
-                                if (error) {
-                                  toast({ title: 'Erro ao atualizar checkout', description: error.message, variant: 'destructive' });
-                                } else {
-                                  toast({ title: 'Checkout atualizado!' });
-                                  fetchData();
-                                }
-                              }}
+                              value={manualCheckoutTimes[`edit_${a.id}`] ?? isoToLocalDatetime(a.checkout_at)}
+                              onChange={(e) => setManualCheckoutTimes(prev => ({ ...prev, [`edit_${a.id}`]: e.target.value }))}
                             />
                           </div>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs gap-1 shrink-0"
+                          onClick={async () => {
+                            const updates: Record<string, string> = {};
+                            const editCheckin = manualCheckinTimes[`edit_${a.id}`];
+                            const editCheckout = manualCheckoutTimes[`edit_${a.id}`];
+                            if (editCheckin && editCheckin !== isoToLocalDatetime(a.checkin_at!)) {
+                              updates.checkin_at = localDatetimeToISO(editCheckin);
+                            }
+                            if (editCheckout && a.checkout_at && editCheckout !== isoToLocalDatetime(a.checkout_at)) {
+                              updates.checkout_at = localDatetimeToISO(editCheckout);
+                            }
+                            if (Object.keys(updates).length === 0) {
+                              toast({ title: 'Nenhuma alteração detectada' });
+                              return;
+                            }
+                            const { error } = await supabase
+                              .from('event_assignments')
+                              .update(updates)
+                              .eq('id', a.id);
+                            if (error) {
+                              toast({ title: 'Erro ao atualizar horários', description: error.message, variant: 'destructive' });
+                            } else {
+                              toast({ title: 'Horários atualizados!' });
+                              setManualCheckinTimes(prev => { const n = {...prev}; delete n[`edit_${a.id}`]; return n; });
+                              setManualCheckoutTimes(prev => { const n = {...prev}; delete n[`edit_${a.id}`]; return n; });
+                              fetchData();
+                            }
+                          }}
+                        >
+                          <Save className="w-3 h-3" /> Salvar
+                        </Button>
                       </div>
                     )}
                   </div>
