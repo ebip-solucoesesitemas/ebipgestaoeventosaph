@@ -302,7 +302,10 @@ export default function PayrollReport() {
         {/* Table per profile group */}
         {Object.entries(profileGroups).map(([profileId, groupLines]) => {
           const subtotal = groupLines.reduce((s, l) => s + l.line_total, 0);
-          const totalHours = groupLines.reduce((s, l) => s + l.hours_worked, 0);
+          const totalMinutesAll = groupLines.reduce((s, l) => s + Math.round(l.hours_worked * 60), 0);
+          const subtotalH = Math.floor(totalMinutesAll / 60);
+          const subtotalM = totalMinutesAll % 60;
+          const subtotalDisplay = subtotalH > 0 && subtotalM > 0 ? `${subtotalH}h ${subtotalM}min` : subtotalH > 0 ? `${subtotalH}h` : `${subtotalM}min`;
           const profile = groupLines[0];
 
           return (
