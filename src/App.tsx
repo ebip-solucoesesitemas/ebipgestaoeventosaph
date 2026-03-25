@@ -28,6 +28,7 @@ import AdminRegulationPhones from "./pages/admin/RegulationPhones";
 import AdminAuditLogs from "./pages/admin/AuditLogs";
 import AdminPermissions from "./pages/admin/Permissions";
 import AdminPayrollReport from "./pages/admin/PayrollReport";
+import AdminSystemNotices from "./pages/admin/SystemNotices";
 import BaseEvents from "./pages/admin/base/BaseEvents";
 import BaseProfessionals from "./pages/admin/base/BaseProfessionals";
 import BaseVehicles from "./pages/admin/base/BaseVehicles";
@@ -36,6 +37,7 @@ import TeamEvents from "./pages/team/TeamEvents";
 import TeamEventDetail from "./pages/team/EventDetail";
 import EventReportPage from "./pages/EventReportPage";
 import SupportTickets from "./pages/SupportTickets";
+import SystemBanner from "./components/SystemBanner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +50,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <SystemBanner />
             <IdleTimeoutWrapper />
             <TicketNotifications />
             <Routes>
@@ -72,6 +75,7 @@ const App = () => (
               <Route path="/admin/permissions" element={<AdminRoute><AdminPermissions /></AdminRoute>} />
               <Route path="/admin/payroll-report" element={<AdminRoute><AdminPayrollReport /></AdminRoute>} />
               <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
+              <Route path="/admin/system-notices" element={<AdminRoute><AdminSystemNotices /></AdminRoute>} />
               
               {/* Base-specific Routes */}
               <Route path="/admin/base/:baseId/events" element={<AdminRoute><BaseEvents /></AdminRoute>} />
