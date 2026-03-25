@@ -941,6 +941,36 @@ export type Database = {
         }
         Relationships: []
       }
+      system_notices: {
+        Row: {
+          color: string
+          created_at: string | null
+          finished_at: string | null
+          id: string
+          message: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          finished_at?: string | null
+          id?: string
+          message: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          finished_at?: string | null
+          id?: string
+          message?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ticket_messages: {
         Row: {
           created_at: string

@@ -21,6 +21,7 @@ import {
   Sun,
   Moon,
   MessageSquare,
+  Bell,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -224,6 +225,20 @@ export function AppSidebar() {
                       );
                     })}
                   </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {/* Super-Admin Only */}
+            {profile?.hidden && (
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-wider font-semibold">
+                  Super Admin
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  {renderMenuItems([
+                    { href: "/admin/system-notices", label: "Avisos do Sistema", icon: Bell },
+                  ])}
                 </SidebarGroupContent>
               </SidebarGroup>
             )}
