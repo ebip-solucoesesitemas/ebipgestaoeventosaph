@@ -242,6 +242,7 @@ export function AppSidebar() {
                 </SidebarGroupContent>
               </SidebarGroup>
             )}
+          </>
         ) : (
           <SidebarGroup>
             <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-wider font-semibold">
