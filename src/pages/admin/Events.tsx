@@ -322,7 +322,7 @@ export default function AdminEvents() {
       const conflitos = await checkVehicleConflict(formData.viatura_id, dataInicioISO, dataFimISO, editingEvent?.id);
       if (conflitos.length > 0) {
         const confirmar = confirm(
-          `A viatura já está reservada para o evento "${conflitos[0].nome_evento}" neste período.\n\nDeseja continuar mesmo assim?`
+          `A viatura já está reservada para o evento "${conflitos[0].nome_evento}" neste período.\n\nDeseja continuar mesmo assim?`,
         );
         if (!confirmar) return;
       }
@@ -453,7 +453,9 @@ export default function AdminEvents() {
     const fetchEventDetails = async () => {
       const { data } = await supabase
         .from("events")
-        .select("user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade, valor_litro_combustivel, consumo_medio_km_litro")
+        .select(
+          "user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade, valor_litro_combustivel, consumo_medio_km_litro",
+        )
         .eq("id", event.id)
         .single();
       setFormData({
@@ -487,11 +489,7 @@ export default function AdminEvents() {
 
     // Get phone from profile - need to fetch
     const sendMessage = async () => {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("telefone")
-        .eq("id", profileId)
-        .single();
+      const { data: profileData } = await supabase.from("profiles").select("telefone").eq("id", profileId).single();
 
       const telefone = (profileData as any)?.telefone;
       if (!telefone) {
@@ -633,20 +631,23 @@ export default function AdminEvents() {
                   />
                 </div>
               </div>
-              {formData.data_inicio && formData.data_fim && (() => {
-                const diff = new Date(formData.data_fim).getTime() - new Date(formData.data_inicio).getTime();
-                if (diff > 0) {
-                  const totalMin = Math.round(diff / 60000);
-                  const h = Math.floor(totalMin / 60);
-                  const m = totalMin % 60;
-                  return (
-                    <p className="text-sm text-muted-foreground font-medium">
-                      ⏱ Duração: {h > 0 ? `${h}h` : ''}{m > 0 ? ` ${m}min` : ''}
-                    </p>
-                  );
-                }
-                return null;
-              })()}
+              {formData.data_inicio &&
+                formData.data_fim &&
+                (() => {
+                  const diff = new Date(formData.data_fim).getTime() - new Date(formData.data_inicio).getTime();
+                  if (diff > 0) {
+                    const totalMin = Math.round(diff / 60000);
+                    const h = Math.floor(totalMin / 60);
+                    const m = totalMin % 60;
+                    return (
+                      <p className="text-sm text-muted-foreground font-medium">
+                        ⏱ Duração: {h > 0 ? `${h}h` : ""}
+                        {m > 0 ? ` ${m}min` : ""}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
 
               <div className="space-y-2">
                 <Label>Cliente</Label>
@@ -708,7 +709,7 @@ export default function AdminEvents() {
                     <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
                     <SelectItem value="Ambulatório">Ambulatório</SelectItem>
                     <SelectItem value="USB somente condutor">USB somente condutor</SelectItem>
-                    <SelectItem value="USB Normal">USB Normal</SelectItem>
+                    <SelectItem value="USB">USB</SelectItem>
                     <SelectItem value="USA">USA</SelectItem>
                   </SelectContent>
                 </Select>
@@ -951,7 +952,9 @@ export default function AdminEvents() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-end">
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1"><Filter className="w-3 h-3" /> Data</Label>
+          <Label className="text-xs text-muted-foreground flex items-center gap-1">
+            <Filter className="w-3 h-3" /> Data
+          </Label>
           <Input
             type="date"
             value={filterDate}
@@ -962,7 +965,9 @@ export default function AdminEvents() {
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Mês</Label>
           <Select value={filterMonth || "all"} onValueChange={(v) => setFilterMonth(v === "all" ? "" : v)}>
-            <SelectTrigger className="input-touch w-36"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectTrigger className="input-touch w-36">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="1">Janeiro</SelectItem>
@@ -983,17 +988,29 @@ export default function AdminEvents() {
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Ano</Label>
           <Select value={filterYear || "all"} onValueChange={(v) => setFilterYear(v === "all" ? "" : v)}>
-            <SelectTrigger className="input-touch w-28"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectTrigger className="input-touch w-28">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               {availableYears.map((y) => (
-                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                <SelectItem key={y} value={y.toString()}>
+                  {y}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         {(filterDate || filterMonth || filterYear) && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterDate(""); setFilterMonth(""); setFilterYear(""); }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFilterDate("");
+              setFilterMonth("");
+              setFilterYear("");
+            }}
+          >
             Limpar filtros
           </Button>
         )}
@@ -1133,7 +1150,10 @@ export default function AdminEvents() {
                           size="icon"
                           className="h-6 w-6"
                           title="Enviar confirmação via WhatsApp"
-                          onClick={(e) => { e.stopPropagation(); sendWhatsApp(event, a.profile_id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sendWhatsApp(event, a.profile_id);
+                          }}
                         >
                           <MessageCircle className="w-3 h-3 text-stable" />
                         </Button>
