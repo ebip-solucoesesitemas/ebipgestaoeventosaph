@@ -27,6 +27,7 @@ interface Profile {
   id: string;
   nome: string;
   especialidade: string;
+  base_id: string | null;
 }
 
 interface Event {
