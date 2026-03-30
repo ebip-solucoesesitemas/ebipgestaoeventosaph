@@ -250,6 +250,17 @@ export default function PayrollReport() {
           <p className="text-muted-foreground text-sm">Relatório detalhado para impressão</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Select value={selectedBase} onValueChange={(v) => { setSelectedBase(v); setSelectedProfile("all"); }}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Todas as Bases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Bases</SelectItem>
+              {bases.map((b) => (
+                <SelectItem key={b.id} value={b.id}>{b.sigla} — {b.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={selectedProfile} onValueChange={setSelectedProfile}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Todos os profissionais" />

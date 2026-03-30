@@ -249,7 +249,18 @@ export default function ProfessionalReport() {
           <h1 className="text-2xl font-bold text-foreground">Relatório por Profissional</h1>
           <p className="text-muted-foreground">Resumo de horas trabalhadas e pagamentos</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Select value={selectedBase} onValueChange={setSelectedBase}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Todas as Bases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Bases</SelectItem>
+              {bases.map((b) => (
+                <SelectItem key={b.id} value={b.id}>{b.sigla} — {b.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-32">
               <SelectValue />
