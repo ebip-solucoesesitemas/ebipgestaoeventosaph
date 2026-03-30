@@ -13,6 +13,7 @@ interface Profile {
   telefone: string | null;
   is_account_only: boolean;
   accepted_terms_at: string | null;
+  base_id: string | null;
 }
 
 interface AuthContextType {
