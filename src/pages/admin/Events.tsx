@@ -489,7 +489,6 @@ export default function AdminEvents() {
     const profile = profiles.find((p) => p.id === profileId);
     if (!profile) return;
 
-    // Get phone from profile - need to fetch
     const sendMessage = async () => {
       const { data: profileData } = await supabase.from("profiles").select("telefone").eq("id", profileId).single();
 
@@ -499,26 +498,38 @@ export default function AdminEvents() {
         return;
       }
 
+      // Convertemos para 'any' aqui para o TypeScript parar de reclamar do link_acesso
+      const eventData = event as any;
+
       const vehicle = event.vehicles;
       const dataInicio = format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
       const dataFim = format(new Date(event.data_fim), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-      const linkAcesso = event.link_acesso || "https://ebipgestaoeventosaph.lovable.app";
+
+      // Aqui pegamos o link do evento ou o link fixo do app
+      const linkAcesso = eventData.link_acesso || "https://ebipgestaoeventosaph.lovable.app";
 
       let message = `*Confirmação de Evento*\n\n`;
       message += `📋 *Evento:* ${event.nome_evento}\n`;
       message += `📅 *Início:* ${dataInicio}\n`;
       message += `📅 *Fim:* ${dataFim}\n`;
       message += `📍 *Local:* ${event.local}\n`;
+
+      // Adicionando o link de forma explícita
       message += `\n🔗 *Link de Acesso:* ${linkAcesso}\n`;
+
       if (vehicle) {
         message += `🚑 *VTR:* ${vehicle.prefixo} - ${vehicle.modelo} (${vehicle.placa})\n`;
       }
+
       message += `\nPor favor, confirme sua presença.`;
 
       const phone = telefone.replace(/\D/g, "");
       const phoneWithCountry = phone.startsWith("55") ? phone : `55${phone}`;
-      window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, "_blank");
+
+      const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, "_blank");
     };
+
     sendMessage();
   };
 
