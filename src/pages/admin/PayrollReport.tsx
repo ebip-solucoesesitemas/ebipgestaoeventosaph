@@ -41,15 +41,28 @@ export default function PayrollReport() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedProfile, setSelectedProfile] = useState("all");
+  const [selectedBase, setSelectedBase] = useState("all");
+  const [bases, setBases] = useState<{id: string; sigla: string; nome: string}[]>([]);
   const [profiles, setProfiles] = useState<{id: string;nome: string;}[]>([]);
   const [profileDataMap, setProfileDataMap] = useState<Map<string, any>>(new Map());
   const printRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    supabase.from('bases').select('id, sigla, nome').order('sigla').then(({ data }) => {
+      setBases(data || []);
+    });
+  }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
 
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
+
+    let profilesQuery = supabase.from("profiles").select("id, nome, especialidade, cpf, chave_pix, base_id").eq("hidden", false).eq("is_account_only", false);
+    if (selectedBase !== "all") {
+      profilesQuery = profilesQuery.eq("base_id", selectedBase);
+    }
 
     const [assignmentsRes, profilesRes, ratesRes, eventsRes, ajudaCustoRes] = await Promise.all([
     supabase.
@@ -59,7 +72,7 @@ export default function PayrollReport() {
     not("checkin_at", "is", null).
     gte("checkout_at", monthStart.toISOString()).
     lte("checkout_at", monthEnd.toISOString()),
-    supabase.from("profiles").select("id, nome, especialidade, cpf, chave_pix").eq("hidden", false).eq("is_account_only", false).order("nome"),
+    profilesQuery.order("nome"),
     supabase.from("professional_rates").select("profile_id, valor_hora, valor_evento"),
     supabase.from("events").select("id, nome_evento, data_inicio"),
     supabase.from("operational_rates").select("valor").eq("tipo", "ajuda_custo_6h").single()]
@@ -137,7 +150,7 @@ export default function PayrollReport() {
 
   useEffect(() => {
     fetchData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, selectedBase]);
 
   const filteredLines = selectedProfile === "all" ?
   lines :
@@ -237,6 +250,17 @@ export default function PayrollReport() {
           <p className="text-muted-foreground text-sm">Relatório detalhado para impressão</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Select value={selectedBase} onValueChange={(v) => { setSelectedBase(v); setSelectedProfile("all"); }}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Todas as Bases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Bases</SelectItem>
+              {bases.map((b) => (
+                <SelectItem key={b.id} value={b.id}>{b.sigla} — {b.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={selectedProfile} onValueChange={setSelectedProfile}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Todos os profissionais" />
