@@ -150,7 +150,7 @@ export default function PayrollReport() {
 
   useEffect(() => {
     fetchData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, selectedBase]);
 
   const filteredLines = selectedProfile === "all" ?
   lines :
