@@ -55,6 +55,14 @@ export default function ProfessionalReport() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [confirmReport, setConfirmReport] = useState<ReportData | null>(null);
+  const [selectedBase, setSelectedBase] = useState("all");
+  const [bases, setBases] = useState<{id: string; sigla: string; nome: string}[]>([]);
+
+  useEffect(() => {
+    supabase.from('bases').select('id, sigla, nome').order('sigla').then(({ data }) => {
+      setBases(data || []);
+    });
+  }, []);
 
   const fetchReport = async () => {
     setIsLoading(true);
@@ -62,8 +70,12 @@ export default function ProfessionalReport() {
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
 
+    let profilesQuery = supabase.from('profiles').select('id, nome, especialidade, cpf, chave_pix, base_id').eq('hidden', false).eq('is_account_only', false);
+    if (selectedBase !== "all") {
+      profilesQuery = profilesQuery.eq('base_id', selectedBase);
+    }
     const [profilesRes, ratesRes, assignmentsRes, paymentsRes, ajudaCustoRes] = await Promise.all([
-      supabase.from('profiles').select('id, nome, especialidade, cpf, chave_pix').eq('hidden', false).eq('is_account_only', false).order('nome'),
+      profilesQuery.order('nome'),
       supabase.from('professional_rates').select('profile_id, valor_hora'),
       supabase.from('event_assignments')
         .select('profile_id, checkin_at, checkout_at')
@@ -142,7 +154,7 @@ export default function ProfessionalReport() {
 
   useEffect(() => {
     fetchReport();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, selectedBase]);
 
   const handleGenerateClick = (report: ReportData) => {
     if (report.total_horas === 0) {
@@ -237,7 +249,18 @@ export default function ProfessionalReport() {
           <h1 className="text-2xl font-bold text-foreground">Relatório por Profissional</h1>
           <p className="text-muted-foreground">Resumo de horas trabalhadas e pagamentos</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Select value={selectedBase} onValueChange={setSelectedBase}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Todas as Bases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Bases</SelectItem>
+              {bases.map((b) => (
+                <SelectItem key={b.id} value={b.id}>{b.sigla} — {b.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-32">
               <SelectValue />

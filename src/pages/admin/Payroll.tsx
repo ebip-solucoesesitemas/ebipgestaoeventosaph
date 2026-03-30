@@ -27,6 +27,7 @@ interface Profile {
   id: string;
   nome: string;
   especialidade: string;
+  base_id: string | null;
 }
 
 interface Event {
@@ -69,6 +70,8 @@ export default function Payroll() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBase, setSelectedBase] = useState("all");
+  const [bases, setBases] = useState<{id: string; sigla: string; nome: string}[]>([]);
 
   const [formData, setFormData] = useState({
     profile_id: '',
@@ -79,14 +82,20 @@ export default function Payroll() {
     descricao: '',
   });
 
+  useEffect(() => {
+    supabase.from('bases').select('id, sigla, nome').order('sigla').then(({ data }) => {
+      setBases(data || []);
+    });
+  }, []);
+
   const fetchData = async () => {
     setIsLoading(true);
     const [profilesRes, eventsRes, paymentsRes] = await Promise.all([
-      supabase.from('profiles').select('id, nome, especialidade').eq('hidden', false).eq('is_account_only', false).order('nome'),
+      supabase.from('profiles').select('id, nome, especialidade, base_id').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('events').select('id, nome_evento').order('data_inicio', { ascending: false }),
       supabase
         .from('professional_payments')
-        .select('*, profiles(nome, especialidade), events(nome_evento)')
+        .select('*, profiles(nome, especialidade, base_id), events(nome_evento)')
         .order('created_at', { ascending: false }),
     ]);
 
@@ -100,11 +109,18 @@ export default function Payroll() {
     fetchData();
   }, []);
 
-  const totalPendente = payments
+  const filteredPayments = selectedBase === "all"
+    ? payments
+    : payments.filter((p) => {
+        const profile = profiles.find(pr => pr.id === p.profile_id);
+        return profile?.base_id === selectedBase;
+      });
+
+  const totalPendente = filteredPayments
     .filter((p) => p.status === 'pendente')
     .reduce((sum, p) => sum + Number(p.valor), 0);
 
-  const totalPago = payments
+  const totalPago = filteredPayments
     .filter((p) => p.status === 'pago')
     .reduce((sum, p) => sum + Number(p.valor), 0);
 
@@ -157,15 +173,28 @@ export default function Payroll() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Folha de Pagamento</h1>
+          <h1 className="text-2xl font-bold text-foreground">Pagamentos</h1>
           <p className="text-muted-foreground">Pagamentos aos profissionais</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="btn-touch gap-2">
-          <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline">Novo Pagamento</span>
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Select value={selectedBase} onValueChange={setSelectedBase}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Todas as Bases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Bases</SelectItem>
+              {bases.map((b) => (
+                <SelectItem key={b.id} value={b.id}>{b.sigla} — {b.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => setIsDialogOpen(true)} className="btn-touch gap-2">
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">Novo Pagamento</span>
+          </Button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -205,7 +234,7 @@ export default function Payroll() {
 
       {/* Payments List */}
       <div className="space-y-3">
-        {payments.length === 0 ? (
+        {filteredPayments.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Wallet className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -213,7 +242,7 @@ export default function Payroll() {
             </CardContent>
           </Card>
         ) : (
-          payments.map((payment) => (
+          filteredPayments.map((payment) => (
             <Card key={payment.id}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
