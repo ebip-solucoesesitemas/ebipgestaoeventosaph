@@ -501,6 +501,7 @@ export default function AdminEvents() {
       const vehicle = event.vehicles;
       const dataInicio = format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
       const dataFim = format(new Date(event.data_fim), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+      const linkAcesso = event.link_acesso || "https://seusite.com/detalhes";
 
       let message = `*Confirmação de Evento*\n\n`;
       message += `📋 *Evento:* ${event.nome_evento}\n`;
@@ -904,8 +905,8 @@ export default function AdminEvents() {
                       (p) =>
                         (!formData.base_id || p.base_id === formData.base_id) &&
                         (p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                        p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                        p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())),
+                          p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                          p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())),
                     )
                     .map((p) => (
                       <div
@@ -934,8 +935,8 @@ export default function AdminEvents() {
                     (p) =>
                       (!formData.base_id || p.base_id === formData.base_id) &&
                       (p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                      p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                      p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())),
+                        p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                        p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())),
                   ).length === 0 && (
                     <p className="text-center text-sm text-muted-foreground py-4">
                       {profiles.length === 0 ? "Nenhum profissional cadastrado" : "Nenhum profissional encontrado"}
