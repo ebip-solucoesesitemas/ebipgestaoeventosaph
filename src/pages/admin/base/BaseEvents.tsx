@@ -140,6 +140,7 @@ export default function BaseEvents() {
           .select("id, nome, especialidade")
           .eq("hidden", false)
           .eq("is_account_only", false)
+          .eq("base_id", baseId)
           .order("nome"),
         supabase.from("clients").select("id, nome, endereco").order("nome"),
         supabase
