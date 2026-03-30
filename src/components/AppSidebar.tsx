@@ -101,15 +101,20 @@ export function AppSidebar() {
 
   useEffect(() => {
     if (showAdminMenu) {
-      supabase
+      let query = supabase
         .from("bases")
         .select("id, nome, sigla")
-        .order("sigla")
-        .then(({ data }) => {
-          setBases(data || []);
-        });
+        .order("sigla");
+
+      if (isOperacional && profile?.base_id) {
+        query = query.eq("id", profile.base_id);
+      }
+
+      query.then(({ data }) => {
+        setBases(data || []);
+      });
     }
-  }, [showAdminMenu]);
+  }, [showAdminMenu, isOperacional, profile?.base_id]);
 
   const filterLinks = (links: MenuLink[]) => {
     if (isAdminCargo) return links;

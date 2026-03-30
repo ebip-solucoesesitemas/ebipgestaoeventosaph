@@ -52,6 +52,7 @@ interface Profile {
   especialidade: string;
   registro_profissional: string;
   user_id: string | null;
+  base_id: string | null;
 }
 
 interface UserAccount {
@@ -901,9 +902,10 @@ export default function AdminEvents() {
                   {profiles
                     .filter(
                       (p) =>
-                        p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                        (!formData.base_id || p.base_id === formData.base_id) &&
+                        (p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
                         p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                        p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase()),
+                        p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())),
                     )
                     .map((p) => (
                       <div
@@ -930,9 +932,10 @@ export default function AdminEvents() {
                     ))}
                   {profiles.filter(
                     (p) =>
-                      p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                      (!formData.base_id || p.base_id === formData.base_id) &&
+                      (p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
                       p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                      p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase()),
+                      p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())),
                   ).length === 0 && (
                     <p className="text-center text-sm text-muted-foreground py-4">
                       {profiles.length === 0 ? "Nenhum profissional cadastrado" : "Nenhum profissional encontrado"}
