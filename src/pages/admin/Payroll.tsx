@@ -173,15 +173,28 @@ export default function Payroll() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Folha de Pagamento</h1>
+          <h1 className="text-2xl font-bold text-foreground">Pagamentos</h1>
           <p className="text-muted-foreground">Pagamentos aos profissionais</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="btn-touch gap-2">
-          <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline">Novo Pagamento</span>
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Select value={selectedBase} onValueChange={setSelectedBase}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Todas as Bases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Bases</SelectItem>
+              {bases.map((b) => (
+                <SelectItem key={b.id} value={b.id}>{b.sigla} — {b.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => setIsDialogOpen(true)} className="btn-touch gap-2">
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">Novo Pagamento</span>
+          </Button>
+        </div>
       </div>
 
       {/* Summary */}
