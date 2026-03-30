@@ -154,7 +154,7 @@ export default function ProfessionalReport() {
 
   useEffect(() => {
     fetchReport();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, selectedBase]);
 
   const handleGenerateClick = (report: ReportData) => {
     if (report.total_horas === 0) {
