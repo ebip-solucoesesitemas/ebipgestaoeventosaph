@@ -70,6 +70,8 @@ export default function Payroll() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBase, setSelectedBase] = useState("all");
+  const [bases, setBases] = useState<{id: string; sigla: string; nome: string}[]>([]);
 
   const [formData, setFormData] = useState({
     profile_id: '',
@@ -80,14 +82,20 @@ export default function Payroll() {
     descricao: '',
   });
 
+  useEffect(() => {
+    supabase.from('bases').select('id, sigla, nome').order('sigla').then(({ data }) => {
+      setBases(data || []);
+    });
+  }, []);
+
   const fetchData = async () => {
     setIsLoading(true);
     const [profilesRes, eventsRes, paymentsRes] = await Promise.all([
-      supabase.from('profiles').select('id, nome, especialidade').eq('hidden', false).eq('is_account_only', false).order('nome'),
+      supabase.from('profiles').select('id, nome, especialidade, base_id').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('events').select('id, nome_evento').order('data_inicio', { ascending: false }),
       supabase
         .from('professional_payments')
-        .select('*, profiles(nome, especialidade), events(nome_evento)')
+        .select('*, profiles(nome, especialidade, base_id), events(nome_evento)')
         .order('created_at', { ascending: false }),
     ]);
 
