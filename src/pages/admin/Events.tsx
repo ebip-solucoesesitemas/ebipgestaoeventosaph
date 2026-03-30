@@ -902,9 +902,10 @@ export default function AdminEvents() {
                   {profiles
                     .filter(
                       (p) =>
-                        p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                        (!formData.base_id || p.base_id === formData.base_id) &&
+                        (p.nome.toLowerCase().includes(profileSearch.toLowerCase()) ||
                         p.especialidade.toLowerCase().includes(profileSearch.toLowerCase()) ||
-                        p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase()),
+                        p.registro_profissional.toLowerCase().includes(profileSearch.toLowerCase())),
                     )
                     .map((p) => (
                       <div
