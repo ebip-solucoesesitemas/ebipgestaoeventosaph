@@ -234,7 +234,7 @@ export default function Payroll() {
 
       {/* Payments List */}
       <div className="space-y-3">
-        {payments.length === 0 ? (
+        {filteredPayments.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Wallet className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -242,7 +242,7 @@ export default function Payroll() {
             </CardContent>
           </Card>
         ) : (
-          payments.map((payment) => (
+          filteredPayments.map((payment) => (
             <Card key={payment.id}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
