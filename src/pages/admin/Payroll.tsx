@@ -109,11 +109,18 @@ export default function Payroll() {
     fetchData();
   }, []);
 
-  const totalPendente = payments
+  const filteredPayments = selectedBase === "all"
+    ? payments
+    : payments.filter((p) => {
+        const profile = profiles.find(pr => pr.id === p.profile_id);
+        return profile?.base_id === selectedBase;
+      });
+
+  const totalPendente = filteredPayments
     .filter((p) => p.status === 'pendente')
     .reduce((sum, p) => sum + Number(p.valor), 0);
 
-  const totalPago = payments
+  const totalPago = filteredPayments
     .filter((p) => p.status === 'pago')
     .reduce((sum, p) => sum + Number(p.valor), 0);
 
