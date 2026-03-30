@@ -501,13 +501,14 @@ export default function AdminEvents() {
       const vehicle = event.vehicles;
       const dataInicio = format(new Date(event.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
       const dataFim = format(new Date(event.data_fim), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-      const linkAcesso = event.link_acesso || "https://seusite.com/detalhes";
+      const linkAcesso = event.link_acesso || "https://ebipgestaoeventosaph.lovable.app";
 
       let message = `*Confirmação de Evento*\n\n`;
       message += `📋 *Evento:* ${event.nome_evento}\n`;
       message += `📅 *Início:* ${dataInicio}\n`;
       message += `📅 *Fim:* ${dataFim}\n`;
       message += `📍 *Local:* ${event.local}\n`;
+      message += `\n🔗 *Link de Acesso:* ${linkAcesso}\n`;
       if (vehicle) {
         message += `🚑 *VTR:* ${vehicle.prefixo} - ${vehicle.modelo} (${vehicle.placa})\n`;
       }
