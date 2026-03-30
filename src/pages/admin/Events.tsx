@@ -52,6 +52,7 @@ interface Profile {
   especialidade: string;
   registro_profissional: string;
   user_id: string | null;
+  base_id: string | null;
 }
 
 interface UserAccount {
