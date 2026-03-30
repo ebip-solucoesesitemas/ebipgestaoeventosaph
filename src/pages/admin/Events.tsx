@@ -74,6 +74,7 @@ interface Event {
   valor_litro_combustivel: number | null;
   consumo_medio_km_litro: number | null;
   vehicles?: Vehicle;
+  link_acesso?: string;
 }
 
 interface EventAssignment {
