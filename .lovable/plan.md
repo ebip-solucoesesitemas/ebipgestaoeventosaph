@@ -1,34 +1,79 @@
 
+# Plano: remover usuário/senha da tela de Profissionais sem quebrar o restante
 
-# Plano: Filtrar profissionais por base e restringir Operacional à sua base
+## Diagnóstico
+Hoje existem dois fluxos diferentes:
 
-## Problema 1: Profissionais de outras bases aparecem no cadastro de evento
+- `src/pages/admin/Professionals.tsx` mistura:
+  - cadastro do profissional
+  - valores financeiros
+  - criação opcional de conta com `email` e `password`
+- `src/pages/admin/Users.tsx` já é a tela correta para cadastrar contas com acesso ao sistema
 
-Tanto em `Events.tsx` (geral) quanto em `BaseEvents.tsx` (dentro da base), a query de profissionais busca **todos** os profissionais sem filtrar por `base_id`.
+Isso está gerando duplicidade de fluxo e risco de inconsistência.
 
-### Correção
+## O que vou ajustar
 
-**`src/pages/admin/base/BaseEvents.tsx`** (linha ~139-143):
-- Adicionar `.eq("base_id", baseId)` na query de profissionais. Quando o evento é de uma base específica, só devem aparecer profissionais vinculados àquela base.
+### 1. Remover credenciais da tela de Profissionais
+**Arquivo:** `src/pages/admin/Professionals.tsx`
 
-**`src/pages/admin/Events.tsx`** (linha ~155):
-- Quando o formulário de criação/edição tem uma base selecionada (`form.base_id`), filtrar a lista de profissionais exibidos na escala pela `base_id` selecionada. Isso pode ser feito no frontend filtrando `profiles` pelo `base_id` ao renderizar os checkboxes, já que a query geral precisa trazer todos (para permitir trocar a base no form).
+- Remover do estado do formulário:
+  - `email`
+  - `password`
+- Remover do modal:
+  - bloco “Credenciais de Acesso (opcional)”
+  - campo “Email de Login”
+  - campo “Senha”
+- Simplificar o `handleSubmit` para sempre:
+  1. criar/editar apenas o perfil do profissional
+  2. salvar `professional_rates` com o `profile_id` correto
+- Corrigir o insert de criação para retornar o perfil criado diretamente, sem buscar depois por nome
 
-## Problema 2: Operacional vê todas as bases na sidebar
+### 2. Preservar a gestão de usuários no lugar certo
+**Arquivo:** `src/pages/admin/Users.tsx`
 
-No `AppSidebar.tsx`, a query de bases busca **todas** sem filtrar. Para o cargo Operacional, deve mostrar apenas a base vinculada ao seu perfil (`profile.base_id`).
+- Manter esta tela como único local para:
+  - criar usuário com login
+  - definir senha
+  - marcar conta apenas para acesso
+  - editar senha posteriormente
+- Não remover nenhuma lógica de `create-user`, reset de senha ou exclusão daqui
 
-### Correção
+### 3. Evitar confusão para o operador
+**Arquivo:** `src/pages/admin/Professionals.tsx`
 
-**`src/components/AppSidebar.tsx`** (linhas ~102-111):
-- Se `isOperacional && profile?.base_id`, filtrar a query com `.eq("id", profile.base_id)`.
-- Caso contrário (admin/gestor), manter a busca de todas as bases.
+- Ajustar textos da tela para deixar claro:
+  - “Profissionais” = cadastro operacional/financeiro
+  - “Usuários” = contas de acesso ao sistema
+- Onde hoje aparece badge de acesso (`Com acesso` / `Sem login`), revisar para manter só se fizer sentido visualmente, sem sugerir criação de login por essa tela
 
-## Resumo de arquivos
+### 4. Corrigir o bug já existente de gravação dos valores
+**Arquivo:** `src/pages/admin/Professionals.tsx`
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/admin/base/BaseEvents.tsx` | Filtrar profissionais por `base_id` na query |
-| `src/pages/admin/Events.tsx` | Filtrar profissionais exibidos pela base selecionada no formulário |
-| `src/components/AppSidebar.tsx` | Operacional só vê sua própria base |
+Como essa mesma tela já está com problema ao salvar `valor_hora` e `valor_evento` no cadastro novo, vou aproveitar e deixar o fluxo seguro:
+- usar `insert(...).select().single()` para obter o `id` do profissional recém-criado
+- fazer `upsert` de `professional_rates` com esse `id`
+- validar erro do `upsert` e exibir toast se falhar
 
+## Impacto esperado
+- A tela de Profissionais ficará focada apenas no cadastro do profissional e seus valores
+- O cadastro de login/senha continuará funcionando normalmente em `Usuários`
+- Reduzimos duplicidade e evitamos quebrar regras de acesso
+- O salvamento de valor por hora/evento ficará consistente já no primeiro cadastro
+
+## Arquivos a alterar
+- `src/pages/admin/Professionals.tsx`
+
+## Arquivos que vou revisar para não causar regressão
+- `src/pages/admin/Users.tsx`
+- `supabase/functions/create-user/index.ts`
+- `src/App.tsx`
+- `src/components/AppSidebar.tsx`
+
+## Cuidados de compatibilidade
+- Não vou remover a rota `/admin/users`
+- Não vou mexer no fluxo de autenticação principal
+- Não vou alterar permissões nem estrutura de banco só para essa remoção
+- A separação ficará:
+  - `Profissionais`: dados operacionais e financeiros
+  - `Usuários`: acesso ao sistema
