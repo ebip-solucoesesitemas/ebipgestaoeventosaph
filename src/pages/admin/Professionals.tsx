@@ -75,11 +75,21 @@ export default function AdminProfessionals() {
     telefone: '',
     chave_pix: '',
     base_id: '',
-    email: '',
-    password: '',
     valor_hora: '',
     valor_evento: '',
   });
+
+  const saveProfessionalRates = async (profileId: string) => {
+    const { error } = await supabase.from('professional_rates').upsert({
+      profile_id: profileId,
+      valor_hora: parseFloat(formData.valor_hora) || 0,
+      valor_evento: parseFloat(formData.valor_evento) || 0,
+    }, { onConflict: 'profile_id' });
+
+    if (error) {
+      throw error;
+    }
+  };
 
   const fetchProfiles = async () => {
     setIsLoading(true);
@@ -113,7 +123,7 @@ export default function AdminProfessionals() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', telefone: '', chave_pix: '', base_id: '', email: '', password: '', valor_hora: '', valor_evento: '' });
+    setFormData({ nome: '', especialidade: '', registro_profissional: '', cargo: 'equipe', cpf: '', telefone: '', chave_pix: '', base_id: '', valor_hora: '', valor_evento: '' });
     setEditingProfile(null);
   };
 
@@ -129,8 +139,6 @@ export default function AdminProfessionals() {
       telefone: profile.telefone || '',
       chave_pix: profile.chave_pix || '',
       base_id: profile.base_id || '',
-      email: '',
-      password: '',
       valor_hora: rate?.valor_hora ? String(rate.valor_hora) : '',
       valor_evento: rate?.valor_evento ? String(rate.valor_evento) : '',
     });
@@ -141,122 +149,56 @@ export default function AdminProfessionals() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    if (editingProfile) {
-      // Update existing profile
+    try {
       const payload = {
         nome: formData.nome,
-        especialidade: formData.especialidade as 'Médico' | 'Enfermeiro' | 'Técnico' | 'Socorrista',
+        especialidade: formData.especialidade as any,
         registro_profissional: formData.registro_profissional,
-        cargo: formData.cargo as 'admin' | 'equipe',
+        cargo: formData.cargo as any,
         cpf: formData.cpf || null,
         telefone: formData.telefone || null,
         chave_pix: formData.chave_pix || null,
         base_id: formData.base_id || null,
       };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(payload)
-        .eq('id', editingProfile.id);
+      if (editingProfile) {
+        const { error } = await supabase
+          .from('profiles')
+          .update(payload)
+          .eq('id', editingProfile.id);
 
-      if (error) {
-        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
-      }
+        if (error) throw error;
 
-      // Upsert rates
-      const ratePayload = {
-        profile_id: editingProfile.id,
-        valor_hora: parseFloat(formData.valor_hora) || 0,
-        valor_evento: parseFloat(formData.valor_evento) || 0,
-      };
-      await supabase.from('professional_rates').upsert(ratePayload, { onConflict: 'profile_id' });
-
-      toast({ title: 'Profissional atualizado!' });
-    } else {
-      // If email and password provided, create user + profile via edge function
-      if (formData.email && formData.password) {
-        if (formData.password.length < 6) {
-          toast({ title: 'Senha deve ter no mínimo 6 caracteres', variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
-
-        const { data, error } = await supabase.functions.invoke('create-user', {
-          body: {
-            email: formData.email,
-            password: formData.password,
-            profileData: {
-              nome: formData.nome,
-              especialidade: formData.especialidade,
-              registro_profissional: formData.registro_profissional,
-              cargo: formData.cargo,
-            },
-          },
-        });
-
-        if (error) {
-          toast({ title: 'Erro ao criar usuário', description: error.message, variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
-
-        if (data?.error) {
-          toast({ title: 'Erro ao criar usuário', description: data.error, variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
-
-        // Save rates for the new profile created via edge function
-        if (data?.profileId && (formData.valor_hora || formData.valor_evento)) {
-          await supabase.from('professional_rates').upsert({
-            profile_id: data.profileId,
-            valor_hora: parseFloat(formData.valor_hora) || 0,
-            valor_evento: parseFloat(formData.valor_evento) || 0,
-          }, { onConflict: 'profile_id' });
-        }
-        toast({ title: 'Profissional cadastrado com sucesso!', description: `Login: ${formData.email}` });
+        await saveProfessionalRates(editingProfile.id);
+        toast({ title: 'Profissional atualizado!' });
       } else {
-        // Insert profile directly without auth user
-        const { error } = await supabase.from('profiles').insert({
-          user_id: null,
-          nome: formData.nome,
-          especialidade: formData.especialidade as any,
-          registro_profissional: formData.registro_profissional || '',
-          cargo: formData.cargo as any,
-          cpf: formData.cpf || null,
-          telefone: formData.telefone || null,
-          chave_pix: formData.chave_pix || null,
-          base_id: formData.base_id || null,
-        });
+        const { data: createdProfile, error } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: null,
+            ...payload,
+          })
+          .select('id')
+          .single();
 
-        if (error) {
-          toast({ title: 'Erro ao cadastrar', description: error.message, variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
+        if (error) throw error;
 
-        // Save rates: need to find the newly created profile
-        if (formData.valor_hora || formData.valor_evento) {
-          const { data: newProfiles } = await supabase.from('profiles').select('id').eq('nome', formData.nome).eq('user_id', null as any).order('created_at', { ascending: false }).limit(1);
-          if (newProfiles?.[0]) {
-            await supabase.from('professional_rates').upsert({
-              profile_id: newProfiles[0].id,
-              valor_hora: parseFloat(formData.valor_hora) || 0,
-              valor_evento: parseFloat(formData.valor_evento) || 0,
-            }, { onConflict: 'profile_id' });
-          }
-        }
-
+        await saveProfessionalRates(createdProfile.id);
         toast({ title: 'Profissional cadastrado com sucesso!' });
       }
-    }
 
-    setDialogOpen(false);
-    resetForm();
-    fetchProfiles();
-    setIsSubmitting(false);
+      setDialogOpen(false);
+      resetForm();
+      fetchProfiles();
+    } catch (error: any) {
+      toast({
+        title: editingProfile ? 'Erro ao atualizar' : 'Erro ao cadastrar',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -312,7 +254,7 @@ export default function AdminProfessionals() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Profissionais</h1>
-          <p className="text-muted-foreground">Gerencie a equipe médica</p>
+          <p className="text-muted-foreground">Cadastre dados operacionais e financeiros; acessos ficam em Usuários</p>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
@@ -456,44 +398,6 @@ export default function AdminProfessionals() {
                   </div>
                 </div>
               </div>
-
-              {!editingProfile && (
-                <>
-                  <div className="border-t pt-4 mt-4">
-                    <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
-                      <Key className="w-4 h-4" />
-                      Credenciais de Acesso (opcional)
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Preencha apenas se o profissional precisar de login no sistema
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Email de Login</Label>
-                    <Input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="profissional@email.com"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Senha</Label>
-                    <Input
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                      placeholder="Mínimo 6 caracteres"
-                      minLength={6}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Informe esta senha ao profissional para ele fazer login
-                    </p>
-                  </div>
-                </>
-              )}
 
               <Button type="submit" className="w-full btn-touch" disabled={isSubmitting}>
                 {isSubmitting ? 'Processando...' : editingProfile ? 'Salvar Alterações' : 'Cadastrar Profissional'}
