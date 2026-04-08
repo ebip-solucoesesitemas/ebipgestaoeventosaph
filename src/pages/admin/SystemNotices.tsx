@@ -33,6 +33,7 @@ export default function SystemNotices() {
   const [notices, setNotices] = useState<SystemNotice[]>([]);
   const [message, setMessage] = useState("");
   const [color, setColor] = useState("yellow");
+  const [tipo, setTipo] = useState("aviso");
   const [loading, setLoading] = useState(false);
 
   const fetchNotices = async () => {
@@ -62,7 +63,7 @@ export default function SystemNotices() {
 
     const { error } = await supabase
       .from("system_notices")
-      .insert({ message: message.trim(), color, status: "active" } as any);
+      .insert({ message: message.trim(), color, status: "active", tipo } as any);
 
     if (error) {
       toast.error("Erro ao criar aviso: " + error.message);
@@ -120,6 +121,15 @@ export default function SystemNotices() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={tipo} onValueChange={setTipo}>
+                <SelectTrigger className="w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="aviso">Aviso Comum</SelectItem>
+                  <SelectItem value="melhoria">Melhoria / Alteração</SelectItem>
+                </SelectContent>
+              </Select>
               <Button onClick={handleCreate} disabled={loading}>
                 <Plus className="h-4 w-4 mr-1" />
                 Ativar Aviso
@@ -156,6 +166,9 @@ export default function SystemNotices() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      {(n as any).tipo === "melhoria" && (
+                        <Badge variant="outline" className="text-xs">Melhoria</Badge>
+                      )}
                       {n.status === "active" ? (
                         <>
                           <Badge variant="destructive" className="flex items-center gap-1">

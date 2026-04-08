@@ -207,10 +207,23 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
             <div className="space-y-3 border-t pt-4">
               <h3 className="font-semibold flex items-center gap-2 text-primary">
                 <FileText className="w-4 h-4" />
-                EVOLUÇÃO CLÍNICA
+                EVOLUÇÃO CLÍNICA (ENFERMAGEM)
               </h3>
               <p className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap">
                 {attendance.evolucao_clinica}
+              </p>
+            </div>
+          )}
+
+          {/* Medical Evolution */}
+          {(attendance as any).evolucao_medica && (
+            <div className="space-y-3 border-t pt-4">
+              <h3 className="font-semibold flex items-center gap-2 text-primary">
+                <FileText className="w-4 h-4" />
+                EVOLUÇÃO MÉDICA
+              </h3>
+              <p className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap">
+                {(attendance as any).evolucao_medica}
               </p>
             </div>
           )}

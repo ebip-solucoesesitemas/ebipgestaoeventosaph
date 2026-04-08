@@ -78,6 +78,7 @@ export default function TeamEvents() {
   }, [profile]);
 
   const getEventStatus = (event: Event) => {
+    if (event.status === 'cancelado') return 'cancelado';
     if (event.status === 'finalizado') return 'finalizado';
     const now = new Date();
     if (new Date(event.data_fim) <= now) return 'aguardando_finalizacao';
@@ -114,11 +115,16 @@ export default function TeamEvents() {
 
             return (
               <Link key={event.id} to={`/events/${event.id}`}>
-                <Card className={`transition-all hover:shadow-md ${status === 'em_andamento' ? 'ring-2 ring-stable' : ''}`}>
+                <Card className={`transition-all hover:shadow-md ${status === 'em_andamento' ? 'ring-2 ring-stable' : ''} ${status === 'cancelado' ? 'border-red-500 bg-red-50/50 dark:bg-red-950/20' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
+                          {status === 'cancelado' && (
+                            <Badge className="bg-red-600 text-white">
+                              Cancelado
+                            </Badge>
+                          )}
                           {status === 'em_andamento' && (
                             <Badge className="bg-stable text-stable-foreground animate-pulse-soft">
                               Em Andamento
