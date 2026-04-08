@@ -215,6 +215,7 @@ export type Database = {
           documento: string | null
           event_id: string
           evolucao_clinica: string | null
+          evolucao_medica: string | null
           hospital_destino: string | null
           id: string
           idade: number | null
@@ -235,6 +236,7 @@ export type Database = {
           documento?: string | null
           event_id: string
           evolucao_clinica?: string | null
+          evolucao_medica?: string | null
           hospital_destino?: string | null
           id?: string
           idade?: number | null
@@ -255,6 +257,7 @@ export type Database = {
           documento?: string | null
           event_id?: string
           evolucao_clinica?: string | null
+          evolucao_medica?: string | null
           hospital_destino?: string | null
           id?: string
           idade?: number | null
@@ -552,6 +555,7 @@ export type Database = {
           local: string
           min_antes_saida_base: number | null
           nome_evento: string
+          responsavel_evento: string | null
           status: string
           tipo_unidade: string | null
           updated_at: string | null
@@ -575,6 +579,7 @@ export type Database = {
           local: string
           min_antes_saida_base?: number | null
           nome_evento: string
+          responsavel_evento?: string | null
           status?: string
           tipo_unidade?: string | null
           updated_at?: string | null
@@ -598,6 +603,7 @@ export type Database = {
           local?: string
           min_antes_saida_base?: number | null
           nome_evento?: string
+          responsavel_evento?: string | null
           status?: string
           tipo_unidade?: string | null
           updated_at?: string | null
@@ -625,6 +631,35 @@ export type Database = {
             columns: ["viatura_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notice_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          id: string
+          notice_id: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          id?: string
+          notice_id: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          id?: string
+          notice_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notice_acknowledgements_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "system_notices"
             referencedColumns: ["id"]
           },
         ]
@@ -949,6 +984,7 @@ export type Database = {
           id: string
           message: string
           status: string
+          tipo: string
           updated_at: string | null
         }
         Insert: {
@@ -958,6 +994,7 @@ export type Database = {
           id?: string
           message: string
           status?: string
+          tipo?: string
           updated_at?: string | null
         }
         Update: {
@@ -967,6 +1004,7 @@ export type Database = {
           id?: string
           message?: string
           status?: string
+          tipo?: string
           updated_at?: string | null
         }
         Relationships: []
