@@ -145,6 +145,7 @@ export default function AdminEvents() {
     selectedProfiles: [] as string[],
     client_id: "",
     tipo_unidade: "",
+    responsavel_evento: "",
   });
 
   const fetchData = async () => {
@@ -242,6 +243,7 @@ export default function AdminEvents() {
       selectedProfiles: [],
       client_id: "",
       tipo_unidade: "",
+      responsavel_evento: "",
     });
     setEditingEvent(null);
   };
@@ -278,6 +280,7 @@ export default function AdminEvents() {
         selectedProfiles: assignments[event.id]?.map((a) => a.profile_id) || [],
         client_id: (budgetRes.data as any)?.client_id || "",
         tipo_unidade: (data as any)?.tipo_unidade || "",
+        responsavel_evento: (data as any)?.responsavel_evento || "",
       });
     };
     fetchEventDetails();
@@ -345,6 +348,7 @@ export default function AdminEvents() {
       min_antes_saida_base: formData.min_antes_saida_base ? parseInt(formData.min_antes_saida_base) : null,
       horario_saida_base: formData.horario_saida_base ? localDatetimeToISO(formData.horario_saida_base) : null,
       tipo_unidade: formData.tipo_unidade || null,
+      responsavel_evento: formData.responsavel_evento || null,
     };
 
     let eventId: string;
@@ -478,6 +482,7 @@ export default function AdminEvents() {
         selectedProfiles: assignments[event.id]?.map((a) => a.profile_id) || [],
         client_id: "",
         tipo_unidade: (data as any)?.tipo_unidade || "",
+        responsavel_evento: (data as any)?.responsavel_evento || "",
       });
     };
     fetchEventDetails();
@@ -747,6 +752,16 @@ export default function AdminEvents() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Responsável do Evento</Label>
+                <Input
+                  value={formData.responsavel_evento}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, responsavel_evento: e.target.value }))}
+                  placeholder="Nome do responsável no local do evento"
+                  className="input-touch"
+                />
               </div>
 
               <div className="space-y-2">
@@ -1047,13 +1062,15 @@ export default function AdminEvents() {
           filteredEvents.map((event) => {
             const teamStatus = getTeamStatus(event);
             return (
-              <Card key={event.id} className="overflow-hidden">
+              <Card key={event.id} className={`overflow-hidden ${event.status === 'cancelado' ? 'border-red-500 bg-red-50/50 dark:bg-red-950/20' : ''}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <CardTitle className="text-lg">{event.nome_evento}</CardTitle>
-                        {event.status === "finalizado" ? (
+                        {event.status === "cancelado" ? (
+                          <Badge className="bg-red-600 text-white">Cancelado</Badge>
+                        ) : event.status === "finalizado" ? (
                           <Badge className="bg-muted text-muted-foreground">Finalizado</Badge>
                         ) : new Date(event.data_fim) < new Date(now) ? (
                           <Badge className="bg-warning/20 text-warning border-warning/30 gap-1 animate-pulse-soft">
