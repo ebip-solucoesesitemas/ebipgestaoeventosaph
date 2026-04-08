@@ -252,7 +252,9 @@ export default function EventDetail() {
             {event.tipo_unidade && (
               <Badge className="bg-primary/10 text-primary border-primary/20">{event.tipo_unidade}</Badge>
             )}
-            {isEventFinalized ? (
+            {event.status === 'cancelado' ? (
+              <Badge className="bg-red-600 text-white">Cancelado</Badge>
+            ) : isEventFinalized ? (
               <Badge className="bg-stable/20 text-stable">Finalizado</Badge>
             ) : new Date(event.data_fim) < new Date() ? (
               <Badge className="bg-warning/20 text-warning border-warning/30 animate-pulse-soft">
