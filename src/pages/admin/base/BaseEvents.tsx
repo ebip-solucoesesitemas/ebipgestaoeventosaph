@@ -119,6 +119,7 @@ export default function BaseEvents() {
     user_id: "",
     selectedProfiles: [] as string[],
     tipo_unidade: "",
+    responsavel_evento: "",
   });
 
   const fetchData = async () => {
@@ -197,6 +198,7 @@ export default function BaseEvents() {
       user_id: "",
       selectedProfiles: [],
       tipo_unidade: "",
+      responsavel_evento: "",
     });
     setEditingEvent(null);
   };
@@ -223,6 +225,7 @@ export default function BaseEvents() {
       user_id: (data as any)?.user_id || "",
       selectedProfiles: assignments[event.id]?.map((a) => a.profile_id) || [],
       tipo_unidade: (data as any)?.tipo_unidade || "",
+      responsavel_evento: (data as any)?.responsavel_evento || "",
     });
     setDialogOpen(true);
   };
@@ -287,6 +290,7 @@ export default function BaseEvents() {
       user_id: formData.user_id || null,
       base_id: baseId,
       tipo_unidade: formData.tipo_unidade || null,
+      responsavel_evento: formData.responsavel_evento || null,
     };
 
     let eventId: string;
@@ -383,6 +387,7 @@ export default function BaseEvents() {
         user_id: (data as any)?.user_id || "",
         selectedProfiles: assignments[event.id]?.map((a) => a.profile_id) || [],
         tipo_unidade: (data as any)?.tipo_unidade || "",
+        responsavel_evento: (data as any)?.responsavel_evento || "",
       });
     };
     fetchDetails();
@@ -428,6 +433,7 @@ export default function BaseEvents() {
     sendMessage();
   };
   const getEventStatus = (event: Event) => {
+    if (event.status === "cancelado") return { label: "Cancelado", color: "bg-red-600 text-white" };
     if (event.status === "finalizado") return { label: "Finalizado", color: "bg-stable/20 text-stable" };
     const now = new Date();
     const start = new Date(event.data_inicio);
@@ -555,6 +561,15 @@ export default function BaseEvents() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Responsável do Evento</Label>
+                <Input
+                  value={formData.responsavel_evento}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, responsavel_evento: e.target.value }))}
+                  placeholder="Nome do responsável no local do evento"
+                  className="input-touch"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Conta Responsável</Label>
@@ -875,7 +890,7 @@ export default function BaseEvents() {
             return (
               <Card
                 key={event.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className={`cursor-pointer hover:shadow-md transition-shadow ${event.status === 'cancelado' ? 'border-red-500 bg-red-50/50 dark:bg-red-950/20' : ''}`}
                 onClick={() => navigate(`/admin/events/${event.id}`)}
               >
                 <CardHeader className="pb-3">

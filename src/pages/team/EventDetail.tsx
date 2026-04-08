@@ -252,7 +252,9 @@ export default function EventDetail() {
             {event.tipo_unidade && (
               <Badge className="bg-primary/10 text-primary border-primary/20">{event.tipo_unidade}</Badge>
             )}
-            {isEventFinalized ? (
+            {event.status === 'cancelado' ? (
+              <Badge className="bg-red-600 text-white">Cancelado</Badge>
+            ) : isEventFinalized ? (
               <Badge className="bg-stable/20 text-stable">Finalizado</Badge>
             ) : new Date(event.data_fim) < new Date() ? (
               <Badge className="bg-warning/20 text-warning border-warning/30 animate-pulse-soft">
@@ -269,10 +271,16 @@ export default function EventDetail() {
               <MapPin className="w-4 h-4" />
               {event.local}
             </span>
+            {(event as any).responsavel_evento && (
+              <span className="flex items-center gap-1 font-semibold text-primary">
+                <User className="w-4 h-4" />
+                Responsável do Evento: {(event as any).responsavel_evento}
+              </span>
+            )}
             {event.responsible_profile && (
               <span className="flex items-center gap-1">
                 <User className="w-4 h-4" />
-                Responsável: {event.responsible_profile.nome}
+                Conta: {event.responsible_profile.nome}
                 {event.responsible_profile.telefone && (
                   <a
                     href={`tel:${event.responsible_profile.telefone}`}
