@@ -77,6 +77,7 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
 
   // Evolution
   const [evolucao, setEvolucao] = useState('');
+  const [evolucaoMedica, setEvolucaoMedica] = useState('');
 
   // Signatures
   const patientSigRef = useRef<SignaturePadRef>(null);
@@ -103,6 +104,7 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
         setSexo(attendance.sexo || '');
         setQueixaPrincipal(attendance.queixa_principal);
         setEvolucao(attendance.evolucao_clinica || '');
+        setEvolucaoMedica((attendance as any).evolucao_medica || '');
 
         if (attendance.status === 'finalizado') {
           setShowSummary(true);
@@ -154,6 +156,7 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
       sexo,
       queixa_principal: queixaPrincipal,
       evolucao_clinica: evolucao,
+      evolucao_medica: evolucaoMedica,
     };
 
     if (savedAttendanceId) {
@@ -556,14 +559,25 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
           )}
 
           {step === 'evolution' && (
-            <div className="space-y-2">
-              <Label>Evolução Clínica</Label>
-              <Textarea
-                value={evolucao}
-                onChange={(e) => setEvolucao(e.target.value)}
-                placeholder="Descreva o atendimento realizado, procedimentos, medicamentos administrados, etc."
-                className="min-h-[200px] text-base"
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Evolução Clínica (Enfermagem)</Label>
+                <Textarea
+                  value={evolucao}
+                  onChange={(e) => setEvolucao(e.target.value)}
+                  placeholder="Descreva o atendimento realizado, procedimentos, medicamentos administrados, etc."
+                  className="min-h-[150px] text-base"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Evolução Médica</Label>
+                <Textarea
+                  value={evolucaoMedica}
+                  onChange={(e) => setEvolucaoMedica(e.target.value)}
+                  placeholder="Avaliação médica, diagnóstico, condutas e prescrições..."
+                  className="min-h-[150px] text-base"
+                />
+              </div>
             </div>
           )}
 
