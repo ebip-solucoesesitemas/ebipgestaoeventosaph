@@ -271,10 +271,16 @@ export default function EventDetail() {
               <MapPin className="w-4 h-4" />
               {event.local}
             </span>
+            {(event as any).responsavel_evento && (
+              <span className="flex items-center gap-1 font-semibold text-primary">
+                <User className="w-4 h-4" />
+                Responsável do Evento: {(event as any).responsavel_evento}
+              </span>
+            )}
             {event.responsible_profile && (
               <span className="flex items-center gap-1">
                 <User className="w-4 h-4" />
-                Responsável: {event.responsible_profile.nome}
+                Conta: {event.responsible_profile.nome}
                 {event.responsible_profile.telefone && (
                   <a
                     href={`tel:${event.responsible_profile.telefone}`}
