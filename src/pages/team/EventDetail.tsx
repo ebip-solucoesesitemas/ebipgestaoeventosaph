@@ -249,9 +249,9 @@ export default function EventDetail() {
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold text-foreground">{event.nome_evento}</h1>
-            {event.tipo_unidade && (
-              <Badge className="bg-primary/10 text-primary border-primary/20">{event.tipo_unidade}</Badge>
-            )}
+            {event.status === 'cancelado' ? (
+              <Badge className="bg-red-600 text-white">Cancelado</Badge>
+            ) : event.tipo_unidade ? (
             {event.status === 'cancelado' ? (
               <Badge className="bg-red-600 text-white">Cancelado</Badge>
             ) : isEventFinalized ? (
