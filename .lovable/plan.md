@@ -1,131 +1,94 @@
-# Plano Consolidado: Evolução Médica, Evento Cancelado Vermelho, Responsável do Evento e Avisos com Confirmação
 
-## Visão Geral
 
-Quatro funcionalidades em uma entrega:
+# Plano: Telefone do responsável, Cancelamento de evento e Correções de segurança
 
-1. Campo "Evolução Médica" separado da "Evolução Clínica" na ficha APH
-2. Eventos cancelados em destaque vermelho nas listagens
-3. Campo "Responsável do Evento" (texto livre) no formulário de evento
-4. Avisos do sistema com tipo (melhoria/alteração vs aviso comum) — melhoria/alteração exige popup de confirmação dos usuários
-
----
-
-## 1. Migrações SQL
+## 1. Migração SQL
 
 ```sql
--- Evolução médica na ficha APH
-ALTER TABLE clinical_attendances ADD COLUMN evolucao_medica TEXT;
+-- Telefone do responsável do evento
+ALTER TABLE events ADD COLUMN responsavel_telefone TEXT;
 
--- Responsável do evento
-ALTER TABLE events ADD COLUMN responsavel_evento TEXT;
+-- Motivo do cancelamento
+ALTER TABLE events ADD COLUMN motivo_cancelamento TEXT;
 
--- Tipo do aviso (aviso comum ou melhoria/alteração)
-ALTER TABLE system_notices ADD COLUMN tipo TEXT NOT NULL DEFAULT 'aviso';
+-- SEGURANÇA: Restringir profiles para que anônimos não leiam dados sensíveis
+-- Trocar policies de profiles que usam {public} para {authenticated}
+DROP POLICY IF EXISTS "Admins can manage all profiles" ON profiles;
+CREATE POLICY "Admins can manage all profiles" ON profiles FOR ALL TO authenticated USING (is_admin());
 
--- Tabela de confirmações dos usuários para avisos tipo melhoria/alteração
-CREATE TABLE notice_acknowledgements (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  notice_id UUID NOT NULL REFERENCES system_notices(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  acknowledged_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(notice_id, user_id)
-);
+DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
+-- (redundante com a ALL acima, pode remover)
 
-ALTER TABLE notice_acknowledgements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view profiles of event teammates" ON profiles;
+CREATE POLICY "Users can view profiles of event teammates" ON profiles FOR SELECT TO authenticated USING (is_event_teammate(id));
 
--- Usuários podem inserir e ver suas próprias confirmações
-CREATE POLICY "Users can insert own ack"
-  ON notice_acknowledgements FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
+CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
 
-CREATE POLICY "Users can view own ack"
-  ON notice_acknowledgements FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "Users can view their own profile" ON profiles;
+CREATE POLICY "Users can view their own profile" ON profiles FOR SELECT TO authenticated USING (user_id = auth.uid());
 
--- Admins podem ver todas
-CREATE POLICY "Admins can view all acks"
-  ON notice_acknowledgements FOR SELECT TO authenticated
-  USING (is_admin());
+-- SEGURANÇA: Impedir que usuário altere hidden/cargo/is_account_only no UPDATE
+-- A policy atual já impede via subquery, mas reforçar para authenticated apenas
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
+CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (
+    user_id = auth.uid()
+    AND hidden = (SELECT p.hidden FROM profiles p WHERE p.user_id = auth.uid() LIMIT 1)
+    AND cargo = (SELECT p.cargo FROM profiles p WHERE p.user_id = auth.uid() LIMIT 1)
+    AND is_account_only = (SELECT p.is_account_only FROM profiles p WHERE p.user_id = auth.uid() LIMIT 1)
+  );
 ```
 
-## 2. Campo Evolução Médica — APH
+## 2. Campo telefone do responsável do evento
 
-`**src/components/APHForm.tsx**`:
+**`Events.tsx`** e **`BaseEvents.tsx`**:
+- Adicionar `responsavel_telefone: ""` no formData
+- Adicionar Input "Telefone do Responsável" ao lado do campo "Responsável do Evento"
+- Incluir no eventData ao salvar, carregar no openEditDialog e duplicateEvent
 
-- Adicionar state `evolucaoMedica`
-- No `loadAttendance`, carregar `evolucao_medica` do banco
-- No `savePatientData`, incluir `evolucao_medica: evolucaoMedica` no objeto
-- No step `evolution`, renderizar dois campos Textarea:
-  - "Evolução Clínica (Enfermagem)" — campo existente
-  - "Evolução Médica" — novo campo abaixo
+**`TeamEvents.tsx`**: exibir telefone junto ao responsável (com link `tel:`)
 
-`**src/components/APHSummary.tsx**`:
+**`team/EventDetail.tsx`**: exibir telefone com link clicável
 
-- Exibir seção "EVOLUÇÃO MÉDICA" separada, abaixo da evolução clínica existente
+## 3. Botão de cancelamento de evento com motivo
 
-## 3. Evento Cancelado em Vermelho
+**`Events.tsx`** e **`BaseEvents.tsx`**:
+- Adicionar estado `cancelDialog` para controlar Dialog de cancelamento
+- Adicionar estado `motivoCancelamento` para capturar o motivo
+- Novo Dialog com:
+  - Textarea "Motivo do cancelamento" (obrigatório)
+  - Botão "Confirmar Cancelamento"
+- Ao confirmar: `update({ status: 'cancelado', motivo_cancelamento })` + liberar viatura se houver
+- Botão vermelho "Cancelar Evento" nos cards (ao lado de editar/excluir), visível apenas se status != cancelado e != finalizado
 
-`**src/pages/admin/Events.tsx**` (linha ~1050):
+**`team/EventDetail.tsx`**: exibir motivo do cancelamento no banner vermelho
 
-- Adicionar condição `event.status === 'cancelado'` antes das demais no bloco de badges
-- Badge vermelha: `<Badge className="bg-red-600 text-white">Cancelado</Badge>`
-- Borda vermelha no Card: `className={... event.status === 'cancelado' ? 'border-red-500 bg-red-50/50' : ''}`
+## 4. Correções de segurança
 
-`**src/pages/admin/base/BaseEvents.tsx**`: mesma lógica visual
+### Profiles legíveis por anônimos
+- Todas as policies da tabela `profiles` que usam `TO {public}` serão trocadas para `TO authenticated`
+- Isso impede que usuários não autenticados leiam CPF, telefone, chave PIX etc.
 
-`**src/pages/team/TeamEvents.tsx**`: badge vermelho para cancelados
+### Escalação de privilégio via hidden flag
+- A policy de UPDATE já bloqueia alteração de `hidden`, `cargo` e `is_account_only` via subquery
+- Reforçar trocando para `TO authenticated` (hoje está `TO public`)
+- Isso já resolve os 2 findings de escalação de privilégio
 
-`**src/pages/team/EventDetail.tsx**`: banner vermelho no topo se cancelado
-
-## 4. Campo Responsável do Evento
-
-`**src/pages/admin/Events.tsx**`:
-
-- Adicionar `responsavel_evento: ""` no `formData`
-- Input texto "Responsável do Evento" no formulário (abaixo de "Conta Responsável")
-- Incluir no `eventData` ao salvar
-- Carregar em `openEditDialog` e `duplicateEvent`
-- Exibir no card da listagem se preenchido
-
-`**src/pages/admin/base/BaseEvents.tsx**`: mesmo campo no form e exibição
-
-`**src/pages/team/TeamEvents.tsx**`: exibir responsável no card
-
-`**src/pages/team/EventDetail.tsx**`: exibir responsável com destaque
-
-## 5. Avisos do Sistema com Tipo e Confirmação
-
-`**src/pages/admin/SystemNotices.tsx**` (tela do super-admin):
-
-- Adicionar Select de tipo: "Aviso Comum" ou "Melhoria/Alteração"
-- Enviar `tipo` no insert (`'aviso'` ou `'melhoria'`)
-- No histórico, exibir badge indicando o tipo
-
-`**src/components/SystemBanner.tsx**` (banner global):
-
-- Buscar campo `tipo` junto com o aviso
-- Se `tipo === 'melhoria'` e aviso ativo:
-  - Verificar em `notice_acknowledgements` se o usuário já confirmou
-  - Se **não** confirmou: exibir Dialog/popup com a mensagem + checkbox "Estou ciente das alterações" + botão Confirmar
-  - Ao confirmar: inserir em `notice_acknowledgements` e fechar popup
-  - O banner continua visível normalmente (apenas o popup some após confirmação)
-- Se `tipo === 'aviso'`: comportamento atual (só banner, sem popup)  
-  
-  
-Preciso que tome cuidado para não quebrar o sistema em hipótese alguma.
+### Realtime channels
+- A questão de Realtime é que `support_tickets`, `ticket_messages` e `system_notices` estão publicados no Realtime
+- As tabelas já têm RLS correto (tickets só para criador/super-admin, notices para todos auth)
+- O Realtime do Supabase respeita RLS por padrão em `postgres_changes` — os dados só chegam se o usuário passa na policy SELECT
+- Vou marcar esse finding como resolvido (o RLS já filtra os dados)
 
 ## Arquivos alterados
 
+| Arquivo | Alteração |
+|---------|-----------|
+| Migração SQL | 2 colunas novas + policies corrigidas |
+| `Events.tsx` | Telefone responsável + Dialog cancelamento |
+| `BaseEvents.tsx` | Telefone responsável + Dialog cancelamento |
+| `TeamEvents.tsx` | Exibir telefone responsável |
+| `team/EventDetail.tsx` | Telefone responsável + motivo cancelamento |
 
-| Arquivo                | Alteração                           |
-| ---------------------- | ----------------------------------- |
-| Migração SQL           | 2 colunas + 1 tabela nova           |
-| `APHForm.tsx`          | Novo campo evolução médica          |
-| `APHSummary.tsx`       | Exibir evolução médica              |
-| `Events.tsx`           | Responsável + visual cancelado      |
-| `BaseEvents.tsx`       | Responsável + visual cancelado      |
-| `TeamEvents.tsx`       | Responsável + visual cancelado      |
-| `team/EventDetail.tsx` | Responsável + banner cancelado      |
-| `SystemNotices.tsx`    | Seletor de tipo do aviso            |
-| `SystemBanner.tsx`     | Popup de confirmação para melhorias |
