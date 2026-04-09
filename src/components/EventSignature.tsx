@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,22 +49,6 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
     setIsLoading(false);
   };
 
-  const uploadWithRetry = async (fileName: string, blob: Blob, retries = 3): Promise<{ error: any }> => {
-    for (let attempt = 0; attempt < retries; attempt++) {
-      const { error } = await supabase.storage.from("signatures").upload(fileName, blob, {
-        contentType: "image/png",
-        upsert: true,
-      });
-      if (!error) return { error: null };
-      if (attempt < retries - 1 && (error.message?.includes("abort") || error.message?.includes("signal"))) {
-        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-        continue;
-      }
-      return { error };
-    }
-    return { error: { message: "Falha após múltiplas tentativas" } };
-  };
-
   const handleSave = async () => {
     if (!nomeResponsavel.trim()) {
       toast({ title: "Informe o nome do responsável", variant: "destructive" });
@@ -77,40 +61,27 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
 
     setIsSaving(true);
     try {
-      // Use lower quality to reduce file size and avoid upload timeouts on mobile
-      const signatureDataUrl = (sigPadRef.current as any)?.getDataUrl("image/png", 0.5);
-      const fileName = `event_${eventId}_${tipo}_${Date.now()}.png`;
-      const base64Data = signatureDataUrl.split(",")[1];
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
+      // Persist directly in the event record to avoid mobile upload aborts in storage
+      const signatureDataUrl = sigPadRef.current.getDataUrl("image/png", 0.5);
 
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: "image/png" });
-
-      const { error: uploadError } = await uploadWithRetry(fileName, blob);
-
-      if (uploadError) {
-        toast({ title: "Erro ao salvar assinatura", description: uploadError.message, variant: "destructive" });
+      if (!signatureDataUrl?.startsWith("data:image/png;base64,")) {
+        toast({ title: "Erro ao processar assinatura", description: "Tente assinar novamente.", variant: "destructive" });
         return;
       }
-
-      const { data: urlData } = supabase.storage.from("signatures").getPublicUrl(fileName);
 
       const { error } = await supabase.from("event_signatures").insert({
         event_id: eventId,
         tipo,
         nome_responsavel: nomeResponsavel.trim(),
-        assinatura_url: urlData.publicUrl,
+        assinatura_url: signatureDataUrl,
       });
 
       if (error) {
         toast({ title: "Erro ao registrar assinatura", description: error.message, variant: "destructive" });
       } else {
         toast({ title: `Assinatura de ${label.toLowerCase()} registrada!` });
+        setNomeResponsavel("");
+        sigPadRef.current?.clear();
         setShowForm(false);
         fetchSignature();
         onSaved?.();

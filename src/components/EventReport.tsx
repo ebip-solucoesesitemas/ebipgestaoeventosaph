@@ -51,7 +51,6 @@ export default function EventReport() {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [client, setClient] = useState<ClientInfo | null>(null);
   const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
-  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -111,21 +110,6 @@ export default function EventReport() {
       if (teamRes.data) setTeam(teamRes.data.filter((m: any) => m.profiles) as unknown as TeamMember[]);
       if (sigRes.data) {
         setSignatures(sigRes.data as SignatureRecord[]);
-        // Generate signed URLs for private bucket
-        const urls: Record<string, string> = {};
-        for (const sig of sigRes.data as SignatureRecord[]) {
-          if (sig.assinatura_url) {
-            // Extract path from full URL
-            const match = sig.assinatura_url.match(/\/storage\/v1\/object\/public\/signatures\/(.+)$/);
-            if (match) {
-              const { data } = await supabase.storage.from("signatures").createSignedUrl(match[1], 3600);
-              if (data?.signedUrl) {
-                urls[sig.id] = data.signedUrl;
-              }
-            }
-          }
-        }
-        setSignedUrls(urls);
       }
       if (budgetRes.data && budgetRes.data.length > 0) {
         const b = budgetRes.data[0] as any;
@@ -181,6 +165,8 @@ export default function EventReport() {
 
   const arrivalSig = signatures.find((s) => s.tipo === "chegada");
   const departureSig = signatures.find((s) => s.tipo === "saida");
+  const arrivalSignatureSrc = arrivalSig?.assinatura_url || null;
+  const departureSignatureSrc = departureSig?.assinatura_url || null;
 
   const statusLabel: Record<string, string> = {
     em_andamento: "Em andamento",
@@ -412,9 +398,9 @@ export default function EventReport() {
                 </div>
               </div>
               <div className="mt-4 mb-2 flex flex-col items-center">
-                {arrivalSig && signedUrls[arrivalSig.id] ? (
+                {arrivalSignatureSrc ? (
                   <img
-                    src={signedUrls[arrivalSig.id]}
+                    src={arrivalSignatureSrc}
                     alt="Assinatura de chegada"
                     className="max-h-[80px] max-w-[280px] object-contain mb-1"
                   />
@@ -445,9 +431,9 @@ export default function EventReport() {
                 </div>
               </div>
               <div className="mt-4 mb-2 flex flex-col items-center">
-                {departureSig && signedUrls[departureSig.id] ? (
+                {departureSignatureSrc ? (
                   <img
-                    src={signedUrls[departureSig.id]}
+                    src={departureSignatureSrc}
                     alt="Assinatura de saída"
                     className="max-h-[80px] max-w-[280px] object-contain mb-1"
                   />
