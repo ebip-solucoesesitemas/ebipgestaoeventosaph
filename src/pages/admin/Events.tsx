@@ -266,7 +266,7 @@ export default function AdminEvents() {
       const [eventRes, budgetRes] = await Promise.all([
         supabase
           .from("events")
-          .select("user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade")
+          .select("user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade, responsavel_telefone")
           .eq("id", event.id)
           .single(),
         supabase.from("event_budgets").select("client_id").eq("event_id", event.id).maybeSingle(),
