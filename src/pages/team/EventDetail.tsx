@@ -275,6 +275,15 @@ export default function EventDetail() {
               <span className="flex items-center gap-1 font-semibold text-primary">
                 <User className="w-4 h-4" />
                 Responsável do Evento: {(event as any).responsavel_evento}
+                {(event as any).responsavel_telefone && (
+                  <a
+                    href={`tel:${(event as any).responsavel_telefone}`}
+                    className="flex items-center gap-1 hover:underline ml-1"
+                  >
+                    <Phone className="w-3 h-3" />
+                    {(event as any).responsavel_telefone}
+                  </a>
+                )}
               </span>
             )}
             {event.responsible_profile && (
@@ -306,6 +315,20 @@ export default function EventDetail() {
           </Button>
         )}
       </div>
+
+      {/* Cancellation Banner */}
+      {event.status === 'cancelado' && (
+        <Card className="border-2 border-red-500 bg-red-50/50 dark:bg-red-950/20">
+          <CardContent className="p-4">
+            <p className="font-semibold text-red-600">⛔ Evento Cancelado</p>
+            {(event as any).motivo_cancelamento && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Motivo: {(event as any).motivo_cancelamento}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Removal Alert Banner */}
       {attendances.filter((a) => a.status === "em_remocao").length > 0 && (
