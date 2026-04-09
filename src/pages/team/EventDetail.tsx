@@ -316,6 +316,20 @@ export default function EventDetail() {
         )}
       </div>
 
+      {/* Cancellation Banner */}
+      {event.status === 'cancelado' && (
+        <Card className="border-2 border-red-500 bg-red-50/50 dark:bg-red-950/20">
+          <CardContent className="p-4">
+            <p className="font-semibold text-red-600">⛔ Evento Cancelado</p>
+            {(event as any).motivo_cancelamento && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Motivo: {(event as any).motivo_cancelamento}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Removal Alert Banner */}
       {attendances.filter((a) => a.status === "em_remocao").length > 0 && (
         <Card className="border-2 border-destructive bg-destructive/10">
