@@ -554,8 +554,10 @@ export type Database = {
           km_inicial: number | null
           local: string
           min_antes_saida_base: number | null
+          motivo_cancelamento: string | null
           nome_evento: string
           responsavel_evento: string | null
+          responsavel_telefone: string | null
           status: string
           tipo_unidade: string | null
           updated_at: string | null
@@ -578,8 +580,10 @@ export type Database = {
           km_inicial?: number | null
           local: string
           min_antes_saida_base?: number | null
+          motivo_cancelamento?: string | null
           nome_evento: string
           responsavel_evento?: string | null
+          responsavel_telefone?: string | null
           status?: string
           tipo_unidade?: string | null
           updated_at?: string | null
@@ -602,8 +606,10 @@ export type Database = {
           km_inicial?: number | null
           local?: string
           min_antes_saida_base?: number | null
+          motivo_cancelamento?: string | null
           nome_evento?: string
           responsavel_evento?: string | null
+          responsavel_telefone?: string | null
           status?: string
           tipo_unidade?: string | null
           updated_at?: string | null

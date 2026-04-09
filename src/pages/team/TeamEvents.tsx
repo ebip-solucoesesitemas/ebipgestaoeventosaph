@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, MapPin, Truck, Users, ChevronRight, Clock } from 'lucide-react';
+import { Calendar, MapPin, Truck, Users, ChevronRight, Clock, User, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -152,6 +152,18 @@ export default function TeamEvents() {
                             <MapPin className="w-4 h-4" />
                             {event.local}
                           </span>
+                          {(event as any).responsavel_evento && (
+                            <span className="flex items-center gap-1 font-semibold text-primary">
+                              <User className="w-4 h-4" />
+                              {(event as any).responsavel_evento}
+                              {(event as any).responsavel_telefone && (
+                                <a href={`tel:${(event as any).responsavel_telefone}`} className="flex items-center gap-1 hover:underline ml-1" onClick={(e) => e.stopPropagation()}>
+                                  <Phone className="w-3 h-3" />
+                                  {(event as any).responsavel_telefone}
+                                </a>
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <Button variant="ghost" size="icon" className="shrink-0">
