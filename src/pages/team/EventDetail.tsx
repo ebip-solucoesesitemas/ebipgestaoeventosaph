@@ -275,6 +275,15 @@ export default function EventDetail() {
               <span className="flex items-center gap-1 font-semibold text-primary">
                 <User className="w-4 h-4" />
                 Responsável do Evento: {(event as any).responsavel_evento}
+                {(event as any).responsavel_telefone && (
+                  <a
+                    href={`tel:${(event as any).responsavel_telefone}`}
+                    className="flex items-center gap-1 hover:underline ml-1"
+                  >
+                    <Phone className="w-3 h-3" />
+                    {(event as any).responsavel_telefone}
+                  </a>
+                )}
               </span>
             )}
             {event.responsible_profile && (
