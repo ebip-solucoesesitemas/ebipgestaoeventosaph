@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Plus,
   Calendar,
@@ -31,6 +32,9 @@ import {
   Copy,
   MessageCircle,
   Filter,
+  XCircle,
+  Phone,
+  User,
 } from "lucide-react";
 import { CepInput } from "@/components/CepInput";
 import { localDatetimeToISO, isoToLocalDatetime } from "@/lib/utils";
@@ -146,7 +150,14 @@ export default function AdminEvents() {
     client_id: "",
     tipo_unidade: "",
     responsavel_evento: "",
+    responsavel_telefone: "",
   });
+
+  // Cancel dialog state
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelEventId, setCancelEventId] = useState<string | null>(null);
+  const [motivoCancelamento, setMotivoCancelamento] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -244,6 +255,7 @@ export default function AdminEvents() {
       client_id: "",
       tipo_unidade: "",
       responsavel_evento: "",
+      responsavel_telefone: "",
     });
     setEditingEvent(null);
   };
@@ -281,6 +293,7 @@ export default function AdminEvents() {
         client_id: (budgetRes.data as any)?.client_id || "",
         tipo_unidade: (data as any)?.tipo_unidade || "",
         responsavel_evento: (data as any)?.responsavel_evento || "",
+        responsavel_telefone: (data as any)?.responsavel_telefone || "",
       });
     };
     fetchEventDetails();
@@ -349,6 +362,7 @@ export default function AdminEvents() {
       horario_saida_base: formData.horario_saida_base ? localDatetimeToISO(formData.horario_saida_base) : null,
       tipo_unidade: formData.tipo_unidade || null,
       responsavel_evento: formData.responsavel_evento || null,
+      responsavel_telefone: formData.responsavel_telefone || null,
     };
 
     let eventId: string;
@@ -460,7 +474,7 @@ export default function AdminEvents() {
       const { data } = await supabase
         .from("events")
         .select(
-          "user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade, valor_litro_combustivel, consumo_medio_km_litro",
+          "user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade, valor_litro_combustivel, consumo_medio_km_litro, responsavel_telefone",
         )
         .eq("id", event.id)
         .single();
@@ -483,11 +497,41 @@ export default function AdminEvents() {
         client_id: "",
         tipo_unidade: (data as any)?.tipo_unidade || "",
         responsavel_evento: (data as any)?.responsavel_evento || "",
+        responsavel_telefone: (data as any)?.responsavel_telefone || "",
       });
     };
     fetchEventDetails();
     setDialogOpen(true);
     toast({ title: "Evento duplicado", description: "Ajuste as datas e salve como novo evento." });
+  };
+
+  const handleCancelEvent = async () => {
+    if (!cancelEventId || !motivoCancelamento.trim()) return;
+    setIsCancelling(true);
+
+    const event = events.find((e) => e.id === cancelEventId);
+
+    const { error } = await supabase
+      .from("events")
+      .update({
+        status: "cancelado",
+        motivo_cancelamento: motivoCancelamento.trim(),
+      } as any)
+      .eq("id", cancelEventId);
+
+    if (error) {
+      toast({ title: "Erro ao cancelar evento", description: error.message, variant: "destructive" });
+    } else {
+      if (event?.viatura_id) {
+        await supabase.from("vehicles").update({ status: "disponivel" }).eq("id", event.viatura_id);
+      }
+      toast({ title: "Evento cancelado com sucesso" });
+      setCancelDialogOpen(false);
+      setCancelEventId(null);
+      setMotivoCancelamento("");
+      await fetchData();
+    }
+    setIsCancelling(false);
   };
 
   const sendWhatsApp = (event: Event, profileId: string) => {
@@ -756,12 +800,20 @@ export default function AdminEvents() {
 
               <div className="space-y-2">
                 <Label>Responsável do Evento</Label>
-                <Input
-                  value={formData.responsavel_evento}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, responsavel_evento: e.target.value }))}
-                  placeholder="Nome do responsável no local do evento"
-                  className="input-touch"
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    value={formData.responsavel_evento}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, responsavel_evento: e.target.value }))}
+                    placeholder="Nome do responsável"
+                    className="input-touch"
+                  />
+                  <Input
+                    value={formData.responsavel_telefone}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, responsavel_telefone: e.target.value }))}
+                    placeholder="Telefone do responsável"
+                    className="input-touch"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -1117,6 +1169,20 @@ export default function AdminEvents() {
                       <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
                         <Edit className="w-4 h-4" />
                       </Button>
+                      {event.status !== "cancelado" && event.status !== "finalizado" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Cancelar evento"
+                          onClick={() => {
+                            setCancelEventId(event.id);
+                            setMotivoCancelamento("");
+                            setCancelDialogOpen(true);
+                          }}
+                        >
+                          <XCircle className="w-4 h-4 text-destructive" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(event.id)}>
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
@@ -1200,6 +1266,45 @@ export default function AdminEvents() {
           })
         )}
       </div>
+
+      {/* Cancel Event Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={(open) => {
+        setCancelDialogOpen(open);
+        if (!open) { setCancelEventId(null); setMotivoCancelamento(""); }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Cancelar Evento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja cancelar este evento? Esta ação não pode ser desfeita.
+            </p>
+            <div className="space-y-2">
+              <Label>Motivo do cancelamento *</Label>
+              <Textarea
+                value={motivoCancelamento}
+                onChange={(e) => setMotivoCancelamento(e.target.value)}
+                placeholder="Informe o motivo do cancelamento..."
+                rows={3}
+                required
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+                Voltar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCancelEvent}
+                disabled={!motivoCancelamento.trim() || isCancelling}
+              >
+                {isCancelling ? "Cancelando..." : "Confirmar Cancelamento"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
