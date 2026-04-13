@@ -791,8 +791,8 @@ export default function BaseEvents() {
                     ))}
                 </div>
               </div>
-              <Button type="submit" className="w-full btn-touch">
-                {editingEvent ? "Salvar" : "Criar Evento"}
+              <Button type="submit" className="w-full btn-touch" disabled={saving}>
+                {saving ? "Salvando..." : editingEvent ? "Salvar" : "Criar Evento"}
               </Button>
             </form>
           </DialogContent>
