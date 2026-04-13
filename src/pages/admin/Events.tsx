@@ -158,6 +158,7 @@ export default function AdminEvents() {
   const [cancelEventId, setCancelEventId] = useState<string | null>(null);
   const [motivoCancelamento, setMotivoCancelamento] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -1025,8 +1026,8 @@ export default function AdminEvents() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full btn-touch">
-                {editingEvent ? "Salvar Alterações" : "Criar Evento"}
+              <Button type="submit" className="w-full btn-touch" disabled={saving}>
+                {saving ? "Salvando..." : editingEvent ? "Salvar Alterações" : "Criar Evento"}
               </Button>
             </form>
           </DialogContent>
