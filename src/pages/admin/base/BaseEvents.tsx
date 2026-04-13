@@ -107,6 +107,7 @@ export default function BaseEvents() {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
   const [filterProfessional, setFilterProfessional] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     nome_evento: "",
@@ -274,7 +275,9 @@ export default function BaseEvents() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (saving) return;
+    setSaving(true);
+    try {
     const dataInicioISO = localDatetimeToISO(formData.data_inicio);
     const dataFimISO = localDatetimeToISO(formData.data_fim);
 
@@ -344,6 +347,9 @@ export default function BaseEvents() {
     setDialogOpen(false);
     resetForm();
     await fetchData();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
