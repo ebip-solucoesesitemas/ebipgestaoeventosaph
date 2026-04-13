@@ -1,32 +1,23 @@
 
 
-# Plano: Corrigir salvamento de assinaturas do responsável
+# Plano: Corrigir duplicação de eventos na criação
 
-## Problema identificado
+## Problema
+O botão "Salvar" do formulário de criação de evento não é desabilitado durante o envio. Se o usuário clicar duas vezes (ou a rede estiver lenta), o `handleSubmit` executa duas vezes, criando dois eventos idênticos.
 
-O bucket `signatures` está configurado como **privado**, mas o código usa `getPublicUrl()` que só funciona em buckets públicos. Além disso, falta uma policy de **UPDATE** no storage para permitir o `upsert`.
+## Solução
+Adicionar um estado `saving` que:
+1. É setado como `true` no início do `handleSubmit`
+2. Desabilita o botão de submit enquanto está salvando
+3. É setado como `false` no final (sucesso ou erro)
 
-## Correções
+## Alterações
 
-### 1. Migração SQL — Tornar bucket público e adicionar policy de UPDATE
+**`src/pages/admin/Events.tsx`**:
+- Adicionar estado `const [saving, setSaving] = useState(false)`
+- No início de `handleSubmit`: `if (saving) return; setSaving(true);`
+- Em cada `return` de erro e no final: `setSaving(false)`
+- No botão submit (linha ~1028): adicionar `disabled={saving}` e texto "Salvando..." quando `saving === true`
 
-```sql
--- Tornar o bucket público para que getPublicUrl funcione
-UPDATE storage.buckets SET public = true WHERE id = 'signatures';
-
--- Adicionar policy de UPDATE para permitir upsert
-CREATE POLICY "Authenticated users can update signatures"
-ON storage.objects FOR UPDATE TO authenticated
-USING (bucket_id = 'signatures');
-```
-
-### 2. Nenhuma alteração no código
-
-Com o bucket público e a policy de UPDATE, o fluxo existente (`upload` → `getPublicUrl` → `insert` na tabela `event_signatures`) vai funcionar corretamente sem mudanças no código.
-
-## Arquivos alterados
-
-| Arquivo | Alteração |
-|---------|-----------|
-| Migração SQL | Bucket público + policy UPDATE |
+**`src/pages/admin/base/BaseEvents.tsx`**: mesma correção (se tiver o mesmo padrão)
 
