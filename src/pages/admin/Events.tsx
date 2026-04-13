@@ -158,6 +158,7 @@ export default function AdminEvents() {
   const [cancelEventId, setCancelEventId] = useState<string | null>(null);
   const [motivoCancelamento, setMotivoCancelamento] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -331,7 +332,9 @@ export default function AdminEvents() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (saving) return;
+    setSaving(true);
+    try {
     const dataInicioISO = localDatetimeToISO(formData.data_inicio);
     const dataFimISO = localDatetimeToISO(formData.data_fim);
 
@@ -427,6 +430,9 @@ export default function AdminEvents() {
     setDialogOpen(false);
     resetForm();
     fetchData();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -1025,8 +1031,8 @@ export default function AdminEvents() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full btn-touch">
-                {editingEvent ? "Salvar Alterações" : "Criar Evento"}
+              <Button type="submit" className="w-full btn-touch" disabled={saving}>
+                {saving ? "Salvando..." : editingEvent ? "Salvar Alterações" : "Criar Evento"}
               </Button>
             </form>
           </DialogContent>
