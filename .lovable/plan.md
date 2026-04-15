@@ -1,23 +1,21 @@
 
 
-# Plano: Corrigir duplicação de eventos na criação
+# Plano: Botão "Voltar" usando navegação do histórico do browser
 
 ## Problema
-O botão "Salvar" do formulário de criação de evento não é desabilitado durante o envio. Se o usuário clicar duas vezes (ou a rede estiver lenta), o `handleSubmit` executa duas vezes, criando dois eventos idênticos.
+Todos os botões de voltar usam rotas fixas (ex: `navigate('/admin/events')`), então ao acessar um evento a partir de uma base específica (`/admin/base/:id/events`), o botão volta para `/admin/events` ao invés da tela anterior.
 
 ## Solução
-Adicionar um estado `saving` que:
-1. É setado como `true` no início do `handleSubmit`
-2. Desabilita o botão de submit enquanto está salvando
-3. É setado como `false` no final (sucesso ou erro)
+Trocar `navigate('/rota/fixa')` por `navigate(-1)` em todos os botões de voltar. Isso usa o histórico do browser para retornar à tela anterior, independente de onde o usuário veio.
 
-## Alterações
+## Arquivos alterados
 
-**`src/pages/admin/Events.tsx`**:
-- Adicionar estado `const [saving, setSaving] = useState(false)`
-- No início de `handleSubmit`: `if (saving) return; setSaving(true);`
-- Em cada `return` de erro e no final: `setSaving(false)`
-- No botão submit (linha ~1028): adicionar `disabled={saving}` e texto "Salvando..." quando `saving === true`
-
-**`src/pages/admin/base/BaseEvents.tsx`**: mesma correção (se tiver o mesmo padrão)
+| Arquivo | Linha | De | Para |
+|---------|-------|----|------|
+| `src/pages/admin/EventDetail.tsx` | ~324 | `navigate('/admin/events')` | `navigate(-1)` |
+| `src/pages/admin/base/BaseEvents.tsx` | ~508 | `navigate("/admin/events")` | `navigate(-1)` |
+| `src/pages/admin/base/BaseVehicles.tsx` | ~164 | `navigate('/admin/vehicles')` | `navigate(-1)` |
+| `src/pages/admin/base/BaseFinance.tsx` | ~140 | `navigate('/admin/finance')` | `navigate(-1)` |
+| `src/pages/admin/base/BaseProfessionals.tsx` | ~133 | `navigate('/admin/professionals')` | `navigate(-1)` |
+| `src/pages/team/EventDetail.tsx` | ~246 | `navigate("/events")` | `navigate(-1)` |
 
