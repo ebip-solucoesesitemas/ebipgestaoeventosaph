@@ -129,16 +129,22 @@ export default function BaseProfessionals() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Profissionais — {base?.sigla} {base?.nome}
-          </h1>
-          <p className="text-muted-foreground">Profissionais vinculados ou que já atuaram nesta base</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              Profissionais — {base?.sigla} {base?.nome}
+            </h1>
+            <p className="text-muted-foreground">Profissionais vinculados ou que já atuaram nesta base</p>
+          </div>
         </div>
+        <Button className="btn-touch gap-2" onClick={() => navigate('/admin/professionals')}>
+          <Plus className="w-5 h-5" />
+          <span className="hidden sm:inline">Novo Profissional</span>
+        </Button>
       </div>
 
       {/* Search filter */}
