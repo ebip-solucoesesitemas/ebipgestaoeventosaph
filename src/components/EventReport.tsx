@@ -170,9 +170,6 @@ export default function EventReport() {
   const departureSig = signatures.find((s) => s.tipo === "saida");
 
   // Resolve signature URLs (handles base64 + legacy storage URLs)
-  const [arrivalSignatureSrc, setArrivalSrc] = useState<string | null>(null);
-  const [departureSignatureSrc, setDepartureSrc] = useState<string | null>(null);
-
   useEffect(() => {
     resolveSignatureUrl(arrivalSig?.assinatura_url).then(setArrivalSrc);
     resolveSignatureUrl(departureSig?.assinatura_url).then(setDepartureSrc);
