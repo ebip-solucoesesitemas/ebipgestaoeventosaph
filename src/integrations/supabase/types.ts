@@ -1174,6 +1174,17 @@ export type Database = {
         Args: { event_uuid: string }
         Returns: undefined
       }
+      get_event_teammates: {
+        Args: { p_event_id: string }
+        Returns: {
+          base_id: string
+          cargo: Database["public"]["Enums"]["cargo_tipo"]
+          especialidade: string
+          id: string
+          nome: string
+          registro_profissional: string
+        }[]
+      }
       handle_team_checkin: {
         Args: { p_assignment_id: string; p_km_inicial?: number }
         Returns: Json
