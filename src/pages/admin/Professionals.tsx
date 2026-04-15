@@ -74,7 +74,6 @@ export default function AdminProfessionals() {
       setSearchParams({}, { replace: true });
     }
   }, []);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
 
   const [formData, setFormData] = useState({
