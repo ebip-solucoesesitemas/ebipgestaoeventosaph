@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +58,7 @@ const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR'
 
 export default function AdminProfessionals() {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [rates, setRates] = useState<RateMap>({});
   const [bases, setBases] = useState<Base[]>([]);
@@ -64,6 +66,14 @@ export default function AdminProfessionals() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-open dialog when ?new=1 query param is present
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setDialogOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
   const [searchFilter, setSearchFilter] = useState('');
 
   const [formData, setFormData] = useState({

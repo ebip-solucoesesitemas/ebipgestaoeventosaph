@@ -141,7 +141,7 @@ export default function BaseProfessionals() {
             <p className="text-muted-foreground">Profissionais vinculados ou que já atuaram nesta base</p>
           </div>
         </div>
-        <Button className="btn-touch gap-2" onClick={() => navigate('/admin/professionals')}>
+        <Button className="btn-touch gap-2" onClick={() => navigate('/admin/professionals?new=1')}>
           <Plus className="w-5 h-5" />
           <span className="hidden sm:inline">Novo Profissional</span>
         </Button>
