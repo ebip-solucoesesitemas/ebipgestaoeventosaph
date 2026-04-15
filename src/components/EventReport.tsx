@@ -52,6 +52,8 @@ export default function EventReport() {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [client, setClient] = useState<ClientInfo | null>(null);
   const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
+  const [arrivalSignatureSrc, setArrivalSrc] = useState<string | null>(null);
+  const [departureSignatureSrc, setDepartureSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
