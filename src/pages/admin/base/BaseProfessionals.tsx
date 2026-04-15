@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Users, ArrowLeft, Stethoscope, UserRound, Ambulance, Calendar, Search } from 'lucide-react';
+import { Users, ArrowLeft, Stethoscope, UserRound, Ambulance, Calendar, Search, Plus } from 'lucide-react';
 
 interface Base {
   id: string;
