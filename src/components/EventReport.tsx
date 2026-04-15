@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveSignatureUrl } from "@/lib/signatureUrl";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Printer } from "lucide-react";
@@ -165,8 +166,15 @@ export default function EventReport() {
 
   const arrivalSig = signatures.find((s) => s.tipo === "chegada");
   const departureSig = signatures.find((s) => s.tipo === "saida");
-  const arrivalSignatureSrc = arrivalSig?.assinatura_url || null;
-  const departureSignatureSrc = departureSig?.assinatura_url || null;
+
+  // Resolve signature URLs (handles base64 + legacy storage URLs)
+  const [arrivalSignatureSrc, setArrivalSrc] = useState<string | null>(null);
+  const [departureSignatureSrc, setDepartureSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    resolveSignatureUrl(arrivalSig?.assinatura_url).then(setArrivalSrc);
+    resolveSignatureUrl(departureSig?.assinatura_url).then(setDepartureSrc);
+  }, [arrivalSig?.assinatura_url, departureSig?.assinatura_url]);
 
   const statusLabel: Record<string, string> = {
     em_andamento: "Em andamento",
