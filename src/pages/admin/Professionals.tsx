@@ -67,13 +67,21 @@ export default function AdminProfessionals() {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Auto-open dialog when ?new=1 query param is present
+  // Auto-open dialog when ?new=1 or ?edit=ID query param is present
   useEffect(() => {
     if (searchParams.get('new') === '1') {
       setDialogOpen(true);
       setSearchParams({}, { replace: true });
     }
-  }, []);
+    const editId = searchParams.get('edit');
+    if (editId && profiles.length > 0) {
+      const profile = profiles.find(p => p.id === editId);
+      if (profile) {
+        openEditDialog(profile);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [profiles]);
   const [searchFilter, setSearchFilter] = useState('');
 
   const [formData, setFormData] = useState({

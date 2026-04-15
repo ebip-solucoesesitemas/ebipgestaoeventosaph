@@ -176,7 +176,7 @@ export default function BaseProfessionals() {
           return filtered.map((prof) => {
             const Icon = especialidadeIcons[prof.especialidade] || UserRound;
             return (
-              <Card key={prof.id}>
+              <Card key={prof.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/admin/professionals?edit=${prof.id}`)}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
