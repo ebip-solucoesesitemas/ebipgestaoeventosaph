@@ -149,6 +149,8 @@ const tipoUnidadeLabels: Record<string, string> = {
   usa_dois_enfermeiros: 'USA dois Enfermeiros',
   ambulatorio: 'Ambulatório',
   usb_somente_condutor: 'USB somente condutor',
+  'Usb Plantão': 'USB Plantão',
+  'Usb Plantão + Médico': 'USB Plantão + Médico',
 };
 
 const emptyBudgetForm = {
