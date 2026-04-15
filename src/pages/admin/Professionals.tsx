@@ -58,12 +58,22 @@ const especialidades = ['Médico', 'Enfermeiro', 'Técnico', 'Socorrista', 'VTR'
 
 export default function AdminProfessionals() {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [rates, setRates] = useState<RateMap>({});
   const [bases, setBases] = useState<Base[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-open dialog when ?new=1 query param is present
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setDialogOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
 
