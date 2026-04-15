@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveSignatureUrl } from "@/lib/signatureUrl";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Printer } from "lucide-react";
@@ -51,6 +52,8 @@ export default function EventReport() {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [client, setClient] = useState<ClientInfo | null>(null);
   const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
+  const [arrivalSignatureSrc, setArrivalSrc] = useState<string | null>(null);
+  const [departureSignatureSrc, setDepartureSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -128,6 +131,15 @@ export default function EventReport() {
     fetchAll();
   }, [id, authReady]);
 
+  const arrivalSig = signatures.find((s) => s.tipo === "chegada");
+  const departureSig = signatures.find((s) => s.tipo === "saida");
+
+  // Resolve signature URLs (handles base64 + legacy storage URLs)
+  useEffect(() => {
+    resolveSignatureUrl(arrivalSig?.assinatura_url).then(setArrivalSrc);
+    resolveSignatureUrl(departureSig?.assinatura_url).then(setDepartureSrc);
+  }, [arrivalSig?.assinatura_url, departureSig?.assinatura_url]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
@@ -162,11 +174,6 @@ export default function EventReport() {
     event.km_inicial != null && event.km_final != null && event.km_final > event.km_inicial
       ? event.km_final - event.km_inicial
       : null;
-
-  const arrivalSig = signatures.find((s) => s.tipo === "chegada");
-  const departureSig = signatures.find((s) => s.tipo === "saida");
-  const arrivalSignatureSrc = arrivalSig?.assinatura_url || null;
-  const departureSignatureSrc = departureSig?.assinatura_url || null;
 
   const statusLabel: Record<string, string> = {
     em_andamento: "Em andamento",

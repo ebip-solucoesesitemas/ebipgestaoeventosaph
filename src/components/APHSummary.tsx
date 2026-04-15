@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { resolveSignatureUrl } from '@/lib/signatureUrl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,7 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
   const [attendance, setAttendance] = useState<AttendanceData | null>(null);
   const [vitals, setVitals] = useState<VitalSigns | null>(null);
   const [signatures, setSignatures] = useState<Signatures | null>(null);
+  const [resolvedSigs, setResolvedSigs] = useState<Signatures | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -72,7 +74,18 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
 
       if (attendanceRes.data) setAttendance(attendanceRes.data);
       if (vitalsRes.data) setVitals(vitalsRes.data);
-      if (signaturesRes.data) setSignatures(signaturesRes.data);
+      if (signaturesRes.data) {
+        setSignatures(signaturesRes.data);
+        // Resolve legacy storage URLs to signed URLs
+        const [patUrl, profUrl] = await Promise.all([
+          resolveSignatureUrl(signaturesRes.data.assinatura_paciente_url),
+          resolveSignatureUrl(signaturesRes.data.assinatura_profissional_url),
+        ]);
+        setResolvedSigs({
+          assinatura_paciente_url: patUrl,
+          assinatura_profissional_url: profUrl,
+        });
+      }
       setIsLoading(false);
     };
 
@@ -229,7 +242,7 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
           )}
 
           {/* Signatures */}
-          {signatures && (
+          {resolvedSigs && (
             <div className="space-y-3 border-t pt-4">
               <h3 className="font-semibold flex items-center gap-2 text-primary">
                 <PenTool className="w-4 h-4" />
@@ -238,8 +251,8 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-2">Paciente/Responsável</p>
-                  {signatures.assinatura_paciente_url ? (
-                    <img src={signatures.assinatura_paciente_url} alt="Assinatura paciente" className="h-16 mx-auto border rounded" />
+                  {resolvedSigs.assinatura_paciente_url ? (
+                    <img src={resolvedSigs.assinatura_paciente_url} alt="Assinatura paciente" className="h-16 mx-auto border rounded" />
                   ) : (
                     <div className="h-16 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground text-xs">
                       Não assinado
@@ -248,8 +261,8 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-2">Profissional</p>
-                  {signatures.assinatura_profissional_url ? (
-                    <img src={signatures.assinatura_profissional_url} alt="Assinatura profissional" className="h-16 mx-auto border rounded" />
+                  {resolvedSigs.assinatura_profissional_url ? (
+                    <img src={resolvedSigs.assinatura_profissional_url} alt="Assinatura profissional" className="h-16 mx-auto border rounded" />
                   ) : (
                     <div className="h-16 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground text-xs">
                       Não assinado
