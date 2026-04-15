@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { resolveSignatureUrl } from '@/lib/signatureUrl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,7 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
   const [attendance, setAttendance] = useState<AttendanceData | null>(null);
   const [vitals, setVitals] = useState<VitalSigns | null>(null);
   const [signatures, setSignatures] = useState<Signatures | null>(null);
+  const [resolvedSigs, setResolvedSigs] = useState<Signatures | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -72,7 +74,18 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
 
       if (attendanceRes.data) setAttendance(attendanceRes.data);
       if (vitalsRes.data) setVitals(vitalsRes.data);
-      if (signaturesRes.data) setSignatures(signaturesRes.data);
+      if (signaturesRes.data) {
+        setSignatures(signaturesRes.data);
+        // Resolve legacy storage URLs to signed URLs
+        const [patUrl, profUrl] = await Promise.all([
+          resolveSignatureUrl(signaturesRes.data.assinatura_paciente_url),
+          resolveSignatureUrl(signaturesRes.data.assinatura_profissional_url),
+        ]);
+        setResolvedSigs({
+          assinatura_paciente_url: patUrl,
+          assinatura_profissional_url: profUrl,
+        });
+      }
       setIsLoading(false);
     };
 
