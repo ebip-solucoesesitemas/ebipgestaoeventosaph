@@ -131,6 +131,15 @@ export default function EventReport() {
     fetchAll();
   }, [id, authReady]);
 
+  const arrivalSig = signatures.find((s) => s.tipo === "chegada");
+  const departureSig = signatures.find((s) => s.tipo === "saida");
+
+  // Resolve signature URLs (handles base64 + legacy storage URLs)
+  useEffect(() => {
+    resolveSignatureUrl(arrivalSig?.assinatura_url).then(setArrivalSrc);
+    resolveSignatureUrl(departureSig?.assinatura_url).then(setDepartureSrc);
+  }, [arrivalSig?.assinatura_url, departureSig?.assinatura_url]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
@@ -165,15 +174,6 @@ export default function EventReport() {
     event.km_inicial != null && event.km_final != null && event.km_final > event.km_inicial
       ? event.km_final - event.km_inicial
       : null;
-
-  const arrivalSig = signatures.find((s) => s.tipo === "chegada");
-  const departureSig = signatures.find((s) => s.tipo === "saida");
-
-  // Resolve signature URLs (handles base64 + legacy storage URLs)
-  useEffect(() => {
-    resolveSignatureUrl(arrivalSig?.assinatura_url).then(setArrivalSrc);
-    resolveSignatureUrl(departureSig?.assinatura_url).then(setDepartureSrc);
-  }, [arrivalSig?.assinatura_url, departureSig?.assinatura_url]);
 
   const statusLabel: Record<string, string> = {
     em_andamento: "Em andamento",
