@@ -242,7 +242,7 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
           )}
 
           {/* Signatures */}
-          {signatures && (
+          {resolvedSigs && (
             <div className="space-y-3 border-t pt-4">
               <h3 className="font-semibold flex items-center gap-2 text-primary">
                 <PenTool className="w-4 h-4" />
@@ -251,8 +251,8 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-2">Paciente/Responsável</p>
-                  {signatures.assinatura_paciente_url ? (
-                    <img src={signatures.assinatura_paciente_url} alt="Assinatura paciente" className="h-16 mx-auto border rounded" />
+                  {resolvedSigs.assinatura_paciente_url ? (
+                    <img src={resolvedSigs.assinatura_paciente_url} alt="Assinatura paciente" className="h-16 mx-auto border rounded" />
                   ) : (
                     <div className="h-16 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground text-xs">
                       Não assinado
@@ -261,8 +261,8 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-2">Profissional</p>
-                  {signatures.assinatura_profissional_url ? (
-                    <img src={signatures.assinatura_profissional_url} alt="Assinatura profissional" className="h-16 mx-auto border rounded" />
+                  {resolvedSigs.assinatura_profissional_url ? (
+                    <img src={resolvedSigs.assinatura_profissional_url} alt="Assinatura profissional" className="h-16 mx-auto border rounded" />
                   ) : (
                     <div className="h-16 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground text-xs">
                       Não assinado
