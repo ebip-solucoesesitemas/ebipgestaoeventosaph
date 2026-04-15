@@ -191,16 +191,7 @@ export function FinalizeRemovalDialog({
 
     let assinaturaReceptorUrl: string | null = null;
     if (receptorSigRef.current && !receptorSigRef.current.isEmpty()) {
-      const dataUrl = receptorSigRef.current.getDataUrl();
-      const blob = await fetch(dataUrl).then(r => r.blob());
-      const path = `${attendanceId}/receptor.png`;
-      const { error: uploadError } = await supabase.storage
-        .from('signatures')
-        .upload(path, blob, { upsert: true });
-      if (!uploadError) {
-        const { data } = supabase.storage.from('signatures').getPublicUrl(path);
-        assinaturaReceptorUrl = data.publicUrl;
-      }
+      assinaturaReceptorUrl = receptorSigRef.current.getDataUrl() || null;
     }
 
     const { error } = await supabase

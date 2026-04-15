@@ -246,34 +246,16 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
 
     setIsLoading(true);
 
-    // Upload signatures
-    let patientSigUrl = null;
-    let professionalSigUrl = null;
+    // Save signatures as base64 directly
+    let patientSigUrl: string | null = null;
+    let professionalSigUrl: string | null = null;
 
     if (!patientSigRef.current?.isEmpty()) {
-      const dataUrl = patientSigRef.current?.getDataUrl();
-      if (dataUrl) {
-        const blob = await fetch(dataUrl).then(r => r.blob());
-        const path = `${savedAttendanceId}/patient.png`;
-        const { error } = await supabase.storage.from('signatures').upload(path, blob, { upsert: true });
-        if (!error) {
-          const { data } = supabase.storage.from('signatures').getPublicUrl(path);
-          patientSigUrl = data.publicUrl;
-        }
-      }
+      patientSigUrl = patientSigRef.current?.getDataUrl() || null;
     }
 
     if (!professionalSigRef.current?.isEmpty()) {
-      const dataUrl = professionalSigRef.current?.getDataUrl();
-      if (dataUrl) {
-        const blob = await fetch(dataUrl).then(r => r.blob());
-        const path = `${savedAttendanceId}/professional.png`;
-        const { error } = await supabase.storage.from('signatures').upload(path, blob, { upsert: true });
-        if (!error) {
-          const { data } = supabase.storage.from('signatures').getPublicUrl(path);
-          professionalSigUrl = data.publicUrl;
-        }
-      }
+      professionalSigUrl = professionalSigRef.current?.getDataUrl() || null;
     }
 
     await supabase.from('signatures').upsert({
