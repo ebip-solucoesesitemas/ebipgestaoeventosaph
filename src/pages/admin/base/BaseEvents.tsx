@@ -700,6 +700,8 @@ export default function BaseEvents() {
                       <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
                       <SelectItem value="Ambulatório">Ambulatório</SelectItem>
                       <SelectItem value="USB somente condutor">USB somente condutor</SelectItem>
+                      <SelectItem value="Usb Plantão">Usb Plantão</SelectItem>
+                      <SelectItem value="Usb Plantão + Médico">Usb Plantão + Médico</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
