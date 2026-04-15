@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FileText, Printer, Edit, Trash2, Eye } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 interface Contract {
   id: string;
@@ -128,7 +129,7 @@ export function ClientContractsList({ clientId, clientName, open, onOpenChange }
         body { font-family: serif; padding: 40px; line-height: 1.8; white-space: pre-wrap; font-size: 14px; }
         @media print { body { padding: 20px; } }
       </style></head>
-      <body>${contract.conteudo}</body></html>
+      <body>${DOMPurify.sanitize(contract.conteudo)}</body></html>
     `);
     printWindow.document.close();
     printWindow.print();
