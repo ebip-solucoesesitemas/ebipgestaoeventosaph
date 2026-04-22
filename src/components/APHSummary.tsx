@@ -464,7 +464,7 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
         </CardContent>
       </Card>
 
-      <Button className="w-full btn-touch print:hidden" onClick={onClose}>
+      <Button className="w-full btn-touch" onClick={onClose}>
         Voltar ao Evento
       </Button>
     </div>
