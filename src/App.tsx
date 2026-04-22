@@ -33,6 +33,7 @@ import BaseEvents from "./pages/admin/base/BaseEvents";
 import BaseProfessionals from "./pages/admin/base/BaseProfessionals";
 import BaseVehicles from "./pages/admin/base/BaseVehicles";
 import BaseFinance from "./pages/admin/base/BaseFinance";
+import BaseAtendimentos from "./pages/admin/base/BaseAtendimentos";
 import TeamEvents from "./pages/team/TeamEvents";
 import TeamEventDetail from "./pages/team/EventDetail";
 import EventReportPage from "./pages/EventReportPage";
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="/admin/base/:baseId/professionals" element={<AdminRoute><BaseProfessionals /></AdminRoute>} />
               <Route path="/admin/base/:baseId/vehicles" element={<AdminRoute><BaseVehicles /></AdminRoute>} />
               <Route path="/admin/base/:baseId/finance" element={<AdminRoute><BaseFinance /></AdminRoute>} />
+              <Route path="/admin/base/:baseId/atendimentos" element={<AdminRoute><BaseAtendimentos /></AdminRoute>} />
               
               {/* Team Routes */}
               <Route path="/events" element={<ProtectedRoute><TeamEvents /></ProtectedRoute>} />
