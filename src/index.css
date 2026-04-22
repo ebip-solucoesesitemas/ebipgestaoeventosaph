@@ -203,31 +203,6 @@
     page-break-inside: avoid;
   }
 }
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background: white !important;
-    color: black !important;
-    z-index: 9999 !important;
-  }
-  [role="dialog"]:has(.aph-print-area) {
-    position: static !important;
-    transform: none !important;
-    box-shadow: none !important;
-    border: none !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    max-height: none !important;
-    overflow: visible !important;
-    padding: 0 !important;
-  }
-  [data-radix-dialog-overlay] {
-    display: none !important;
-  }
-}
 
 /* Payroll Report print — landscape */
 @media print {
