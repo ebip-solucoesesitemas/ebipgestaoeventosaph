@@ -202,12 +202,7 @@
   table {
     page-break-inside: avoid;
   }
-
-  /* APH Summary print isolation — show only the ficha when printing from dialog */
-  body:has(.aph-print-area) > *:not(:has(.aph-print-area)) {
-    display: none !important;
-  }
-  .aph-print-area {
+}
     position: absolute !important;
     inset: 0 !important;
     width: 100% !important;
