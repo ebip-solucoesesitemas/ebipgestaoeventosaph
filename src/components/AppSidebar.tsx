@@ -22,6 +22,7 @@ import {
   Moon,
   MessageSquare,
   Bell,
+  HeartPulse,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -84,6 +85,7 @@ const getBaseLinks = (baseId: string): MenuLink[] => [
   { href: `/admin/base/${baseId}/professionals`, label: "Profissionais", icon: Users, permissionKey: "professionals.view" },
   { href: `/admin/base/${baseId}/vehicles`, label: "Viaturas", icon: Truck, permissionKey: "vehicles.view" },
   { href: `/admin/base/${baseId}/finance`, label: "Financeiro", icon: DollarSign, permissionKey: "finance.view" },
+  { href: `/admin/base/${baseId}/atendimentos`, label: "Atendimentos", icon: HeartPulse, permissionKey: "events.view" },
 ];
 
 export function AppSidebar() {
