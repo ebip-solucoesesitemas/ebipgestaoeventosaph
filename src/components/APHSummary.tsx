@@ -4,7 +4,7 @@ import { resolveSignatureUrl } from '@/lib/signatureUrl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, User, Activity, FileText, PenTool, Calendar, Heart, Thermometer, Wind, Droplets } from 'lucide-react';
+import { ArrowLeft, User, Activity, FileText, PenTool, Calendar, Heart, Thermometer, Wind, Droplets, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -103,16 +103,20 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
   if (!attendance) return null;
 
   return (
-    <div className="space-y-4 animate-slide-up pb-8">
+    <div className="space-y-4 animate-slide-up pb-8 aph-print-area">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 print:hidden">
         <Button variant="ghost" size="icon" onClick={onClose}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold">Ficha de APH</h1>
           <p className="text-sm text-muted-foreground">Resumo do Atendimento</p>
         </div>
+        <Button onClick={() => window.print()} className="gap-2">
+          <Printer className="w-4 h-4" />
+          Imprimir PDF
+        </Button>
       </div>
 
       {/* Official Form Style */}
@@ -285,7 +289,7 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
         </CardContent>
       </Card>
 
-      <Button className="w-full btn-touch" onClick={onClose}>
+      <Button className="w-full btn-touch print:hidden" onClick={onClose}>
         Voltar ao Evento
       </Button>
     </div>
