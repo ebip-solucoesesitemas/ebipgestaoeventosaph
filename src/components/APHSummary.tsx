@@ -4,7 +4,7 @@ import { resolveSignatureUrl } from '@/lib/signatureUrl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, User, Activity, FileText, PenTool, Calendar, Heart, Thermometer, Wind, Droplets } from 'lucide-react';
+import { ArrowLeft, User, Activity, FileText, PenTool, Calendar, Heart, Thermometer, Wind, Droplets, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
