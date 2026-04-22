@@ -737,6 +737,6 @@ export default function BaseAtendimentos() {
           )}
         </DialogContent>
       </Dialog>
-    </Layout>
+    </div>
   );
 }
