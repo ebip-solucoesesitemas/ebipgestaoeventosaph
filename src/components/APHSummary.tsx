@@ -104,10 +104,183 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
 
   if (!attendance) return null;
 
+  const handleDownloadPdf = async () => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 15;
+
+    // Header
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Anjos da Vida Saúde', pageWidth / 2, y, { align: 'center' });
+    y += 7;
+    doc.setFontSize(12);
+    doc.text('FICHA DE ATENDIMENTO PRÉ-HOSPITALAR', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text(
+      `${attendance.events?.nome_evento ?? ''} • ${attendance.events?.local ?? ''}`,
+      pageWidth / 2,
+      y,
+      { align: 'center' }
+    );
+    y += 5;
+    doc.text(
+      format(new Date(attendance.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
+      pageWidth / 2,
+      y,
+      { align: 'center' }
+    );
+    doc.setTextColor(0);
+    y += 6;
+
+    // Patient Data
+    autoTable(doc, {
+      startY: y,
+      head: [[{ content: 'DADOS DO PACIENTE', colSpan: 4, styles: { halign: 'left', fillColor: [30, 64, 175], textColor: 255 } }]],
+      body: [
+        ['Nome', attendance.nome_paciente, 'Documento', attendance.documento || '-'],
+        ['Idade', attendance.idade ? `${attendance.idade} anos` : '-', 'Sexo', attendance.sexo === 'M' ? 'Masculino' : attendance.sexo === 'F' ? 'Feminino' : '-'],
+        [{ content: 'Queixa Principal', styles: { fontStyle: 'bold' } }, { content: attendance.queixa_principal, colSpan: 3 }],
+      ],
+      styles: { fontSize: 9, cellPadding: 2 },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 30 }, 2: { fontStyle: 'bold', cellWidth: 30 } },
+      margin: { left: 14, right: 14 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 4;
+
+    // Vital Signs
+    if (vitals) {
+      autoTable(doc, {
+        startY: y,
+        head: [[{ content: 'SINAIS VITAIS', colSpan: 6, styles: { halign: 'left', fillColor: [30, 64, 175], textColor: 255 } }]],
+        body: [
+          ['PA', 'FC', 'FR', 'SpO2', 'Temp', 'Glicemia'],
+          [
+            vitals.pa_sistolica && vitals.pa_diastolica ? `${vitals.pa_sistolica}/${vitals.pa_diastolica}` : '-',
+            vitals.frequencia_cardiaca ? `${vitals.frequencia_cardiaca} bpm` : '-',
+            vitals.frequencia_respiratoria ? `${vitals.frequencia_respiratoria} irpm` : '-',
+            vitals.saturacao_o2 ? `${vitals.saturacao_o2}%` : '-',
+            vitals.temperatura ? `${vitals.temperatura}°C` : '-',
+            vitals.glicemia ? `${vitals.glicemia} mg/dL` : '-',
+          ],
+        ],
+        styles: { fontSize: 9, cellPadding: 2, halign: 'center' },
+        didParseCell: (data: any) => {
+          if (data.section === 'body' && data.row.index === 0) {
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fillColor = [243, 244, 246];
+          }
+        },
+        margin: { left: 14, right: 14 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 4;
+    }
+
+    // Evolution
+    if (attendance.evolucao_clinica) {
+      autoTable(doc, {
+        startY: y,
+        head: [[{ content: 'EVOLUÇÃO CLÍNICA (ENFERMAGEM)', styles: { halign: 'left', fillColor: [30, 64, 175], textColor: 255 } }]],
+        body: [[attendance.evolucao_clinica]],
+        styles: { fontSize: 9, cellPadding: 3 },
+        margin: { left: 14, right: 14 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 4;
+    }
+
+    if ((attendance as any).evolucao_medica) {
+      autoTable(doc, {
+        startY: y,
+        head: [[{ content: 'EVOLUÇÃO MÉDICA', styles: { halign: 'left', fillColor: [30, 64, 175], textColor: 255 } }]],
+        body: [[(attendance as any).evolucao_medica]],
+        styles: { fontSize: 9, cellPadding: 3 },
+        margin: { left: 14, right: 14 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 4;
+    }
+
+    // Signatures
+    if (resolvedSigs) {
+      if (y > 230) { doc.addPage(); y = 15; }
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setFillColor(30, 64, 175);
+      doc.setTextColor(255);
+      doc.rect(14, y, pageWidth - 28, 6, 'F');
+      doc.text('ASSINATURAS', 16, y + 4.2);
+      doc.setTextColor(0);
+      y += 10;
+
+      const sigW = 70;
+      const sigH = 25;
+      const leftX = 20;
+      const rightX = pageWidth - sigW - 20;
+
+      try {
+        if (resolvedSigs.assinatura_paciente_url) {
+          doc.addImage(resolvedSigs.assinatura_paciente_url, 'PNG', leftX, y, sigW, sigH);
+        }
+      } catch {}
+      try {
+        if (resolvedSigs.assinatura_profissional_url) {
+          doc.addImage(resolvedSigs.assinatura_profissional_url, 'PNG', rightX, y, sigW, sigH);
+        }
+      } catch {}
+
+      y += sigH + 2;
+      doc.setDrawColor(0);
+      doc.line(leftX, y, leftX + sigW, y);
+      doc.line(rightX, y, rightX + sigW, y);
+      y += 4;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Paciente / Responsável', leftX + sigW / 2, y, { align: 'center' });
+      doc.text('Profissional', rightX + sigW / 2, y, { align: 'center' });
+      y += 6;
+    }
+
+    // Professional Info
+    if (attendance.profiles) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text(attendance.profiles.nome, pageWidth / 2, y, { align: 'center' });
+      y += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100);
+      doc.text(
+        `${attendance.profiles.especialidade} • ${attendance.profiles.registro_profissional ?? ''}`,
+        pageWidth / 2,
+        y,
+        { align: 'center' }
+      );
+      doc.setTextColor(0);
+    }
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(
+        `Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} — Página ${i}/${pageCount}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 8,
+        { align: 'center' }
+      );
+    }
+
+    const fileName = `ficha_aph_${attendance.nome_paciente.replace(/\s+/g, '_').toLowerCase()}_${format(new Date(attendance.created_at), 'ddMMyyyy')}.pdf`;
+    doc.save(fileName);
+  };
+
   return (
-    <div className="space-y-4 animate-slide-up pb-8 aph-print-area">
+    <div className="space-y-4 animate-slide-up pb-8">
       {/* Header */}
-      <div className="flex items-center gap-4 print:hidden">
+      <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={onClose}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
@@ -115,9 +288,9 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
           <h1 className="text-xl font-bold">Ficha de APH</h1>
           <p className="text-sm text-muted-foreground">Resumo do Atendimento</p>
         </div>
-        <Button onClick={() => window.print()} className="gap-2">
-          <Printer className="w-4 h-4" />
-          Imprimir PDF
+        <Button onClick={handleDownloadPdf} className="gap-2">
+          <Download className="w-4 h-4" />
+          Baixar PDF
         </Button>
       </div>
 
