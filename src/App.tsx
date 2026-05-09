@@ -29,6 +29,8 @@ import AdminAuditLogs from "./pages/admin/AuditLogs";
 import AdminPermissions from "./pages/admin/Permissions";
 import AdminPayrollReport from "./pages/admin/PayrollReport";
 import AdminSystemNotices from "./pages/admin/SystemNotices";
+import AdminChecklist from "./pages/admin/ChecklistManagement";
+import TeamChecklist from "./pages/team/TeamChecklist";
 import BaseEvents from "./pages/admin/base/BaseEvents";
 import BaseProfessionals from "./pages/admin/base/BaseProfessionals";
 import BaseVehicles from "./pages/admin/base/BaseVehicles";
@@ -77,6 +79,7 @@ const App = () => (
               <Route path="/admin/payroll-report" element={<AdminRoute><AdminPayrollReport /></AdminRoute>} />
               <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
               <Route path="/admin/system-notices" element={<AdminRoute><AdminSystemNotices /></AdminRoute>} />
+              <Route path="/admin/checklist" element={<AdminRoute><AdminChecklist /></AdminRoute>} />
               
               {/* Base-specific Routes */}
               <Route path="/admin/base/:baseId/events" element={<AdminRoute><BaseEvents /></AdminRoute>} />
@@ -88,6 +91,7 @@ const App = () => (
               {/* Team Routes */}
               <Route path="/events" element={<ProtectedRoute><TeamEvents /></ProtectedRoute>} />
               <Route path="/events/:id" element={<ProtectedRoute><TeamEventDetail /></ProtectedRoute>} />
+              <Route path="/checklist" element={<ProtectedRoute><TeamChecklist /></ProtectedRoute>} />
               
               {/* Support Tickets */}
               <Route path="/tickets" element={<ProtectedRoute><SupportTickets /></ProtectedRoute>} />
