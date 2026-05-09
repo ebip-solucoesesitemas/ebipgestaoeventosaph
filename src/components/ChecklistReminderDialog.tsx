@@ -73,7 +73,6 @@ export default function ChecklistReminderDialog() {
       const { data: subs } = await supabase
         .from("checklist_submissions")
         .select("event_id, status")
-        .eq("profile_id", profile.id)
         .in("event_id", evIds)
         .eq("status", "finalizado");
 
