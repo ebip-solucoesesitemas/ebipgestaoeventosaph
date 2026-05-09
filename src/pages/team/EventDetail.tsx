@@ -607,6 +607,28 @@ export default function EventDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 space-y-3">
+          {checklistStatus !== "finalizado" && (
+            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+              <AlertTriangle className="w-4 h-4 mt-0.5 text-warning shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-warning-foreground">
+                  {checklistStatus === "rascunho"
+                    ? "Checklist do evento ainda em rascunho."
+                    : "Checklist do evento ainda não foi realizado."}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Recomendado finalizar antes do checkout da equipe (não bloqueia).
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate(`/checklist?event_id=${event.id}`)}
+              >
+                Abrir checklist
+              </Button>
+            </div>
+          )}
           {team.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum profissional escalado</p>
           ) : (
