@@ -322,7 +322,7 @@ export default function TeamChecklist() {
   const condLabel = (s: ItemStatus) =>
     s === "ok" ? "OK" : s === "divergente" ? "NOK" : "N/A";
 
-  const handleSubmit = async () => {
+  const persist = async (finalize: boolean) => {
     if (!profile?.id) {
       toast.error("Perfil não encontrado");
       return;
@@ -339,49 +339,74 @@ export default function TeamChecklist() {
       toast.error("Informe o cargo de quem está fazendo o checklist.");
       return;
     }
-    if (!sigRef.current || sigRef.current.isEmpty()) {
-      toast.error("Assine no campo de assinatura antes de enviar.");
-      return;
-    }
     if (tipo === "evento") {
       if (!eventId) {
         toast.error("Selecione o evento.");
         return;
       }
-      if (!selectedEvent?.viatura_id) {
-        toast.error("Este evento não possui viatura vinculada.");
+    }
+    if (finalize) {
+      if (!sigRef.current || sigRef.current.isEmpty()) {
+        toast.error("Assine no campo de assinatura antes de finalizar.");
         return;
       }
     }
-    const assinatura = sigRef.current.getDataUrl("image/jpeg", 0.5);
+    const assinatura =
+      sigRef.current && !sigRef.current.isEmpty()
+        ? sigRef.current.getDataUrl("image/jpeg", 0.5)
+        : null;
+
     setSubmitting(true);
-    const { data: sub, error: subErr } = await supabase
-      .from("checklist_submissions")
-      .insert({
-        profile_id: profile.id,
-        base_id: profile.base_id || null,
-        tipo,
-        event_id: tipo === "evento" ? eventId : null,
-        vehicle_id:
-          tipo === "evento"
-            ? selectedEvent?.viatura_id || null
-            : vehicleId || null,
-        observacoes: observacoes.trim() || null,
-        responsavel_nome: responsavelNome.trim(),
-        responsavel_cargo: responsavelCargo.trim(),
-        assinatura,
-      })
-      .select()
-      .single();
-    if (subErr || !sub) {
-      setSubmitting(false);
-      toast.error(subErr?.message || "Erro ao salvar conferência");
-      return;
+
+    const payload: any = {
+      profile_id: profile.id,
+      base_id: profile.base_id || null,
+      tipo,
+      status: finalize ? "finalizado" : "rascunho",
+      event_id: tipo === "evento" ? eventId : null,
+      vehicle_id:
+        tipo === "evento"
+          ? selectedEvent?.viatura_id || null
+          : vehicleId || null,
+      observacoes: observacoes.trim() || null,
+      intercorrencias: intercorrencias.trim() || null,
+      responsavel_nome: responsavelNome.trim(),
+      responsavel_cargo: responsavelCargo.trim(),
+    };
+    if (assinatura) payload.assinatura = assinatura;
+
+    let subId = draftId;
+    if (subId) {
+      const { error } = await supabase
+        .from("checklist_submissions")
+        .update(payload)
+        .eq("id", subId);
+      if (error) {
+        setSubmitting(false);
+        toast.error(error.message);
+        return;
+      }
+    } else {
+      const { data: sub, error } = await supabase
+        .from("checklist_submissions")
+        .insert(payload)
+        .select()
+        .single();
+      if (error || !sub) {
+        setSubmitting(false);
+        toast.error(error?.message || "Erro ao salvar conferência");
+        return;
+      }
+      subId = sub.id;
+      setDraftId(sub.id);
     }
+
+    // Replace items
+    await supabase.from("checklist_submission_items").delete().eq("submission_id", subId);
     const rows = items.map((it) => {
       const a = answers[it.id];
       return {
-        submission_id: sub.id,
+        submission_id: subId!,
         item_id: it.id,
         status: a?.status || "ok",
         quantidade_atual:
@@ -395,18 +420,24 @@ export default function TeamChecklist() {
       toast.error(itemsErr.message);
       return;
     }
-    toast.success("Checklist assinado e enviado!");
-    setObservacoes("");
-    setEventId("");
-    setVehicleId("");
-    sigRef.current?.clear();
-    setHistory((prev) =>
-      [
-        { id: sub.id, created_at: sub.created_at, tipo: sub.tipo, observacoes: sub.observacoes },
-        ...prev,
-      ].slice(0, 5)
-    );
+
+    setDraftStatus(finalize ? "finalizado" : "rascunho");
+    toast.success(finalize ? "Checklist finalizado!" : "Rascunho salvo!");
+
+    if (finalize) {
+      // Refresh history list
+      const { data } = await supabase
+        .from("checklist_submissions")
+        .select("id, created_at, tipo, observacoes, status, intercorrencias, event_id")
+        .eq("profile_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      setHistory((data as any) || []);
+    }
   };
+
+  const handleSaveDraft = () => persist(false);
+  const handleFinalize = () => persist(true);
 
   return (
     <div className="space-y-6 pb-24">
