@@ -777,36 +777,42 @@ export default function ChecklistManagement() {
                     <Package className="w-4 h-4" /> {cat}
                   </h4>
                   <div className="border rounded-md divide-y">
-                    {list.map((it, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2 text-sm">
-                        <div className="flex-1">
-                          <p className="font-medium">{it.checklist_items?.nome}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Ideal: {it.checklist_items?.quantidade_ideal}
-                            {it.checklist_items?.unidade ? ` ${it.checklist_items.unidade}` : ""}
-                            {" • "}Atual: {it.quantidade_atual ?? "-"}
-                          </p>
+                    {list.map((it, idx) => {
+                      const isCond = it.checklist_items?.tipo_resposta === "condicao";
+                      const statusLabel = isCond
+                        ? it.status === "ok" ? "OK" : it.status === "divergente" ? "NOK" : "N/A"
+                        : it.status.toUpperCase();
+                      return (
+                        <div key={idx} className="p-2 text-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium">{it.checklist_items?.nome}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {isCond
+                                  ? "Inspeção de condição"
+                                  : <>Ideal: {it.checklist_items?.quantidade_ideal}{it.checklist_items?.unidade ? ` ${it.checklist_items.unidade}` : ""} • Atual: {it.quantidade_atual ?? "-"}</>}
+                              </p>
+                            </div>
+                            <Badge
+                              className={
+                                it.status === "ok"
+                                  ? "bg-stable text-stable-foreground"
+                                  : it.status === "divergente"
+                                  ? "bg-warning text-warning-foreground"
+                                  : "bg-destructive text-destructive-foreground"
+                              }
+                            >
+                              {statusLabel}
+                            </Badge>
+                          </div>
+                          {it.observacao && (
+                            <p className="text-xs text-muted-foreground mt-1 italic">
+                              Obs: {it.observacao}
+                            </p>
+                          )}
                         </div>
-                        <Badge
-                          variant={
-                            it.status === "ok"
-                              ? "default"
-                              : it.status === "divergente"
-                              ? "secondary"
-                              : "destructive"
-                          }
-                          className={
-                            it.status === "ok"
-                              ? "bg-stable text-stable-foreground"
-                              : it.status === "divergente"
-                              ? "bg-warning text-warning-foreground"
-                              : ""
-                          }
-                        >
-                          {it.status.toUpperCase()}
-                        </Badge>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}
