@@ -821,10 +821,14 @@ export default function ChecklistManagement() {
                 <div><span className="text-muted-foreground">Data:</span>{" "}
                   {format(new Date(detail.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</div>
                 <div><span className="text-muted-foreground">Tipo:</span> {detail.tipo}</div>
-                <div><span className="text-muted-foreground">Profissional:</span>{" "}
+                <div><span className="text-muted-foreground">Profissional (conta):</span>{" "}
                   {detail.profiles?.nome} ({detail.profiles?.especialidade})</div>
                 <div><span className="text-muted-foreground">Base:</span>{" "}
                   {baseName(detail.base_id || detail.profiles?.base_id)}</div>
+                <div><span className="text-muted-foreground">Responsável:</span>{" "}
+                  {detail.responsavel_nome || "—"}</div>
+                <div><span className="text-muted-foreground">Cargo / Função:</span>{" "}
+                  {detail.responsavel_cargo || "—"}</div>
                 <div><span className="text-muted-foreground">Evento:</span>{" "}
                   {detail.events?.nome_evento || "—"}</div>
                 <div><span className="text-muted-foreground">Viatura:</span>{" "}
@@ -833,6 +837,13 @@ export default function ChecklistManagement() {
               {detail.observacoes && (
                 <div className="bg-muted p-3 rounded-md text-sm">
                   <strong>Observações:</strong> {detail.observacoes}
+                </div>
+              )}
+
+              {detail.assinatura && (
+                <div className="border rounded-md p-3 bg-white">
+                  <p className="text-xs text-muted-foreground mb-1">Assinatura do responsável</p>
+                  <img src={detail.assinatura} alt="Assinatura" className="max-h-32" />
                 </div>
               )}
 
