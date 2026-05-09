@@ -30,9 +30,6 @@ export default function ChecklistReminderDialog() {
     // Apenas para quem opera em campo
     if (profile.cargo !== "equipe" && profile.cargo !== "operacional") return;
 
-    const todayKey = `checklist_reminder_${profile.id}_${new Date().toISOString().slice(0, 10)}`;
-    if (localStorage.getItem(todayKey)) return;
-
     (async () => {
       const today = new Date();
       const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
@@ -50,30 +47,17 @@ export default function ChecklistReminderDialog() {
 
       if (!data || data.length === 0) {
         setOpen(true);
-      } else {
-        localStorage.setItem(todayKey, "1");
       }
     })();
   }, [profile?.id, profile?.cargo, isLoading]);
 
-  const markSeen = () => {
-    if (profile?.id) {
-      localStorage.setItem(
-        `checklist_reminder_${profile.id}_${new Date().toISOString().slice(0, 10)}`,
-        "1",
-      );
-    }
-  };
-
   const handleYes = () => {
-    markSeen();
     setOpen(false);
   };
 
   const handleGoChecklist = () => {
-    markSeen();
     setOpen(false);
-    navigate("/team/checklist");
+    navigate("/checklist");
   };
 
   const handleSaveReason = async () => {
@@ -95,14 +79,13 @@ export default function ChecklistReminderDialog() {
       return;
     }
     toast.success("Motivo registrado");
-    markSeen();
     setOpen(false);
     setMotivo("");
     setStep("ask");
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) markSeen(); setOpen(v); }}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-md">
         {step === "ask" ? (
           <>
