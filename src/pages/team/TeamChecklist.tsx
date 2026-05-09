@@ -712,15 +712,58 @@ export default function TeamChecklist() {
               />
             </div>
 
+            {tipo === "evento" && (
+              <div>
+                <Label className="flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 text-warning" />
+                  Intercorrências durante o evento
+                </Label>
+                <Textarea
+                  placeholder="Descreva problemas ocorridos durante o evento (viatura, materiais, etc.)"
+                  value={intercorrencias}
+                  onChange={(e) => setIntercorrencias(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
+
             <SignaturePad ref={sigRef} label="Assinatura do responsável *" />
 
-            <Button className="w-full gap-2" onClick={handleSubmit} disabled={submitting}>
-              <Send className="w-4 h-4" />
-              {submitting ? "Enviando..." : "Assinar e Enviar Checklist"}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              A submissão registra o nome, cargo, assinatura e data/hora do responsável.
-            </p>
+            {draftStatus === "finalizado" ? (
+              <div className="rounded-md border border-stable/40 bg-stable/10 px-3 py-2 text-sm text-stable text-center">
+                <CheckCircle2 className="w-4 h-4 inline mr-1" />
+                Checklist finalizado
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {tipo === "evento" && (
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={handleSaveDraft}
+                    disabled={submitting}
+                  >
+                    <Send className="w-4 h-4" />
+                    {submitting ? "Salvando..." : "Salvar rascunho"}
+                  </Button>
+                )}
+                <Button
+                  className={`w-full gap-2 ${tipo !== "evento" ? "sm:col-span-2" : ""}`}
+                  onClick={handleFinalize}
+                  disabled={submitting}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {submitting ? "Enviando..." : "Assinar e Finalizar"}
+                </Button>
+              </div>
+            )}
+            {tipo === "evento" && draftStatus !== "finalizado" && (
+              <p className="text-xs text-muted-foreground text-center">
+                {eventStatus === "finalizado"
+                  ? "Evento finalizado — pode finalizar o checklist."
+                  : "Recomendado finalizar o checklist apenas após o término do evento. Use 'Salvar rascunho' durante o evento."}
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
