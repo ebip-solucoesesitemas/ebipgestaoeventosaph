@@ -23,6 +23,9 @@ import {
   Send,
   CalendarDays,
   Truck,
+  MinusCircle,
+  Wrench,
+  Stethoscope,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -34,6 +37,7 @@ interface Category {
   descricao: string | null;
   ordem: number;
   base_id: string | null;
+  escopo: string;
 }
 interface Item {
   id: string;
@@ -42,11 +46,13 @@ interface Item {
   quantidade_ideal: number;
   unidade: string | null;
   ordem: number;
+  tipo_resposta: string;
 }
 type ItemStatus = "ok" | "divergente" | "falta";
 interface Answer {
   status: ItemStatus;
   quantidade_atual: number | null;
+  observacao?: string;
 }
 
 interface Submission {
@@ -73,7 +79,7 @@ interface VehicleOption {
 }
 
 export default function TeamChecklist() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
@@ -82,12 +88,13 @@ export default function TeamChecklist() {
   const [history, setHistory] = useState<Submission[]>([]);
 
   const [tipo, setTipo] = useState<"diario" | "evento">("diario");
+  const [escopo, setEscopo] = useState<"medico" | "viatura">("medico");
   const [events, setEvents] = useState<EventOption[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [eventId, setEventId] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
 
-  // Load categories + items filtered by user's base (RLS already enforces, but we also filter for safety)
+  // Load categories + items filtered by user's base AND selected scope
   useEffect(() => {
     (async () => {
       const catsRes = await supabase
@@ -97,9 +104,10 @@ export default function TeamChecklist() {
         .order("ordem")
         .order("nome");
       const cats = (catsRes.data || []) as Category[];
-      const filtered = profile?.base_id
+      const byBase = profile?.base_id
         ? cats.filter((c) => !c.base_id || c.base_id === profile.base_id)
         : cats;
+      const filtered = byBase.filter((c) => (c.escopo || "medico") === escopo);
       setCategories(filtered);
 
       if (filtered.length === 0) {
@@ -111,49 +119,58 @@ export default function TeamChecklist() {
         .from("checklist_items")
         .select("*")
         .eq("ativo", true)
-        .in(
-          "category_id",
-          filtered.map((c) => c.id)
-        )
+        .in("category_id", filtered.map((c) => c.id))
         .order("ordem")
         .order("nome");
-      setItems(its.data || []);
+      const itList = (its.data || []) as Item[];
+      setItems(itList);
       const initial: Record<string, Answer> = {};
-      (its.data || []).forEach((i: Item) => {
-        initial[i.id] = { status: "ok", quantidade_atual: i.quantidade_ideal };
+      itList.forEach((i) => {
+        initial[i.id] =
+          i.tipo_resposta === "condicao"
+            ? { status: "ok", quantidade_atual: null, observacao: "" }
+            : { status: "ok", quantidade_atual: i.quantidade_ideal, observacao: "" };
       });
       setAnswers(initial);
     })();
-  }, [profile?.base_id]);
+  }, [profile?.base_id, escopo]);
 
-  // Load own assigned events (agendado/em_andamento) and base vehicles
+  // Load events: assigned OR account responsible (events.user_id)
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!profile?.id || !user?.id) return;
     (async () => {
-      const { data: assigns } = await supabase
-        .from("event_assignments")
-        .select("event_id")
-        .eq("profile_id", profile.id);
-      const ids = (assigns || []).map((a: any) => a.event_id);
-      if (ids.length > 0) {
-        const { data: evs } = await supabase
+      const [assignsRes, ownedRes] = await Promise.all([
+        supabase.from("event_assignments").select("event_id").eq("profile_id", profile.id),
+        supabase
           .from("events")
-          .select("id, nome_evento, data_inicio, status, viatura_id, base_id, vehicles:viatura_id(id, prefixo, placa)")
-          .in("id", ids)
-          .in("status", ["agendado", "em_andamento"])
-          .order("data_inicio", { ascending: false });
-        setEvents(
-          (evs || []).map((e: any) => ({
-            id: e.id,
-            nome_evento: e.nome_evento,
-            data_inicio: e.data_inicio,
-            status: e.status,
-            viatura_id: e.viatura_id,
-            base_id: e.base_id,
-            vehicle: e.vehicles,
-          }))
-        );
+          .select("id")
+          .eq("user_id", user.id)
+          .in("status", ["agendado", "em_andamento"]),
+      ]);
+      const assignedIds = (assignsRes.data || []).map((a: any) => a.event_id);
+      const ownedIds = (ownedRes.data || []).map((e: any) => e.id);
+      const allIds = Array.from(new Set([...assignedIds, ...ownedIds]));
+      if (allIds.length === 0) {
+        setEvents([]);
+        return;
       }
+      const { data: evs } = await supabase
+        .from("events")
+        .select("id, nome_evento, data_inicio, status, viatura_id, base_id, vehicles:viatura_id(id, prefixo, placa)")
+        .in("id", allIds)
+        .in("status", ["agendado", "em_andamento"])
+        .order("data_inicio", { ascending: false });
+      setEvents(
+        (evs || []).map((e: any) => ({
+          id: e.id,
+          nome_evento: e.nome_evento,
+          data_inicio: e.data_inicio,
+          status: e.status,
+          viatura_id: e.viatura_id,
+          base_id: e.base_id,
+          vehicle: e.vehicles,
+        }))
+      );
 
       if (profile.base_id) {
         const { data: vs } = await supabase
@@ -164,7 +181,7 @@ export default function TeamChecklist() {
         setVehicles(vs || []);
       }
     })();
-  }, [profile?.id, profile?.base_id]);
+  }, [profile?.id, profile?.base_id, user?.id]);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -182,31 +199,35 @@ export default function TeamChecklist() {
     [events, eventId]
   );
 
-  // When picking event, auto-fill vehicle
   useEffect(() => {
     if (tipo === "evento" && selectedEvent) {
       setVehicleId(selectedEvent.viatura_id || "");
     }
   }, [tipo, selectedEvent]);
 
+  // ---- Quantidade handlers ----
   const setOk = (item: Item) =>
     setAnswers((p) => ({
       ...p,
-      [item.id]: { status: "ok", quantidade_atual: item.quantidade_ideal },
+      [item.id]: { ...p[item.id], status: "ok", quantidade_atual: item.quantidade_ideal },
     }));
   const setFalta = (item: Item) =>
-    setAnswers((p) => ({ ...p, [item.id]: { status: "falta", quantidade_atual: 0 } }));
+    setAnswers((p) => ({ ...p, [item.id]: { ...p[item.id], status: "falta", quantidade_atual: 0 } }));
   const setQty = (item: Item, qty: number) => {
     const status: ItemStatus =
       qty === item.quantidade_ideal ? "ok" : qty <= 0 ? "falta" : "divergente";
-    setAnswers((p) => ({ ...p, [item.id]: { status, quantidade_atual: qty } }));
+    setAnswers((p) => ({ ...p, [item.id]: { ...p[item.id], status, quantidade_atual: qty } }));
   };
+
+  // ---- Condição handlers ----
+  const setCond = (item: Item, status: ItemStatus) =>
+    setAnswers((p) => ({ ...p, [item.id]: { ...p[item.id], status, quantidade_atual: null } }));
+  const setObs = (item: Item, obs: string) =>
+    setAnswers((p) => ({ ...p, [item.id]: { ...p[item.id], observacao: obs } }));
 
   const stats = useMemo(() => {
     const total = items.length;
-    let ok = 0,
-      div = 0,
-      falta = 0;
+    let ok = 0, div = 0, falta = 0;
     items.forEach((it) => {
       const a = answers[it.id];
       if (!a) return;
@@ -216,6 +237,9 @@ export default function TeamChecklist() {
     });
     return { total, ok, div, falta };
   }, [items, answers]);
+
+  const condLabel = (s: ItemStatus) =>
+    s === "ok" ? "OK" : s === "divergente" ? "NOK" : "N/A";
 
   const handleSubmit = async () => {
     if (!profile?.id) {
@@ -257,12 +281,17 @@ export default function TeamChecklist() {
       toast.error(subErr?.message || "Erro ao salvar conferência");
       return;
     }
-    const rows = items.map((it) => ({
-      submission_id: sub.id,
-      item_id: it.id,
-      status: answers[it.id]?.status || "ok",
-      quantidade_atual: answers[it.id]?.quantidade_atual ?? it.quantidade_ideal,
-    }));
+    const rows = items.map((it) => {
+      const a = answers[it.id];
+      return {
+        submission_id: sub.id,
+        item_id: it.id,
+        status: a?.status || "ok",
+        quantidade_atual:
+          it.tipo_resposta === "condicao" ? null : a?.quantidade_atual ?? it.quantidade_ideal,
+        observacao: a?.observacao?.trim() || null,
+      };
+    });
     const { error: itemsErr } = await supabase.from("checklist_submission_items").insert(rows);
     setSubmitting(false);
     if (itemsErr) {
@@ -288,17 +317,33 @@ export default function TeamChecklist() {
           <Package className="w-6 h-6" /> Checklist de Conferência
         </h1>
         <p className="text-sm text-muted-foreground">
-          Confirme item a item. Use "OK" se a quantidade está correta, ajuste se divergente, ou marque "F" se em falta.
+          Confirme item a item conforme o escopo selecionado.
         </p>
       </div>
 
-      {/* Tipo & vínculo */}
+      {/* Tipo / Escopo / vínculo */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Tipo de Conferência</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label>Escopo *</Label>
+              <Select value={escopo} onValueChange={(v) => setEscopo(v as "medico" | "viatura")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="medico">
+                    <span className="flex items-center gap-2"><Stethoscope className="w-3 h-3" /> Kit Médico</span>
+                  </SelectItem>
+                  <SelectItem value="viatura">
+                    <span className="flex items-center gap-2"><Wrench className="w-3 h-3" /> Viatura (lataria, óleo, pneus...)</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Tipo *</Label>
               <Select value={tipo} onValueChange={(v) => setTipo(v as "diario" | "evento")}>
@@ -311,7 +356,8 @@ export default function TeamChecklist() {
                 </SelectContent>
               </Select>
             </div>
-
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {tipo === "evento" ? (
               <>
                 <div>
@@ -380,13 +426,13 @@ export default function TeamChecklist() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Itens</p><p className="text-2xl font-bold">{stats.total}</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">OK</p><p className="text-2xl font-bold text-stable">{stats.ok}</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Divergentes</p><p className="text-2xl font-bold text-warning">{stats.div}</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Em Falta</p><p className="text-2xl font-bold text-destructive">{stats.falta}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">{escopo === "viatura" ? "NOK" : "Divergentes"}</p><p className="text-2xl font-bold text-warning">{stats.div}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">{escopo === "viatura" ? "N/A" : "Em Falta"}</p><p className="text-2xl font-bold text-destructive">{stats.falta}</p></CardContent></Card>
       </div>
 
       {categories.length === 0 && (
         <Card><CardContent className="py-12 text-center text-muted-foreground">
-          Nenhum item de checklist cadastrado para sua base. Aguarde o administrador.
+          Nenhum item de checklist cadastrado para este escopo na sua base. Aguarde o administrador.
         </CardContent></Card>
       )}
 
@@ -405,52 +451,97 @@ export default function TeamChecklist() {
             <CardContent className="space-y-2">
               {catItems.map((it) => {
                 const a = answers[it.id];
+                const isCond = it.tipo_resposta === "condicao";
                 return (
                   <div key={it.id} className="border rounded-lg p-3 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium">{it.nome}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Qtd ideal: {it.quantidade_ideal}{it.unidade ? ` ${it.unidade}` : ""}
-                        </p>
+                        {!isCond && (
+                          <p className="text-xs text-muted-foreground">
+                            Qtd ideal: {it.quantidade_ideal}{it.unidade ? ` ${it.unidade}` : ""}
+                          </p>
+                        )}
                       </div>
                       {a?.status === "ok" && (
-                        <Badge className="bg-stable text-stable-foreground gap-1"><CheckCircle2 className="w-3 h-3" /> OK</Badge>
+                        <Badge className="bg-stable text-stable-foreground gap-1"><CheckCircle2 className="w-3 h-3" /> {isCond ? "OK" : "OK"}</Badge>
                       )}
                       {a?.status === "divergente" && (
-                        <Badge className="bg-warning text-warning-foreground gap-1"><AlertTriangle className="w-3 h-3" /> Divergente</Badge>
+                        <Badge className="bg-warning text-warning-foreground gap-1">
+                          <AlertTriangle className="w-3 h-3" /> {isCond ? "NOK" : "Divergente"}
+                        </Badge>
                       )}
                       {a?.status === "falta" && (
-                        <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" /> Falta</Badge>
+                        <Badge variant="destructive" className="gap-1">
+                          {isCond ? <MinusCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                          {isCond ? "N/A" : "Falta"}
+                        </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Button
-                        size="sm"
-                        variant={a?.status === "ok" ? "default" : "outline"}
-                        className={a?.status === "ok" ? "bg-stable text-stable-foreground hover:bg-stable/90" : ""}
-                        onClick={() => setOk(it)}
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-1" /> OK
-                      </Button>
-                      <div className="flex items-center gap-1">
-                        <Label className="text-xs">Qtd atual:</Label>
+
+                    {isCond ? (
+                      <>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Button
+                            size="sm"
+                            variant={a?.status === "ok" ? "default" : "outline"}
+                            className={a?.status === "ok" ? "bg-stable text-stable-foreground hover:bg-stable/90" : ""}
+                            onClick={() => setCond(it, "ok")}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" /> OK
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={a?.status === "divergente" ? "default" : "outline"}
+                            className={a?.status === "divergente" ? "bg-warning text-warning-foreground hover:bg-warning/90" : ""}
+                            onClick={() => setCond(it, "divergente")}
+                          >
+                            <AlertTriangle className="w-4 h-4 mr-1" /> NOK
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={a?.status === "falta" ? "destructive" : "outline"}
+                            onClick={() => setCond(it, "falta")}
+                          >
+                            <MinusCircle className="w-4 h-4 mr-1" /> N/A
+                          </Button>
+                        </div>
                         <Input
-                          type="number"
-                          min={0}
-                          className="w-20 h-9"
-                          value={a?.quantidade_atual ?? ""}
-                          onChange={(e) => setQty(it, Number(e.target.value))}
+                          placeholder="Observação (opcional)"
+                          value={a?.observacao || ""}
+                          onChange={(e) => setObs(it, e.target.value)}
+                          className="text-sm"
                         />
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant={a?.status === "ok" ? "default" : "outline"}
+                          className={a?.status === "ok" ? "bg-stable text-stable-foreground hover:bg-stable/90" : ""}
+                          onClick={() => setOk(it)}
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" /> OK
+                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Label className="text-xs">Qtd atual:</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            className="w-20 h-9"
+                            value={a?.quantidade_atual ?? ""}
+                            onChange={(e) => setQty(it, Number(e.target.value))}
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={a?.status === "falta" ? "destructive" : "outline"}
+                          onClick={() => setFalta(it)}
+                        >
+                          <XCircle className="w-4 h-4 mr-1" /> F (Falta)
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant={a?.status === "falta" ? "destructive" : "outline"}
-                        onClick={() => setFalta(it)}
-                      >
-                        <XCircle className="w-4 h-4 mr-1" /> F (Falta)
-                      </Button>
-                    </div>
+                    )}
                   </div>
                 );
               })}
