@@ -79,7 +79,6 @@ export default function ChecklistReminderDialog() {
       return;
     }
     toast.success("Motivo registrado");
-    markSeen();
     setOpen(false);
     setMotivo("");
     setStep("ask");
