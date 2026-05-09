@@ -837,10 +837,21 @@ export default function ChecklistManagement() {
                   {detail.events?.nome_evento || "—"}</div>
                 <div><span className="text-muted-foreground">Viatura:</span>{" "}
                   {detail.vehicles ? `${detail.vehicles.prefixo} — ${detail.vehicles.placa}` : "—"}</div>
+                <div><span className="text-muted-foreground">Status:</span>{" "}
+                  <Badge className={detail.status === "finalizado" ? "bg-stable text-stable-foreground" : "bg-warning text-warning-foreground"}>
+                    {detail.status === "finalizado" ? "Finalizado" : detail.status === "rascunho" ? "Rascunho" : (detail.status || "—")}
+                  </Badge>
+                </div>
               </div>
               {detail.observacoes && (
                 <div className="bg-muted p-3 rounded-md text-sm">
                   <strong>Observações:</strong> {detail.observacoes}
+                </div>
+              )}
+              {detail.intercorrencias && (
+                <div className="bg-warning/10 border border-warning/30 p-3 rounded-md text-sm">
+                  <strong className="flex items-center gap-1"><AlertTriangle className="w-4 h-4 text-warning" /> Intercorrências:</strong>
+                  <p className="mt-1">{detail.intercorrencias}</p>
                 </div>
               )}
 
