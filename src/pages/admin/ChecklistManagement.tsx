@@ -559,8 +559,9 @@ export default function ChecklistManagement() {
                             <div>
                               <p className="font-medium">{it.nome}</p>
                               <p className="text-xs text-muted-foreground">
-                                Qtd ideal: {it.quantidade_ideal}
-                                {it.unidade ? ` ${it.unidade}` : ""}
+                                {it.tipo_resposta === "condicao"
+                                  ? "Condição (OK / NOK / N/A)"
+                                  : `Qtd ideal: ${it.quantidade_ideal}${it.unidade ? ` ${it.unidade}` : ""}`}
                               </p>
                             </div>
                             <div className="flex gap-1">
