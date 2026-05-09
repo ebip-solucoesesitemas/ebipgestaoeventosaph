@@ -329,9 +329,17 @@ export default function ChecklistManagement() {
         const subBase = s.base_id || s.profiles?.base_id || null;
         if (subBase !== filtroBase) return false;
       }
+      if (filtroEscopo !== ALL) {
+        const escopos = new Set(
+          s.checklist_submission_items
+            .map((it) => it.checklist_items?.checklist_categories?.escopo)
+            .filter(Boolean) as string[]
+        );
+        if (!escopos.has(filtroEscopo)) return false;
+      }
       return true;
     });
-  }, [submissions, filtroBase, filtroProfile, filtroEvento, filtroTipo, filtroDe, filtroAte]);
+  }, [submissions, filtroBase, filtroProfile, filtroEvento, filtroTipo, filtroEscopo, filtroDe, filtroAte]);
 
   const profOptions = useMemo(() => {
     const map = new Map<string, string>();
