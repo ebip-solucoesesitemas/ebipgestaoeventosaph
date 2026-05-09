@@ -71,6 +71,7 @@ export type Database = {
       checklist_categories: {
         Row: {
           ativo: boolean
+          base_id: string | null
           created_at: string
           descricao: string | null
           id: string
@@ -80,6 +81,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          base_id?: string | null
           created_at?: string
           descricao?: string | null
           id?: string
@@ -89,6 +91,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          base_id?: string | null
           created_at?: string
           descricao?: string | null
           id?: string
@@ -96,7 +99,15 @@ export type Database = {
           ordem?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "checklist_categories_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       checklist_items: {
         Row: {

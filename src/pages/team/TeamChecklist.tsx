@@ -7,12 +7,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, AlertTriangle, XCircle, Package, History, Send } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Package,
+  History,
+  Send,
+  CalendarDays,
+  Truck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-interface Category { id: string; nome: string; descricao: string | null; ordem: number }
+interface Category {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  ordem: number;
+  base_id: string | null;
+}
 interface Item {
   id: string;
   category_id: string;
@@ -22,13 +44,32 @@ interface Item {
   ordem: number;
 }
 type ItemStatus = "ok" | "divergente" | "falta";
-interface Answer { status: ItemStatus; quantidade_atual: number | null }
+interface Answer {
+  status: ItemStatus;
+  quantidade_atual: number | null;
+}
 
 interface Submission {
   id: string;
   created_at: string;
   tipo: string;
   observacoes: string | null;
+}
+
+interface EventOption {
+  id: string;
+  nome_evento: string;
+  data_inicio: string;
+  status: string;
+  viatura_id: string | null;
+  base_id: string | null;
+  vehicle?: { id: string; prefixo: string; placa: string } | null;
+}
+
+interface VehicleOption {
+  id: string;
+  prefixo: string;
+  placa: string;
 }
 
 export default function TeamChecklist() {
@@ -40,21 +81,90 @@ export default function TeamChecklist() {
   const [submitting, setSubmitting] = useState(false);
   const [history, setHistory] = useState<Submission[]>([]);
 
+  const [tipo, setTipo] = useState<"diario" | "evento">("diario");
+  const [events, setEvents] = useState<EventOption[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+  const [eventId, setEventId] = useState<string>("");
+  const [vehicleId, setVehicleId] = useState<string>("");
+
+  // Load categories + items filtered by user's base (RLS already enforces, but we also filter for safety)
   useEffect(() => {
     (async () => {
-      const [cats, its] = await Promise.all([
-        supabase.from("checklist_categories").select("*").eq("ativo", true).order("ordem").order("nome"),
-        supabase.from("checklist_items").select("*").eq("ativo", true).order("ordem").order("nome"),
-      ]);
-      setCategories(cats.data || []);
+      const catsRes = await supabase
+        .from("checklist_categories")
+        .select("*")
+        .eq("ativo", true)
+        .order("ordem")
+        .order("nome");
+      const cats = (catsRes.data || []) as Category[];
+      const filtered = profile?.base_id
+        ? cats.filter((c) => !c.base_id || c.base_id === profile.base_id)
+        : cats;
+      setCategories(filtered);
+
+      if (filtered.length === 0) {
+        setItems([]);
+        setAnswers({});
+        return;
+      }
+      const its = await supabase
+        .from("checklist_items")
+        .select("*")
+        .eq("ativo", true)
+        .in(
+          "category_id",
+          filtered.map((c) => c.id)
+        )
+        .order("ordem")
+        .order("nome");
       setItems(its.data || []);
       const initial: Record<string, Answer> = {};
-      (its.data || []).forEach((i) => {
+      (its.data || []).forEach((i: Item) => {
         initial[i.id] = { status: "ok", quantidade_atual: i.quantidade_ideal };
       });
       setAnswers(initial);
     })();
-  }, []);
+  }, [profile?.base_id]);
+
+  // Load own assigned events (agendado/em_andamento) and base vehicles
+  useEffect(() => {
+    if (!profile?.id) return;
+    (async () => {
+      const { data: assigns } = await supabase
+        .from("event_assignments")
+        .select("event_id")
+        .eq("profile_id", profile.id);
+      const ids = (assigns || []).map((a: any) => a.event_id);
+      if (ids.length > 0) {
+        const { data: evs } = await supabase
+          .from("events")
+          .select("id, nome_evento, data_inicio, status, viatura_id, base_id, vehicles:viatura_id(id, prefixo, placa)")
+          .in("id", ids)
+          .in("status", ["agendado", "em_andamento"])
+          .order("data_inicio", { ascending: false });
+        setEvents(
+          (evs || []).map((e: any) => ({
+            id: e.id,
+            nome_evento: e.nome_evento,
+            data_inicio: e.data_inicio,
+            status: e.status,
+            viatura_id: e.viatura_id,
+            base_id: e.base_id,
+            vehicle: e.vehicles,
+          }))
+        );
+      }
+
+      if (profile.base_id) {
+        const { data: vs } = await supabase
+          .from("vehicles")
+          .select("id, prefixo, placa")
+          .eq("base_id", profile.base_id)
+          .order("prefixo");
+        setVehicles(vs || []);
+      }
+    })();
+  }, [profile?.id, profile?.base_id]);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -66,6 +176,18 @@ export default function TeamChecklist() {
       .limit(5)
       .then(({ data }) => setHistory(data || []));
   }, [profile?.id]);
+
+  const selectedEvent = useMemo(
+    () => events.find((e) => e.id === eventId) || null,
+    [events, eventId]
+  );
+
+  // When picking event, auto-fill vehicle
+  useEffect(() => {
+    if (tipo === "evento" && selectedEvent) {
+      setVehicleId(selectedEvent.viatura_id || "");
+    }
+  }, [tipo, selectedEvent]);
 
   const setOk = (item: Item) =>
     setAnswers((p) => ({
@@ -101,8 +223,18 @@ export default function TeamChecklist() {
       return;
     }
     if (items.length === 0) {
-      toast.error("Não há itens cadastrados.");
+      toast.error("Não há itens cadastrados para sua base.");
       return;
+    }
+    if (tipo === "evento") {
+      if (!eventId) {
+        toast.error("Selecione o evento.");
+        return;
+      }
+      if (!selectedEvent?.viatura_id) {
+        toast.error("Este evento não possui viatura vinculada.");
+        return;
+      }
     }
     setSubmitting(true);
     const { data: sub, error: subErr } = await supabase
@@ -110,7 +242,12 @@ export default function TeamChecklist() {
       .insert({
         profile_id: profile.id,
         base_id: profile.base_id || null,
-        tipo: "diario",
+        tipo,
+        event_id: tipo === "evento" ? eventId : null,
+        vehicle_id:
+          tipo === "evento"
+            ? selectedEvent?.viatura_id || null
+            : vehicleId || null,
         observacoes: observacoes.trim() || null,
       })
       .select()
@@ -134,10 +271,14 @@ export default function TeamChecklist() {
     }
     toast.success("Checklist assinado e enviado!");
     setObservacoes("");
-    setHistory((prev) => [
-      { id: sub.id, created_at: sub.created_at, tipo: sub.tipo, observacoes: sub.observacoes },
-      ...prev,
-    ].slice(0, 5));
+    setEventId("");
+    setVehicleId("");
+    setHistory((prev) =>
+      [
+        { id: sub.id, created_at: sub.created_at, tipo: sub.tipo, observacoes: sub.observacoes },
+        ...prev,
+      ].slice(0, 5)
+    );
   };
 
   return (
@@ -151,6 +292,91 @@ export default function TeamChecklist() {
         </p>
       </div>
 
+      {/* Tipo & vínculo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Tipo de Conferência</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label>Tipo *</Label>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as "diario" | "evento")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="diario">Diário (base)</SelectItem>
+                  <SelectItem value="evento">Vinculado a evento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {tipo === "evento" ? (
+              <>
+                <div>
+                  <Label className="flex items-center gap-1">
+                    <CalendarDays className="w-3 h-3" /> Evento *
+                  </Label>
+                  <Select value={eventId} onValueChange={setEventId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o evento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {events.length === 0 && (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          Nenhum evento ativo
+                        </div>
+                      )}
+                      {events.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.nome_evento} —{" "}
+                          {format(new Date(e.data_inicio), "dd/MM HH:mm", { locale: ptBR })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="flex items-center gap-1">
+                    <Truck className="w-3 h-3" /> Viatura (do evento)
+                  </Label>
+                  <Input
+                    value={
+                      selectedEvent?.vehicle
+                        ? `${selectedEvent.vehicle.prefixo} — ${selectedEvent.vehicle.placa}`
+                        : selectedEvent
+                        ? "Sem viatura vinculada"
+                        : ""
+                    }
+                    readOnly
+                    className="bg-muted"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="md:col-span-2">
+                <Label className="flex items-center gap-1">
+                  <Truck className="w-3 h-3" /> Viatura (opcional)
+                </Label>
+                <Select value={vehicleId} onValueChange={setVehicleId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a viatura" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.prefixo} — {v.placa}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Itens</p><p className="text-2xl font-bold">{stats.total}</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">OK</p><p className="text-2xl font-bold text-stable">{stats.ok}</p></CardContent></Card>
@@ -160,7 +386,7 @@ export default function TeamChecklist() {
 
       {categories.length === 0 && (
         <Card><CardContent className="py-12 text-center text-muted-foreground">
-          Nenhum item de checklist cadastrado. Aguarde o administrador.
+          Nenhum item de checklist cadastrado para sua base. Aguarde o administrador.
         </CardContent></Card>
       )}
 

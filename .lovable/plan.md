@@ -1,95 +1,75 @@
+## Objetivo
 
-# Plano de Implementação
+1. **Checklists por base**: cada base tem suas próprias categorias e itens.
+2. **Vincular submission a evento + viatura** (com base derivada do evento).
+3. **Aba Histórico no admin** com filtros (data, profissional, evento, base).
 
-## 1. Módulo de Checklist (Ambulâncias e Kits Médicos)
+---
 
-### Banco de dados (novas tabelas)
+## 1. Banco de dados — escopo por base
 
-**`checklist_categories`** — agrupamentos/compartimentos
-- `nome` (ex: "Mochila Azul - Vias Aéreas", "Multibox - Medicamentos", "Vistoria da Ambulância")
-- `descricao`, `ordem` (int para ordenar), `ativo` (bool)
+Migration:
+- Adicionar `base_id uuid` em `checklist_categories` (nullable inicialmente para compatibilidade; depois exigir).
+- Index em `checklist_categories(base_id)`.
+- Atualizar RLS:
+  - **Leitura** de `checklist_categories` e `checklist_items`: autenticados podem ver apenas itens da própria `base_id` (do profile) **OU** `is_admin()` vê tudo.
+  - **Escrita**: `is_admin()` (admin/gestor/operacional). Operacional já é restrito por base na UI.
+- `checklist_items` herda a base via `category_id` (sem coluna duplicada).
 
-**`checklist_items`** — itens cadastráveis pelo admin
-- `category_id` (FK)
-- `nome` (material/medicamento)
-- `quantidade_ideal` (int)
-- `unidade` (text opcional, ex: "un", "amp")
-- `ativo` (bool), `ordem`
+---
 
-**`checklist_submissions`** — uma conferência feita
-- `profile_id` (quem preencheu)
-- `base_id` (base do profissional)
-- `vehicle_id` (opcional — viatura conferida)
-- `event_id` (opcional — vincula a um evento)
-- `tipo` (`diario` | `evento`)
-- `observacoes`, `created_at`
+## 2. Admin — Gestão por Base (`ChecklistManagement.tsx`)
 
-**`checklist_submission_items`** — resposta item a item
-- `submission_id` (FK)
-- `item_id` (FK)
-- `status` (`ok` | `divergente` | `falta`)
-- `quantidade_atual` (int, nullable)
+Refatorar em **Tabs**:
 
-### RLS
-- Categorias e itens: leitura para autenticados; escrita só `is_admin()`.
-- Submissions: profissional cria/lê as próprias; `is_admin()` lê tudo. Operacional restrito à própria base.
+### Aba "Categorias e Itens"
+- **Seletor de Base** no topo (admin/gestor: todas as bases; operacional: trava na própria).
+- CRUD de categorias e itens **filtrado pela base selecionada**. Ao criar categoria, gravar `base_id` da base ativa.
+- Indicador visual ("Editando checklist da Base X").
 
-### Frontend
-- **Admin**: nova página `/admin/checklist` no AppSidebar (somente admin/gestor) — CRUD de categorias e itens, agrupados por categoria, com drag/ordem simples.
-- **Profissional**: nova página `/team/checklist` — lista todos os itens agrupados por categoria, cada linha com:
-  - Botão verde "OK" (marca `status=ok`, `quantidade_atual=ideal`)
-  - Input numérico "Qtd atual" (status `divergente` se ≠ ideal)
-  - Botão "F" (Falta) destacado em vermelho
-  - Campo final de observações + botão "Assinar e Enviar" (registra `profile_id` + timestamp)
-- Histórico das últimas conferências do profissional na mesma tela (somente leitura).
+### Aba "Histórico de Conferências"
+- Filtros: Base (Select), Intervalo de datas (De/Até via Popover+Calendar, comparação `YYYY-MM-DD`), Profissional, Evento, Tipo (Diário/Evento/Todos).
+- Tabela: Data/Hora | Profissional | Base | Tipo | Evento | Viatura | Total | OK | Divergente | Falta | Ações.
+- Dialog de detalhe com itens agrupados por categoria + badges de status + botão **Baixar PDF** (`jsPDF + autoTable`, cabeçalho "Anjos da Vida Saúde").
 
-## 2. Folha de Pagamento — Exportação Excel
-
-- Adicionar botão **"Gerar Relatório em Excel"** em `src/pages/admin/PayrollReport.tsx` ao lado dos botões existentes (Imprimir/PDF).
-- Usar a biblioteca `xlsx` (SheetJS) já comum em projetos React, ou `exceljs`. Sugestão: `xlsx` (mais leve).
-- Conteúdo da planilha: respeitar filtros aplicados (mês/ano/profissional/base). Colunas: Profissional, Especialidade, Base, Evento, Data, Check-in, Check-out, Tempo (Xh Ymin), Valor/hora, Ajuda de Custo, Subtotal. Linha final com TOTAL geral.
-- Nome do arquivo: `folha-pagamento-<mes>-<ano>.xlsx`.
-
-## 3. Evoluções Clínicas — Assinaturas CRM/COREN
-
-### Banco de dados
-Adicionar colunas em `clinical_attendances`:
-- `medico_nome` (text)
-- `medico_crm` (text)
-- `enfermeiro_nome` (text)
-- `enfermeiro_coren` (text)
-
-### Frontend
-- **Formulário** (`src/components/APHForm.tsx`, etapa "Evolução"): após os textos de evolução médica e de enfermagem, dois blocos:
-  - "Assinatura Médica" → inputs Nome Completo + CRM (obrigatórios apenas se houver `evolucao_medica` preenchida).
-  - "Assinatura da Enfermagem" → inputs Nome Completo + COREN (obrigatórios apenas se houver `evolucao_clinica` preenchida).
-- Validação ao avançar: se há texto na evolução correspondente, exigir nome + número do conselho.
-- **Visualização** (`src/components/APHSummary.tsx`): exibir abaixo de cada bloco de evolução um card destacado com "Assinado por: {nome} — CRM/COREN: {numero}" em destaque visual (border-l-4 + bg muted).
-- **PDF**: incluir essas assinaturas no `handleDownloadPdf` logo após cada seção de evolução.
-
-## Detalhes Técnicos
-
-- Branding interno: "EBIP Eventos"; relatórios oficiais: "Anjos da Vida Saúde" (regra Core).
-- Datas comparadas via string `YYYY-MM-DD` para evitar fuso (regra Core).
-- Permissões via matriz `role_permissions` com chaves novas: `checklist.manage` (admin) e `checklist.fill` (equipe/operacional). Admin/Gestor bypass.
-- Toasts no canto superior direito (Sonner).
-- Sem buckets para assinatura: já é base64 (não muda).
-
-## Diagrama de Tabelas do Checklist
-
-```text
-checklist_categories 1───* checklist_items
-                              │
-checklist_submissions 1───* checklist_submission_items *───1 checklist_items
-        │
-        ├── profile_id (profiles)
-        ├── base_id (bases)
-        ├── vehicle_id (vehicles, opc.)
-        └── event_id (events, opc.)
+Query:
+```ts
+supabase.from('checklist_submissions').select(`
+  *, profiles(nome, especialidade, bases(nome)),
+  events(nome_evento), vehicles(prefixo, placa),
+  checklist_submission_items(status, quantidade_atual,
+    checklist_items(nome, quantidade_ideal, unidade,
+      checklist_categories(nome, base_id)))
+`).order('created_at', { ascending: false })
 ```
+Filtro de base aplicado client-side via `profiles.base_id` ou `checklist_categories.base_id`.
+
+---
+
+## 3. Profissional — Preenchimento (`TeamChecklist.tsx`)
+
+- Buscar categorias/itens **apenas da base do profissional** (`profile.base_id`).
+- Adicionar **seletor de Tipo**: `Diário (base)` ou `Vinculado a Evento`.
+- Quando "Vinculado a Evento":
+  - Select de evento (eventos do profissional ativos: `agendado`/`em_andamento` da sua base).
+  - Auto-preenche `vehicle_id` com `events.viatura_id` (somente leitura, mostra prefixo/placa).
+  - Salvar `event_id`, `vehicle_id`, `tipo='evento'`.
+- Quando "Diário": Select opcional de viatura (viaturas da base). Salvar `tipo='diario'`.
+- Histórico pessoal continua mostrando últimas 5.
+
+---
+
+## 4. Detalhes técnicos
+
+- Datas via string `YYYY-MM-DD` (regra Core).
+- Toasts Sonner top-right.
+- Componentes shadcn já presentes: `Tabs`, `Dialog`, `Select`, `Popover`, `Calendar`, `Table`, `Badge`.
+- PDF: `jsPDF + jspdf-autotable` (já instalado).
+- Sem mudanças em sidebar/rotas — tudo dentro de `/admin/checklist` e `/team/checklist`.
 
 ## Ordem de execução
-1. Migration: tabelas do checklist + colunas de assinatura em `clinical_attendances` + RLS.
-2. Páginas Admin/Equipe do Checklist + entrada no Sidebar.
-3. Botão "Gerar Relatório em Excel" no PayrollReport (instalar `xlsx`).
-4. Atualizar APHForm + APHSummary + PDF com campos CRM/COREN.
+
+1. Migration: `ALTER TABLE checklist_categories ADD COLUMN base_id` + atualizar RLS de leitura para filtrar por base do profile.
+2. `ChecklistManagement.tsx`: Tabs + seletor de Base na aba "Categorias e Itens".
+3. `TeamChecklist.tsx`: filtrar por `base_id`, adicionar tipo + evento + viatura.
+4. Aba "Histórico" com filtros, tabela, dialog e PDF.
