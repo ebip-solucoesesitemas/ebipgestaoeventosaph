@@ -863,8 +863,8 @@ export default function ChecklistManagement() {
                     {list.map((it, idx) => {
                       const isCond = it.checklist_items?.tipo_resposta === "condicao";
                       const statusLabel = isCond
-                        ? it.status === "ok" ? "OK" : it.status === "divergente" ? "NOK" : "N/A"
-                        : it.status.toUpperCase();
+                        ? it.status === "ok" ? "OK" : it.status === "divergente" ? "Com Defeito" : "Não se Aplica"
+                        : it.status === "ok" ? "OK" : it.status === "divergente" ? "Divergente" : "Falta";
                       return (
                         <div key={idx} className="p-2 text-sm">
                           <div className="flex items-center justify-between">
