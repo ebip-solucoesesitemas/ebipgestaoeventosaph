@@ -409,13 +409,20 @@ export default function ChecklistManagement() {
       doc.text(cat, 14, y);
       autoTable(doc, {
         startY: y + 2,
-        head: [["Item", "Ideal", "Atual", "Status"]],
-        body: list.map((it) => [
-          it.checklist_items?.nome || "—",
-          `${it.checklist_items?.quantidade_ideal ?? "-"}${it.checklist_items?.unidade ? " " + it.checklist_items.unidade : ""}`,
-          it.quantidade_atual ?? "-",
-          it.status.toUpperCase(),
-        ]),
+        head: [["Item", "Ideal/Tipo", "Atual/Resposta", "Status", "Obs."]],
+        body: list.map((it) => {
+          const isCond = it.checklist_items?.tipo_resposta === "condicao";
+          const statusLabel = isCond
+            ? it.status === "ok" ? "OK" : it.status === "divergente" ? "NOK" : "N/A"
+            : it.status.toUpperCase();
+          return [
+            it.checklist_items?.nome || "—",
+            isCond ? "Condição" : `${it.checklist_items?.quantidade_ideal ?? "-"}${it.checklist_items?.unidade ? " " + it.checklist_items.unidade : ""}`,
+            isCond ? statusLabel : (it.quantidade_atual ?? "-"),
+            statusLabel,
+            it.observacao || "",
+          ];
+        }),
         styles: { fontSize: 9 },
         headStyles: { fillColor: [30, 64, 175] },
       });
