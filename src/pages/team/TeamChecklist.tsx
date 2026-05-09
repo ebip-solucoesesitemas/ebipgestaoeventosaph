@@ -88,6 +88,10 @@ export default function TeamChecklist() {
   const [submitting, setSubmitting] = useState(false);
   const [history, setHistory] = useState<Submission[]>([]);
 
+  const [responsavelNome, setResponsavelNome] = useState("");
+  const [responsavelCargo, setResponsavelCargo] = useState("");
+  const sigRef = useRef<SignaturePadRef>(null);
+
   const [tipo, setTipo] = useState<"diario" | "evento">("diario");
   const [escopo, setEscopo] = useState<"medico" | "viatura">("medico");
   const [events, setEvents] = useState<EventOption[]>([]);
