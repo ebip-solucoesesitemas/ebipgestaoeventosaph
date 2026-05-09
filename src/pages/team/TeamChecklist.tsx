@@ -190,6 +190,8 @@ export default function TeamChecklist() {
 
   useEffect(() => {
     if (!profile?.id) return;
+    if (!responsavelNome && profile.nome) setResponsavelNome(profile.nome);
+    if (!responsavelCargo && profile.especialidade) setResponsavelCargo(profile.especialidade);
     supabase
       .from("checklist_submissions")
       .select("id, created_at, tipo, observacoes")
