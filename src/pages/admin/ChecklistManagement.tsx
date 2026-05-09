@@ -60,6 +60,7 @@ interface Category {
   ordem: number;
   ativo: boolean;
   base_id: string | null;
+  escopo: string;
 }
 interface Item {
   id: string;
@@ -69,6 +70,7 @@ interface Item {
   unidade: string | null;
   ordem: number;
   ativo: boolean;
+  tipo_resposta: string;
 }
 
 interface SubmissionRow {
@@ -86,11 +88,13 @@ interface SubmissionRow {
   checklist_submission_items: Array<{
     status: string;
     quantidade_atual: number | null;
+    observacao: string | null;
     checklist_items: {
       nome: string;
       quantidade_ideal: number;
       unidade: string | null;
-      checklist_categories: { nome: string; base_id: string | null } | null;
+      tipo_resposta: string;
+      checklist_categories: { nome: string; base_id: string | null; escopo: string } | null;
     } | null;
   }>;
 }
@@ -110,7 +114,7 @@ export default function ChecklistManagement() {
 
   const [catDialog, setCatDialog] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
-  const [catForm, setCatForm] = useState({ nome: "", descricao: "", ordem: 0 });
+  const [catForm, setCatForm] = useState({ nome: "", descricao: "", ordem: 0, escopo: "medico" });
 
   const [itemDialog, setItemDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -120,6 +124,7 @@ export default function ChecklistManagement() {
     quantidade_ideal: 1,
     unidade: "",
     ordem: 0,
+    tipo_resposta: "quantidade",
   });
 
   // History
@@ -129,6 +134,7 @@ export default function ChecklistManagement() {
   const [filtroProfile, setFiltroProfile] = useState<string>(ALL);
   const [filtroEvento, setFiltroEvento] = useState<string>(ALL);
   const [filtroTipo, setFiltroTipo] = useState<string>(ALL);
+  const [filtroEscopo, setFiltroEscopo] = useState<string>(ALL);
   const [filtroDe, setFiltroDe] = useState<string>("");
   const [filtroAte, setFiltroAte] = useState<string>("");
   const [detail, setDetail] = useState<SubmissionRow | null>(null);
@@ -183,12 +189,12 @@ export default function ChecklistManagement() {
 
   const openNewCat = () => {
     setEditingCat(null);
-    setCatForm({ nome: "", descricao: "", ordem: categories.length });
+    setCatForm({ nome: "", descricao: "", ordem: categories.length, escopo: "medico" });
     setCatDialog(true);
   };
   const openEditCat = (c: Category) => {
     setEditingCat(c);
-    setCatForm({ nome: c.nome, descricao: c.descricao || "", ordem: c.ordem });
+    setCatForm({ nome: c.nome, descricao: c.descricao || "", ordem: c.ordem, escopo: c.escopo || "medico" });
     setCatDialog(true);
   };
   const saveCat = async () => {
@@ -205,6 +211,7 @@ export default function ChecklistManagement() {
       descricao: catForm.descricao.trim() || null,
       ordem: catForm.ordem,
       base_id: selectedBaseId,
+      escopo: catForm.escopo,
     };
     const { error } = editingCat
       ? await supabase.from("checklist_categories").update(payload).eq("id", editingCat.id)
@@ -225,12 +232,14 @@ export default function ChecklistManagement() {
   const openNewItem = (categoryId?: string) => {
     setEditingItem(null);
     const catItems = categoryId ? items.filter((i) => i.category_id === categoryId) : [];
+    const cat = categories.find((c) => c.id === (categoryId || categories[0]?.id));
     setItemForm({
       category_id: categoryId || categories[0]?.id || "",
       nome: "",
       quantidade_ideal: 1,
       unidade: "",
       ordem: catItems.length,
+      tipo_resposta: cat?.escopo === "viatura" ? "condicao" : "quantidade",
     });
     setItemDialog(true);
   };
@@ -242,6 +251,7 @@ export default function ChecklistManagement() {
       quantidade_ideal: it.quantidade_ideal,
       unidade: it.unidade || "",
       ordem: it.ordem,
+      tipo_resposta: it.tipo_resposta || "quantidade",
     });
     setItemDialog(true);
   };
@@ -256,6 +266,7 @@ export default function ChecklistManagement() {
       quantidade_ideal: Math.max(0, Number(itemForm.quantidade_ideal) || 0),
       unidade: itemForm.unidade.trim() || null,
       ordem: itemForm.ordem,
+      tipo_resposta: itemForm.tipo_resposta,
     };
     const { error } = editingItem
       ? await supabase.from("checklist_items").update(payload).eq("id", editingItem.id)
@@ -284,10 +295,10 @@ export default function ChecklistManagement() {
          events:event_id (nome_evento),
          vehicles:vehicle_id (prefixo, placa),
          checklist_submission_items (
-           status, quantidade_atual,
+           status, quantidade_atual, observacao,
            checklist_items (
-             nome, quantidade_ideal, unidade,
-             checklist_categories (nome, base_id)
+             nome, quantidade_ideal, unidade, tipo_resposta,
+             checklist_categories (nome, base_id, escopo)
            )
          )`
       )
@@ -318,9 +329,17 @@ export default function ChecklistManagement() {
         const subBase = s.base_id || s.profiles?.base_id || null;
         if (subBase !== filtroBase) return false;
       }
+      if (filtroEscopo !== ALL) {
+        const escopos = new Set(
+          s.checklist_submission_items
+            .map((it) => it.checklist_items?.checklist_categories?.escopo)
+            .filter(Boolean) as string[]
+        );
+        if (!escopos.has(filtroEscopo)) return false;
+      }
       return true;
     });
-  }, [submissions, filtroBase, filtroProfile, filtroEvento, filtroTipo, filtroDe, filtroAte]);
+  }, [submissions, filtroBase, filtroProfile, filtroEvento, filtroTipo, filtroEscopo, filtroDe, filtroAte]);
 
   const profOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -390,13 +409,20 @@ export default function ChecklistManagement() {
       doc.text(cat, 14, y);
       autoTable(doc, {
         startY: y + 2,
-        head: [["Item", "Ideal", "Atual", "Status"]],
-        body: list.map((it) => [
-          it.checklist_items?.nome || "—",
-          `${it.checklist_items?.quantidade_ideal ?? "-"}${it.checklist_items?.unidade ? " " + it.checklist_items.unidade : ""}`,
-          it.quantidade_atual ?? "-",
-          it.status.toUpperCase(),
-        ]),
+        head: [["Item", "Ideal/Tipo", "Atual/Resposta", "Status", "Obs."]],
+        body: list.map((it) => {
+          const isCond = it.checklist_items?.tipo_resposta === "condicao";
+          const statusLabel = isCond
+            ? it.status === "ok" ? "OK" : it.status === "divergente" ? "NOK" : "N/A"
+            : it.status.toUpperCase();
+          return [
+            it.checklist_items?.nome || "—",
+            isCond ? "Condição" : `${it.checklist_items?.quantidade_ideal ?? "-"}${it.checklist_items?.unidade ? " " + it.checklist_items.unidade : ""}`,
+            isCond ? statusLabel : (it.quantidade_atual ?? "-"),
+            statusLabel,
+            it.observacao || "",
+          ];
+        }),
         styles: { fontSize: 9 },
         headStyles: { fillColor: [30, 64, 175] },
       });
@@ -411,6 +437,7 @@ export default function ChecklistManagement() {
     setFiltroProfile(ALL);
     setFiltroEvento(ALL);
     setFiltroTipo(ALL);
+    setFiltroEscopo(ALL);
     setFiltroDe("");
     setFiltroAte("");
   };
@@ -502,6 +529,9 @@ export default function ChecklistManagement() {
                         <Badge variant="secondary">
                           {catItems.length} {catItems.length === 1 ? "item" : "itens"}
                         </Badge>
+                        <Badge variant={cat.escopo === "viatura" ? "default" : "outline"}>
+                          {cat.escopo === "viatura" ? "Viatura" : "Kit Médico"}
+                        </Badge>
                       </CardTitle>
                       {cat.descricao && (
                         <p className="text-sm text-muted-foreground mt-1">{cat.descricao}</p>
@@ -529,8 +559,9 @@ export default function ChecklistManagement() {
                             <div>
                               <p className="font-medium">{it.nome}</p>
                               <p className="text-xs text-muted-foreground">
-                                Qtd ideal: {it.quantidade_ideal}
-                                {it.unidade ? ` ${it.unidade}` : ""}
+                                {it.tipo_resposta === "condicao"
+                                  ? "Condição (OK / NOK / N/A)"
+                                  : `Qtd ideal: ${it.quantidade_ideal}${it.unidade ? ` ${it.unidade}` : ""}`}
                               </p>
                             </div>
                             <div className="flex gap-1">
@@ -608,6 +639,17 @@ export default function ChecklistManagement() {
                     <SelectItem value={ALL}>Todos</SelectItem>
                     <SelectItem value="diario">Diário</SelectItem>
                     <SelectItem value="evento">Evento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Escopo</Label>
+                <Select value={filtroEscopo} onValueChange={setFiltroEscopo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>Todos</SelectItem>
+                    <SelectItem value="medico">Kit Médico</SelectItem>
+                    <SelectItem value="viatura">Viatura</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -735,36 +777,42 @@ export default function ChecklistManagement() {
                     <Package className="w-4 h-4" /> {cat}
                   </h4>
                   <div className="border rounded-md divide-y">
-                    {list.map((it, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2 text-sm">
-                        <div className="flex-1">
-                          <p className="font-medium">{it.checklist_items?.nome}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Ideal: {it.checklist_items?.quantidade_ideal}
-                            {it.checklist_items?.unidade ? ` ${it.checklist_items.unidade}` : ""}
-                            {" • "}Atual: {it.quantidade_atual ?? "-"}
-                          </p>
+                    {list.map((it, idx) => {
+                      const isCond = it.checklist_items?.tipo_resposta === "condicao";
+                      const statusLabel = isCond
+                        ? it.status === "ok" ? "OK" : it.status === "divergente" ? "NOK" : "N/A"
+                        : it.status.toUpperCase();
+                      return (
+                        <div key={idx} className="p-2 text-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium">{it.checklist_items?.nome}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {isCond
+                                  ? "Inspeção de condição"
+                                  : <>Ideal: {it.checklist_items?.quantidade_ideal}{it.checklist_items?.unidade ? ` ${it.checklist_items.unidade}` : ""} • Atual: {it.quantidade_atual ?? "-"}</>}
+                              </p>
+                            </div>
+                            <Badge
+                              className={
+                                it.status === "ok"
+                                  ? "bg-stable text-stable-foreground"
+                                  : it.status === "divergente"
+                                  ? "bg-warning text-warning-foreground"
+                                  : "bg-destructive text-destructive-foreground"
+                              }
+                            >
+                              {statusLabel}
+                            </Badge>
+                          </div>
+                          {it.observacao && (
+                            <p className="text-xs text-muted-foreground mt-1 italic">
+                              Obs: {it.observacao}
+                            </p>
+                          )}
                         </div>
-                        <Badge
-                          variant={
-                            it.status === "ok"
-                              ? "default"
-                              : it.status === "divergente"
-                              ? "secondary"
-                              : "destructive"
-                          }
-                          className={
-                            it.status === "ok"
-                              ? "bg-stable text-stable-foreground"
-                              : it.status === "divergente"
-                              ? "bg-warning text-warning-foreground"
-                              : ""
-                          }
-                        >
-                          {it.status.toUpperCase()}
-                        </Badge>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -795,6 +843,19 @@ export default function ChecklistManagement() {
                 onChange={(e) => setCatForm({ ...catForm, nome: e.target.value })}
                 placeholder="Ex.: Mochila Azul - Vias Aéreas"
               />
+            </div>
+            <div>
+              <Label>Escopo *</Label>
+              <Select value={catForm.escopo} onValueChange={(v) => setCatForm({ ...catForm, escopo: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="medico">Kit Médico (quantidade)</SelectItem>
+                  <SelectItem value="viatura">Viatura (condição: OK/NOK/NA)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Define o tipo de conferência: itens com quantidade ou checagem de condição.
+              </p>
             </div>
             <div>
               <Label>Descrição</Label>
@@ -850,27 +911,42 @@ export default function ChecklistManagement() {
                 placeholder="Ex.: Cânula de Guedel nº 3"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Quantidade Ideal *</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={itemForm.quantidade_ideal}
-                  onChange={(e) =>
-                    setItemForm({ ...itemForm, quantidade_ideal: Number(e.target.value) })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Unidade</Label>
-                <Input
-                  value={itemForm.unidade}
-                  onChange={(e) => setItemForm({ ...itemForm, unidade: e.target.value })}
-                  placeholder="un, amp, fr…"
-                />
-              </div>
+            <div>
+              <Label>Tipo de resposta *</Label>
+              <Select
+                value={itemForm.tipo_resposta}
+                onValueChange={(v) => setItemForm({ ...itemForm, tipo_resposta: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="quantidade">Quantidade (ideal vs atual)</SelectItem>
+                  <SelectItem value="condicao">Condição (OK / NOK / N/A)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            {itemForm.tipo_resposta === "quantidade" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Quantidade Ideal *</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={itemForm.quantidade_ideal}
+                    onChange={(e) =>
+                      setItemForm({ ...itemForm, quantidade_ideal: Number(e.target.value) })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Unidade</Label>
+                  <Input
+                    value={itemForm.unidade}
+                    onChange={(e) => setItemForm({ ...itemForm, unidade: e.target.value })}
+                    placeholder="un, amp, fr…"
+                  />
+                </div>
+              </div>
+            )}
             <div>
               <Label>Ordem dentro da categoria</Label>
               <Input
