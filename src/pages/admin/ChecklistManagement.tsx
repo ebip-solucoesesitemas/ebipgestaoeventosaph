@@ -108,6 +108,7 @@ export default function ChecklistManagement() {
 
   const [bases, setBases] = useState<Base[]>([]);
   const [selectedBaseId, setSelectedBaseId] = useState<string>("");
+  const [baseVehicles, setBaseVehicles] = useState<Array<{ id: string; prefixo: string; placa: string }>>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
