@@ -956,7 +956,7 @@ export default function ChecklistManagement() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="medico">Kit Médico (quantidade)</SelectItem>
-                  <SelectItem value="viatura">Viatura (condição: OK/NOK/NA)</SelectItem>
+                  <SelectItem value="viatura">Viatura (condição: OK / Com Defeito / Não se Aplica)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
