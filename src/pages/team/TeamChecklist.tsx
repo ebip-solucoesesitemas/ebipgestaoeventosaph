@@ -373,6 +373,7 @@ export default function TeamChecklist() {
       profile_id: draftId && draftProfileId ? draftProfileId : profile.id,
       base_id: profile.base_id || null,
       tipo,
+      escopo,
       status: finalize ? "finalizado" : "rascunho",
       event_id: tipo === "evento" ? eventId : null,
       vehicle_id:
