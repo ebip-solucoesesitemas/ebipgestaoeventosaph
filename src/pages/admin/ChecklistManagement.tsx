@@ -185,6 +185,16 @@ export default function ChecklistManagement() {
 
   useEffect(() => {
     loadCatalog();
+    if (selectedBaseId) {
+      supabase
+        .from("vehicles")
+        .select("id, prefixo, placa")
+        .eq("base_id", selectedBaseId)
+        .order("prefixo")
+        .then(({ data }) => setBaseVehicles(data || []));
+    } else {
+      setBaseVehicles([]);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBaseId]);
 
