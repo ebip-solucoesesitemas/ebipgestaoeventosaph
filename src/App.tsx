@@ -41,6 +41,7 @@ import TeamEventDetail from "./pages/team/EventDetail";
 import EventReportPage from "./pages/EventReportPage";
 import SupportTickets from "./pages/SupportTickets";
 import SystemBanner from "./components/SystemBanner";
+import ChecklistReminderDialog from "./components/ChecklistReminderDialog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
             <SystemBanner />
             <IdleTimeoutWrapper />
             <TicketNotifications />
+            <ChecklistReminderDialog />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />

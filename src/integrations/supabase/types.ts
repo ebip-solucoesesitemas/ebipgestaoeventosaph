@@ -104,13 +104,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "checklist_categories_base_fk"
-            columns: ["base_id"]
-            isOneToOne: false
-            referencedRelation: "bases"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "checklist_categories_base_id_fkey"
             columns: ["base_id"]
             isOneToOne: false
@@ -158,13 +151,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "checklist_items_category_fk"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "checklist_categories"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "checklist_items_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
@@ -211,20 +197,6 @@ export type Database = {
           },
           {
             foreignKeyName: "checklist_submission_items_submission_id_fkey"
-            columns: ["submission_id"]
-            isOneToOne: false
-            referencedRelation: "checklist_submissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "csi_item_fk"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "checklist_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "csi_submission_fk"
             columns: ["submission_id"]
             isOneToOne: false
             referencedRelation: "checklist_submissions"
