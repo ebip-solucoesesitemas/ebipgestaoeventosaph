@@ -189,12 +189,12 @@ export default function ChecklistManagement() {
 
   const openNewCat = () => {
     setEditingCat(null);
-    setCatForm({ nome: "", descricao: "", ordem: categories.length });
+    setCatForm({ nome: "", descricao: "", ordem: categories.length, escopo: "medico" });
     setCatDialog(true);
   };
   const openEditCat = (c: Category) => {
     setEditingCat(c);
-    setCatForm({ nome: c.nome, descricao: c.descricao || "", ordem: c.ordem });
+    setCatForm({ nome: c.nome, descricao: c.descricao || "", ordem: c.ordem, escopo: c.escopo || "medico" });
     setCatDialog(true);
   };
   const saveCat = async () => {
@@ -211,6 +211,7 @@ export default function ChecklistManagement() {
       descricao: catForm.descricao.trim() || null,
       ordem: catForm.ordem,
       base_id: selectedBaseId,
+      escopo: catForm.escopo,
     };
     const { error } = editingCat
       ? await supabase.from("checklist_categories").update(payload).eq("id", editingCat.id)
