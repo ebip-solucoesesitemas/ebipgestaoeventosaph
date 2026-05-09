@@ -57,6 +57,7 @@ const App = () => (
             <SystemBanner />
             <IdleTimeoutWrapper />
             <TicketNotifications />
+            <ChecklistReminderDialog />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
