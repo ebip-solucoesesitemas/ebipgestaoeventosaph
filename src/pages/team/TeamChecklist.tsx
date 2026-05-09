@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,9 @@ interface Submission {
   created_at: string;
   tipo: string;
   observacoes: string | null;
+  status?: string;
+  intercorrencias?: string | null;
+  event_id?: string | null;
 }
 
 interface EventOption {
@@ -81,10 +85,12 @@ interface VehicleOption {
 
 export default function TeamChecklist() {
   const { profile, user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [observacoes, setObservacoes] = useState("");
+  const [intercorrencias, setIntercorrencias] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [history, setHistory] = useState<Submission[]>([]);
 
@@ -92,12 +98,17 @@ export default function TeamChecklist() {
   const [responsavelCargo, setResponsavelCargo] = useState("");
   const sigRef = useRef<SignaturePadRef>(null);
 
-  const [tipo, setTipo] = useState<"diario" | "evento">("diario");
+  const [tipo, setTipo] = useState<"diario" | "evento">(
+    searchParams.get("event_id") ? "evento" : "diario"
+  );
   const [escopo, setEscopo] = useState<"medico" | "viatura">("medico");
   const [events, setEvents] = useState<EventOption[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
-  const [eventId, setEventId] = useState<string>("");
+  const [eventId, setEventId] = useState<string>(searchParams.get("event_id") || "");
   const [vehicleId, setVehicleId] = useState<string>("");
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftStatus, setDraftStatus] = useState<string>("rascunho");
+  const [eventStatus, setEventStatus] = useState<string | null>(null);
 
   // Load categories + items filtered by user's base AND selected scope
   useEffect(() => {
@@ -150,7 +161,7 @@ export default function TeamChecklist() {
           .from("events")
           .select("id")
           .eq("user_id", user.id)
-          .in("status", ["agendado", "em_andamento"]),
+          .in("status", ["agendado", "em_andamento", "finalizado"]),
       ]);
       const assignedIds = (assignsRes.data || []).map((a: any) => a.event_id);
       const ownedIds = (ownedRes.data || []).map((e: any) => e.id);
@@ -163,7 +174,7 @@ export default function TeamChecklist() {
         .from("events")
         .select("id, nome_evento, data_inicio, status, viatura_id, base_id, vehicles:viatura_id(id, prefixo, placa)")
         .in("id", allIds)
-        .in("status", ["agendado", "em_andamento"])
+        .in("status", ["agendado", "em_andamento", "finalizado"])
         .order("data_inicio", { ascending: false });
       setEvents(
         (evs || []).map((e: any) => ({
@@ -194,11 +205,11 @@ export default function TeamChecklist() {
     if (!responsavelCargo && profile.especialidade) setResponsavelCargo(profile.especialidade);
     supabase
       .from("checklist_submissions")
-      .select("id, created_at, tipo, observacoes")
+      .select("id, created_at, tipo, observacoes, status, intercorrencias, event_id")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(5)
-      .then(({ data }) => setHistory(data || []));
+      .then(({ data }) => setHistory((data as any) || []));
   }, [profile?.id]);
 
   const selectedEvent = useMemo(
@@ -211,6 +222,69 @@ export default function TeamChecklist() {
       setVehicleId(selectedEvent.viatura_id || "");
     }
   }, [tipo, selectedEvent]);
+
+  // Fetch event status (works even when event isn't in the dropdown list)
+  useEffect(() => {
+    if (tipo !== "evento" || !eventId) {
+      setEventStatus(null);
+      return;
+    }
+    supabase
+      .from("events")
+      .select("status")
+      .eq("id", eventId)
+      .maybeSingle()
+      .then(({ data }) => setEventStatus((data as any)?.status || null));
+  }, [tipo, eventId]);
+
+  // Load existing draft/finalized checklist for selected event
+  useEffect(() => {
+    if (tipo !== "evento" || !eventId || !profile?.id || items.length === 0) {
+      setDraftId(null);
+      setDraftStatus("rascunho");
+      return;
+    }
+    (async () => {
+      const { data: sub } = await supabase
+        .from("checklist_submissions")
+        .select("id, status, observacoes, intercorrencias, responsavel_nome, responsavel_cargo")
+        .eq("event_id", eventId)
+        .eq("profile_id", profile.id)
+        .in("status", ["rascunho", "finalizado"])
+        .maybeSingle();
+      if (!sub) {
+        setDraftId(null);
+        setDraftStatus("rascunho");
+        return;
+      }
+      setDraftId(sub.id);
+      setDraftStatus(sub.status || "rascunho");
+      setObservacoes(sub.observacoes || "");
+      setIntercorrencias((sub as any).intercorrencias || "");
+      if ((sub as any).responsavel_nome) setResponsavelNome((sub as any).responsavel_nome);
+      if ((sub as any).responsavel_cargo) setResponsavelCargo((sub as any).responsavel_cargo);
+
+      const { data: itRows } = await supabase
+        .from("checklist_submission_items")
+        .select("item_id, status, quantidade_atual, observacao")
+        .eq("submission_id", sub.id);
+      if (itRows && itRows.length > 0) {
+        setAnswers((prev) => {
+          const next = { ...prev };
+          itRows.forEach((r: any) => {
+            if (next[r.item_id]) {
+              next[r.item_id] = {
+                status: r.status as ItemStatus,
+                quantidade_atual: r.quantidade_atual,
+                observacao: r.observacao || "",
+              };
+            }
+          });
+          return next;
+        });
+      }
+    })();
+  }, [tipo, eventId, profile?.id, items.length]);
 
   // ---- Quantidade handlers ----
   const setOk = (item: Item) =>
@@ -248,7 +322,7 @@ export default function TeamChecklist() {
   const condLabel = (s: ItemStatus) =>
     s === "ok" ? "OK" : s === "divergente" ? "NOK" : "N/A";
 
-  const handleSubmit = async () => {
+  const persist = async (finalize: boolean) => {
     if (!profile?.id) {
       toast.error("Perfil não encontrado");
       return;
@@ -265,49 +339,74 @@ export default function TeamChecklist() {
       toast.error("Informe o cargo de quem está fazendo o checklist.");
       return;
     }
-    if (!sigRef.current || sigRef.current.isEmpty()) {
-      toast.error("Assine no campo de assinatura antes de enviar.");
-      return;
-    }
     if (tipo === "evento") {
       if (!eventId) {
         toast.error("Selecione o evento.");
         return;
       }
-      if (!selectedEvent?.viatura_id) {
-        toast.error("Este evento não possui viatura vinculada.");
+    }
+    if (finalize) {
+      if (!sigRef.current || sigRef.current.isEmpty()) {
+        toast.error("Assine no campo de assinatura antes de finalizar.");
         return;
       }
     }
-    const assinatura = sigRef.current.getDataUrl("image/jpeg", 0.5);
+    const assinatura =
+      sigRef.current && !sigRef.current.isEmpty()
+        ? sigRef.current.getDataUrl("image/jpeg", 0.5)
+        : null;
+
     setSubmitting(true);
-    const { data: sub, error: subErr } = await supabase
-      .from("checklist_submissions")
-      .insert({
-        profile_id: profile.id,
-        base_id: profile.base_id || null,
-        tipo,
-        event_id: tipo === "evento" ? eventId : null,
-        vehicle_id:
-          tipo === "evento"
-            ? selectedEvent?.viatura_id || null
-            : vehicleId || null,
-        observacoes: observacoes.trim() || null,
-        responsavel_nome: responsavelNome.trim(),
-        responsavel_cargo: responsavelCargo.trim(),
-        assinatura,
-      })
-      .select()
-      .single();
-    if (subErr || !sub) {
-      setSubmitting(false);
-      toast.error(subErr?.message || "Erro ao salvar conferência");
-      return;
+
+    const payload: any = {
+      profile_id: profile.id,
+      base_id: profile.base_id || null,
+      tipo,
+      status: finalize ? "finalizado" : "rascunho",
+      event_id: tipo === "evento" ? eventId : null,
+      vehicle_id:
+        tipo === "evento"
+          ? selectedEvent?.viatura_id || null
+          : vehicleId || null,
+      observacoes: observacoes.trim() || null,
+      intercorrencias: intercorrencias.trim() || null,
+      responsavel_nome: responsavelNome.trim(),
+      responsavel_cargo: responsavelCargo.trim(),
+    };
+    if (assinatura) payload.assinatura = assinatura;
+
+    let subId = draftId;
+    if (subId) {
+      const { error } = await supabase
+        .from("checklist_submissions")
+        .update(payload)
+        .eq("id", subId);
+      if (error) {
+        setSubmitting(false);
+        toast.error(error.message);
+        return;
+      }
+    } else {
+      const { data: sub, error } = await supabase
+        .from("checklist_submissions")
+        .insert(payload)
+        .select()
+        .single();
+      if (error || !sub) {
+        setSubmitting(false);
+        toast.error(error?.message || "Erro ao salvar conferência");
+        return;
+      }
+      subId = sub.id;
+      setDraftId(sub.id);
     }
+
+    // Replace items
+    await supabase.from("checklist_submission_items").delete().eq("submission_id", subId);
     const rows = items.map((it) => {
       const a = answers[it.id];
       return {
-        submission_id: sub.id,
+        submission_id: subId!,
         item_id: it.id,
         status: a?.status || "ok",
         quantidade_atual:
@@ -321,18 +420,24 @@ export default function TeamChecklist() {
       toast.error(itemsErr.message);
       return;
     }
-    toast.success("Checklist assinado e enviado!");
-    setObservacoes("");
-    setEventId("");
-    setVehicleId("");
-    sigRef.current?.clear();
-    setHistory((prev) =>
-      [
-        { id: sub.id, created_at: sub.created_at, tipo: sub.tipo, observacoes: sub.observacoes },
-        ...prev,
-      ].slice(0, 5)
-    );
+
+    setDraftStatus(finalize ? "finalizado" : "rascunho");
+    toast.success(finalize ? "Checklist finalizado!" : "Rascunho salvo!");
+
+    if (finalize) {
+      // Refresh history list
+      const { data } = await supabase
+        .from("checklist_submissions")
+        .select("id, created_at, tipo, observacoes, status, intercorrencias, event_id")
+        .eq("profile_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      setHistory((data as any) || []);
+    }
   };
+
+  const handleSaveDraft = () => persist(false);
+  const handleFinalize = () => persist(true);
 
   return (
     <div className="space-y-6 pb-24">
@@ -607,15 +712,58 @@ export default function TeamChecklist() {
               />
             </div>
 
+            {tipo === "evento" && (
+              <div>
+                <Label className="flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 text-warning" />
+                  Intercorrências durante o evento
+                </Label>
+                <Textarea
+                  placeholder="Descreva problemas ocorridos durante o evento (viatura, materiais, etc.)"
+                  value={intercorrencias}
+                  onChange={(e) => setIntercorrencias(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
+
             <SignaturePad ref={sigRef} label="Assinatura do responsável *" />
 
-            <Button className="w-full gap-2" onClick={handleSubmit} disabled={submitting}>
-              <Send className="w-4 h-4" />
-              {submitting ? "Enviando..." : "Assinar e Enviar Checklist"}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              A submissão registra o nome, cargo, assinatura e data/hora do responsável.
-            </p>
+            {draftStatus === "finalizado" ? (
+              <div className="rounded-md border border-stable/40 bg-stable/10 px-3 py-2 text-sm text-stable text-center">
+                <CheckCircle2 className="w-4 h-4 inline mr-1" />
+                Checklist finalizado
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {tipo === "evento" && (
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={handleSaveDraft}
+                    disabled={submitting}
+                  >
+                    <Send className="w-4 h-4" />
+                    {submitting ? "Salvando..." : "Salvar rascunho"}
+                  </Button>
+                )}
+                <Button
+                  className={`w-full gap-2 ${tipo !== "evento" ? "sm:col-span-2" : ""}`}
+                  onClick={handleFinalize}
+                  disabled={submitting}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {submitting ? "Enviando..." : "Assinar e Finalizar"}
+                </Button>
+              </div>
+            )}
+            {tipo === "evento" && draftStatus !== "finalizado" && (
+              <p className="text-xs text-muted-foreground text-center">
+                {eventStatus === "finalizado"
+                  ? "Evento finalizado — pode finalizar o checklist."
+                  : "Recomendado finalizar o checklist apenas após o término do evento. Use 'Salvar rascunho' durante o evento."}
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
@@ -635,8 +783,31 @@ export default function TeamChecklist() {
                     {format(new Date(h.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                   </p>
                   {h.observacoes && <p className="text-xs text-muted-foreground">{h.observacoes}</p>}
+                  {h.intercorrencias && (
+                    <p className="text-xs text-warning">⚠ {h.intercorrencias}</p>
+                  )}
                 </div>
-                <Badge variant="outline">{h.tipo}</Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant="outline">{h.tipo}</Badge>
+                  {h.status && (
+                    <Badge
+                      className={
+                        h.status === "finalizado"
+                          ? "bg-stable text-stable-foreground"
+                          : h.status === "rascunho"
+                          ? "bg-warning text-warning-foreground"
+                          : ""
+                      }
+                      variant={h.status === "nao_realizado" ? "destructive" : "default"}
+                    >
+                      {h.status === "finalizado"
+                        ? "Finalizado"
+                        : h.status === "rascunho"
+                        ? "Rascunho"
+                        : h.status}
+                    </Badge>
+                  )}
+                </div>
               </div>
             ))}
           </CardContent>

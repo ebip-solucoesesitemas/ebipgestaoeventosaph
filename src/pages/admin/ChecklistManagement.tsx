@@ -41,6 +41,7 @@ import {
   FileDown,
   Filter,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -77,6 +78,8 @@ interface SubmissionRow {
   id: string;
   created_at: string;
   tipo: string;
+  status?: string | null;
+  intercorrencias?: string | null;
   observacoes: string | null;
   base_id: string | null;
   vehicle_id: string | null;
@@ -305,7 +308,7 @@ export default function ChecklistManagement() {
     const { data, error } = await supabase
       .from("checklist_submissions")
       .select(
-        `id, created_at, tipo, observacoes, base_id, vehicle_id, event_id, profile_id,
+        `id, created_at, tipo, status, intercorrencias, observacoes, base_id, vehicle_id, event_id, profile_id,
          responsavel_nome, responsavel_cargo, assinatura,
          profiles:profile_id (nome, especialidade, base_id),
          events:event_id (nome_evento),
@@ -433,9 +436,11 @@ export default function ChecklistManagement() {
       ["Cargo / Função", s.responsavel_cargo || "—"],
       ["Base", baseName(s.base_id || s.profiles?.base_id)],
       ["Tipo", s.tipo],
+      ["Status", s.status === "finalizado" ? "Finalizado" : s.status === "rascunho" ? "Rascunho" : (s.status || "—")],
       ["Evento", s.events?.nome_evento || "—"],
       ["Viatura", s.vehicles ? `${s.vehicles.prefixo} — ${s.vehicles.placa}` : "—"],
       ["Observações", s.observacoes || "—"],
+      ["Intercorrências", s.intercorrencias || "—"],
     ];
     autoTable(doc, {
       startY: 30,
@@ -753,6 +758,7 @@ export default function ChecklistManagement() {
                         <TableHead>Profissional</TableHead>
                         <TableHead>Base</TableHead>
                         <TableHead>Tipo</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Evento</TableHead>
                         <TableHead>Viatura</TableHead>
                         <TableHead className="text-center">Itens</TableHead>
@@ -782,6 +788,24 @@ export default function ChecklistManagement() {
                             <TableCell>
                               <Badge variant={s.tipo === "evento" ? "default" : "outline"}>
                                 {s.tipo}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={
+                                  s.status === "finalizado"
+                                    ? "bg-stable text-stable-foreground"
+                                    : s.status === "rascunho"
+                                    ? "bg-warning text-warning-foreground"
+                                    : ""
+                                }
+                                variant={!s.status || s.status === "nao_realizado" ? "outline" : "default"}
+                              >
+                                {s.status === "finalizado"
+                                  ? "Finalizado"
+                                  : s.status === "rascunho"
+                                  ? "Rascunho"
+                                  : (s.status || "—")}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-sm">{s.events?.nome_evento || "—"}</TableCell>
@@ -833,10 +857,21 @@ export default function ChecklistManagement() {
                   {detail.events?.nome_evento || "—"}</div>
                 <div><span className="text-muted-foreground">Viatura:</span>{" "}
                   {detail.vehicles ? `${detail.vehicles.prefixo} — ${detail.vehicles.placa}` : "—"}</div>
+                <div><span className="text-muted-foreground">Status:</span>{" "}
+                  <Badge className={detail.status === "finalizado" ? "bg-stable text-stable-foreground" : "bg-warning text-warning-foreground"}>
+                    {detail.status === "finalizado" ? "Finalizado" : detail.status === "rascunho" ? "Rascunho" : (detail.status || "—")}
+                  </Badge>
+                </div>
               </div>
               {detail.observacoes && (
                 <div className="bg-muted p-3 rounded-md text-sm">
                   <strong>Observações:</strong> {detail.observacoes}
+                </div>
+              )}
+              {detail.intercorrencias && (
+                <div className="bg-warning/10 border border-warning/30 p-3 rounded-md text-sm">
+                  <strong className="flex items-center gap-1"><AlertTriangle className="w-4 h-4 text-warning" /> Intercorrências:</strong>
+                  <p className="mt-1">{detail.intercorrencias}</p>
                 </div>
               )}
 
