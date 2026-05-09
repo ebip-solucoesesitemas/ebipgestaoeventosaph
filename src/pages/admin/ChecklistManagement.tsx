@@ -758,6 +758,7 @@ export default function ChecklistManagement() {
                         <TableHead>Profissional</TableHead>
                         <TableHead>Base</TableHead>
                         <TableHead>Tipo</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Evento</TableHead>
                         <TableHead>Viatura</TableHead>
                         <TableHead className="text-center">Itens</TableHead>
