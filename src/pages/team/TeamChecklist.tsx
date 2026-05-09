@@ -450,8 +450,8 @@ export default function TeamChecklist() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Itens</p><p className="text-2xl font-bold">{stats.total}</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">OK</p><p className="text-2xl font-bold text-stable">{stats.ok}</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">{escopo === "viatura" ? "NOK" : "Divergentes"}</p><p className="text-2xl font-bold text-warning">{stats.div}</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">{escopo === "viatura" ? "N/A" : "Em Falta"}</p><p className="text-2xl font-bold text-destructive">{stats.falta}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">{escopo === "viatura" ? "Com Defeito" : "Divergentes"}</p><p className="text-2xl font-bold text-warning">{stats.div}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">{escopo === "viatura" ? "Não se Aplica" : "Em Falta"}</p><p className="text-2xl font-bold text-destructive">{stats.falta}</p></CardContent></Card>
       </div>
 
       {categories.length === 0 && (
