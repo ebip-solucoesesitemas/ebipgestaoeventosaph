@@ -607,7 +607,7 @@ export default function ChecklistManagement() {
                           {catItems.length} {catItems.length === 1 ? "item" : "itens"}
                         </Badge>
                         <Badge variant={cat.escopo === "viatura" ? "default" : "outline"}>
-                          {cat.escopo === "viatura" ? "Viatura" : "Kit Médico"}
+                          {cat.escopo === "viatura" ? "Viatura" : cat.escopo === "enfermagem" ? "Kit Enfermagem" : "Kit Médico"}
                         </Badge>
                       </CardTitle>
                       {cat.descricao && (
