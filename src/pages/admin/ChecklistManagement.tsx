@@ -835,6 +835,19 @@ export default function ChecklistManagement() {
               />
             </div>
             <div>
+              <Label>Escopo *</Label>
+              <Select value={catForm.escopo} onValueChange={(v) => setCatForm({ ...catForm, escopo: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="medico">Kit Médico (quantidade)</SelectItem>
+                  <SelectItem value="viatura">Viatura (condição: OK/NOK/NA)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Define o tipo de conferência: itens com quantidade ou checagem de condição.
+              </p>
+            </div>
+            <div>
               <Label>Descrição</Label>
               <Textarea
                 value={catForm.descricao}
