@@ -26,6 +26,7 @@ import {
   Ambulance,
   Phone,
   User,
+  AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -97,6 +98,7 @@ export default function EventDetail() {
   const [showForm, setShowForm] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
   const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
+  const [checklistStatus, setChecklistStatus] = useState<"none" | "rascunho" | "finalizado">("none");
 
   // KM state
   const [kmInicial, setKmInicial] = useState("");
@@ -156,6 +158,18 @@ export default function EventDetail() {
     setAttendances(attendancesRes.data || []);
     setTeam((teamRes.data || []).filter((m: any) => m.profiles) as TeamMember[]);
     setSignatures((sigRes.data || []) as SignatureRecord[]);
+
+    // Checklist status for this event (any teammate)
+    const { data: chk } = await supabase
+      .from("checklist_submissions")
+      .select("status")
+      .eq("event_id", id)
+      .in("status", ["rascunho", "finalizado"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setChecklistStatus(((chk as any)?.status as any) || "none");
+
     setIsLoading(false);
   }; // <--- ESSA CHAVE FECHA A FUNÇÃO fetchData
 
@@ -594,6 +608,28 @@ export default function EventDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 space-y-3">
+          {checklistStatus !== "finalizado" && (
+            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+              <AlertTriangle className="w-4 h-4 mt-0.5 text-warning shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-warning-foreground">
+                  {checklistStatus === "rascunho"
+                    ? "Checklist do evento ainda em rascunho."
+                    : "Checklist do evento ainda não foi realizado."}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Recomendado finalizar antes do checkout da equipe (não bloqueia).
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate(`/checklist?event_id=${event.id}`)}
+              >
+                Abrir checklist
+              </Button>
+            </div>
+          )}
           {team.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum profissional escalado</p>
           ) : (
