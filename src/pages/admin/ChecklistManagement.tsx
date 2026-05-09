@@ -295,10 +295,10 @@ export default function ChecklistManagement() {
          events:event_id (nome_evento),
          vehicles:vehicle_id (prefixo, placa),
          checklist_submission_items (
-           status, quantidade_atual,
+           status, quantidade_atual, observacao,
            checklist_items (
-             nome, quantidade_ideal, unidade,
-             checklist_categories (nome, base_id)
+             nome, quantidade_ideal, unidade, tipo_resposta,
+             checklist_categories (nome, base_id, escopo)
            )
          )`
       )
