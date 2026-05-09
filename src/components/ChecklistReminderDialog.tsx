@@ -24,32 +24,41 @@ export default function ChecklistReminderDialog() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (isLoading || !profile?.id || profile.is_account_only || profile.hidden) return;
+    if (isLoading) return;
+    if (!profile?.id) return;
+    if (profile.is_account_only || profile.hidden) return;
+    // Apenas para quem opera em campo
+    if (profile.cargo !== "equipe" && profile.cargo !== "operacional") return;
 
     const todayKey = `checklist_reminder_${profile.id}_${new Date().toISOString().slice(0, 10)}`;
-    if (sessionStorage.getItem(todayKey)) return;
+    if (localStorage.getItem(todayKey)) return;
 
     (async () => {
       const today = new Date();
       const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("checklist_submissions")
         .select("id")
         .eq("profile_id", profile.id)
         .gte("created_at", start)
         .limit(1);
 
+      if (error) {
+        console.warn("[ChecklistReminder] erro ao consultar:", error.message);
+        return;
+      }
+
       if (!data || data.length === 0) {
         setOpen(true);
       } else {
-        sessionStorage.setItem(todayKey, "1");
+        localStorage.setItem(todayKey, "1");
       }
     })();
-  }, [profile?.id, isLoading]);
+  }, [profile?.id, profile?.cargo, isLoading]);
 
   const markSeen = () => {
     if (profile?.id) {
-      sessionStorage.setItem(
+      localStorage.setItem(
         `checklist_reminder_${profile.id}_${new Date().toISOString().slice(0, 10)}`,
         "1",
       );
