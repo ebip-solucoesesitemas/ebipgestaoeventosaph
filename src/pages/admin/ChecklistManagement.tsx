@@ -86,6 +86,7 @@ interface SubmissionRow {
   events?: { nome_evento: string } | null;
   vehicles?: { prefixo: string; placa: string } | null;
   checklist_submission_items: Array<{
+    submission_id?: string;
     status: string;
     quantidade_atual: number | null;
     observacao: string | null;
@@ -304,14 +305,7 @@ export default function ChecklistManagement() {
         `id, created_at, tipo, observacoes, base_id, vehicle_id, event_id, profile_id,
          profiles:profile_id (nome, especialidade, base_id),
          events:event_id (nome_evento),
-         vehicles:vehicle_id (prefixo, placa),
-         checklist_submission_items (
-           status, quantidade_atual, observacao,
-           checklist_items (
-             nome, quantidade_ideal, unidade, tipo_resposta,
-             checklist_categories (nome, base_id, escopo)
-           )
-         )`
+         vehicles:vehicle_id (prefixo, placa)`
       )
       .order("created_at", { ascending: false })
       .limit(500);
@@ -320,7 +314,46 @@ export default function ChecklistManagement() {
       setHistoryLoading(false);
       return;
     }
-    setSubmissions((data as any) || []);
+
+    const submissionsData = ((data as any) || []) as SubmissionRow[];
+    const ids = submissionsData.map((s) => s.id);
+
+    if (ids.length === 0) {
+      setSubmissions([]);
+      setHistoryLoading(false);
+      return;
+    }
+
+    const { data: itemRows, error: itemsError } = await supabase
+      .from("checklist_submission_items")
+      .select(
+        `submission_id, status, quantidade_atual, observacao,
+         checklist_items:item_id (
+           nome, quantidade_ideal, unidade, tipo_resposta,
+           checklist_categories:category_id (nome, base_id, escopo)
+         )`
+      )
+      .in("submission_id", ids);
+
+    if (itemsError) {
+      toast.error(itemsError.message);
+      setHistoryLoading(false);
+      return;
+    }
+
+    const itemsBySubmission = new Map<string, SubmissionRow["checklist_submission_items"]>();
+    ((itemRows as any) || []).forEach((item: SubmissionRow["checklist_submission_items"][number]) => {
+      if (!item.submission_id) return;
+      if (!itemsBySubmission.has(item.submission_id)) itemsBySubmission.set(item.submission_id, []);
+      itemsBySubmission.get(item.submission_id)!.push(item);
+    });
+
+    setSubmissions(
+      submissionsData.map((s) => ({
+        ...s,
+        checklist_submission_items: itemsBySubmission.get(s.id) || [],
+      }))
+    );
     setHistoryLoading(false);
   };
 
