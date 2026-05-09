@@ -1,90 +1,59 @@
-## Problemas identificados
 
-**1. Erro "Could not find a relationship between 'checklist_submissions' and 'profile_id'"**
-As tabelas de checklist foram criadas **sem foreign keys** (ver `<foreign-keys>No foreign keys</foreign-keys>` em `checklist_submissions`, `checklist_submission_items`, `checklist_items`, `checklist_categories`). Por isso o PostgREST não consegue resolver os joins implícitos `profiles(...)`, `events(...)`, `vehicles(...)`, `checklist_submission_items(...)` usados em `ChecklistManagement.tsx` e `TeamChecklist.tsx`.
+## Objetivo
 
-**2. "Vinculado a evento" não lista eventos**
-Hoje só busca via `event_assignments` (membro escalado). Quando o usuário é o **responsável pela conta do evento** (`events.user_id`), ele não aparece. Precisa unir as duas fontes.
+Transformar o checklist de "diário por usuário" em "um checklist por evento/viatura", com possibilidade de salvar como rascunho durante o evento, registrar intercorrências e finalizar somente após o término. O alerta deve reaparecer automaticamente sempre que a equipe iniciar um novo evento sem checklist.
 
-**3. Falta um checklist específico de viatura (lataria, óleo, pneus, etc.)**
-Hoje o checklist é genérico de itens médicos. O socorrista/condutor precisa conferir a viatura também antes de sair.
+## Comportamento esperado
 
----
+1. **Alerta por evento (não mais por dia)**
+   - Ao entrar no app, verificar todos os eventos do dia em que o usuário está escalado (ou é responsável) e que ainda **não possuem** um checklist finalizado.
+   - Para cada evento pendente, exibir o popup "Conferência de Checklist" indicando o nome do evento e a viatura.
+   - Quando o primeiro evento finalizar e o próximo começar, o popup reaparece automaticamente para o segundo checklist.
 
-## Plano
+2. **Salvar como rascunho**
+   - Botão **"Salvar rascunho"** no formulário de checklist: grava as respostas, assinatura e dados do responsável, mas mantém status `rascunho`.
+   - Ao reabrir o checklist do mesmo evento, as respostas anteriores são carregadas para edição.
+   - Botão **"Finalizar checklist"** só fica habilitado após o evento estar `finalizado` (ou pode ser usado durante, mas com confirmação) — define status `finalizado` e bloqueia novas edições.
 
-### 1. Migration — corrigir relacionamentos e adicionar checklist de viatura
+3. **Campo de intercorrências**
+   - Novo campo de texto livre **"Intercorrências durante o evento"** dentro do formulário, visível durante todo o ciclo (rascunho e finalização).
+   - Permite descrever, por exemplo, problemas com a viatura, materiais danificados etc.
+   - Aparece nos detalhes do histórico admin e no PDF gerado.
 
-```sql
--- Foreign keys que estão faltando (causa do erro do PostgREST)
-ALTER TABLE checklist_categories
-  ADD CONSTRAINT checklist_categories_base_fk
-  FOREIGN KEY (base_id) REFERENCES bases(id) ON DELETE SET NULL;
+4. **Histórico**
+   - Lista de checklists passa a mostrar: evento vinculado, viatura, status (Rascunho / Finalizado) e intercorrências (se houver).
 
-ALTER TABLE checklist_items
-  ADD CONSTRAINT checklist_items_category_fk
-  FOREIGN KEY (category_id) REFERENCES checklist_categories(id) ON DELETE CASCADE;
+## Mudanças técnicas
 
-ALTER TABLE checklist_submissions
-  ADD CONSTRAINT checklist_submissions_profile_fk
-    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
-  ADD CONSTRAINT checklist_submissions_event_fk
-    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL,
-  ADD CONSTRAINT checklist_submissions_vehicle_fk
-    FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,
-  ADD CONSTRAINT checklist_submissions_base_fk
-    FOREIGN KEY (base_id) REFERENCES bases(id) ON DELETE SET NULL;
+### Banco de dados (migração)
+Tabela `checklist_submissions`:
+- Adicionar coluna `status` (text, default `'rascunho'`, valores: `rascunho`, `finalizado`, `nao_realizado`).
+- Adicionar coluna `intercorrencias` (text, nullable).
+- Garantir índice/regras para que cada `(event_id, profile_id)` tenha no máximo um checklist em rascunho/finalizado (constraint única parcial).
+- `event_id` e `vehicle_id` já existem na tabela.
 
-ALTER TABLE checklist_submission_items
-  ADD CONSTRAINT csi_submission_fk
-    FOREIGN KEY (submission_id) REFERENCES checklist_submissions(id) ON DELETE CASCADE,
-  ADD CONSTRAINT csi_item_fk
-    FOREIGN KEY (item_id) REFERENCES checklist_items(id) ON DELETE CASCADE;
+### `ChecklistReminderDialog.tsx`
+- Substituir consulta "checklist hoje" por:
+  - Buscar eventos do usuário (assignments + eventos onde ele é `user_id`) com `data_inicio` no dia atual e status diferente de `cancelado`.
+  - Filtrar os que ainda não têm `checklist_submissions` com status `finalizado` (rascunho ainda exige conclusão).
+- Para cada pendente, mostrar popup com nome do evento e botão "Fazer checklist agora" que navega para `/checklist?event_id=...`.
+- Se houver mais de um pendente, processa em fila (próximo aparece após fechar o anterior).
 
--- Diferenciar checklist médico vs. viatura
-ALTER TABLE checklist_categories
-  ADD COLUMN escopo text NOT NULL DEFAULT 'medico';
-  -- valores: 'medico' (kit médico/ambulância — itens com qtd) | 'viatura' (condições da viatura — OK/NOK)
+### `TeamChecklist.tsx`
+- Aceitar `event_id` via query string e pré-selecionar o evento/viatura.
+- Carregar rascunho existente do evento (se houver) e popular respostas, intercorrências, nome/cargo e assinatura.
+- Adicionar:
+  - Campo Textarea **Intercorrências**.
+  - Botão **Salvar rascunho** (sempre disponível).
+  - Botão **Finalizar checklist** (habilitado quando o evento já está `finalizado`, ou com diálogo de confirmação se feito antes).
+- Ao salvar: faz `upsert` em `checklist_submissions` por `(event_id, profile_id)` e substitui os `checklist_submission_items`.
 
-ALTER TABLE checklist_items
-  ADD COLUMN tipo_resposta text NOT NULL DEFAULT 'quantidade';
-  -- valores: 'quantidade' (qtd ideal vs atual) | 'condicao' (OK / NOK / N/A com observação)
+### `ChecklistManagement.tsx` (admin)
+- Mostrar coluna **Status** (Rascunho/Finalizado) e o evento vinculado.
+- Exibir **Intercorrências** no detalhe e no PDF.
+- Filtro opcional por status.
 
-ALTER TABLE checklist_submission_items
-  ADD COLUMN observacao text;
-```
+## Pontos a confirmar
 
-### 2. `TeamChecklist.tsx` — corrigir lista de eventos e suportar dois escopos
-
-- **Eventos do usuário**: unir `event_assignments` (escalado) **+** `events` onde `user_id = auth.uid()` (responsável pela conta), filtrando `agendado`/`em_andamento`. Deduplicar por `id`.
-- **Seletor de Escopo do checklist** (após escolher Tipo): `Kit Médico` ou `Viatura`. Filtra categorias por `escopo`.
-- **Renderização condicional dos itens**:
-  - `tipo_resposta = 'quantidade'`: mantém UI atual (OK / qtd / falta).
-  - `tipo_resposta = 'condicao'`: três botões (OK / NOK / N/A) + campo de observação opcional. Status salvo: `ok` | `divergente` (NOK) | `falta` mapeado para compatibilidade — ou estender enum se preferir, mas manter `text` evita migração de dados.
-- Quando "Vinculado a evento", manter auto-fill da viatura.
-
-### 3. `ChecklistManagement.tsx`
-
-- **Aba Categorias e Itens**: adicionar seletor `Escopo` (Médico / Viatura) ao criar categoria; ao criar item, expor seletor `Tipo de resposta` (Quantidade / Condição). Mostrar badge do escopo na lista.
-- **Aba Histórico**: filtro adicional por **Escopo** (Médico / Viatura / Todos). Tabela e PDF passam a mostrar coluna "Escopo" e, quando `condicao`, exibir OK/NOK/NA + observação no detalhe.
-- Após adicionar as FKs, os joins `profiles(...)`, `events(...)`, `vehicles(...)`, `checklist_submission_items(checklist_items(checklist_categories(...)))` voltam a funcionar — erro do print desaparece.
-
-### 4. Sementes opcionais (apenas se a base não tem itens de viatura)
-
-Inserir 1 categoria modelo "Viatura — Inspeção do Condutor" (escopo `viatura`) com itens condicionais: Lataria, Pneus, Óleo do motor, Água do radiador, Combustível, Faróis, Sirene/Giroflex, Cinto de segurança, Extintor, Macaco/estepe. **Confirmar com o usuário antes de semear** para evitar duplicar caso já vá cadastrar manualmente por base.
-
----
-
-## Detalhes técnicos
-
-- Tudo continua client-side; sem novas rotas.
-- RLS atual já cobre os novos campos (sem mudança de policies).
-- `src/integrations/supabase/types.ts` será regenerado automaticamente após a migration.
-- Datas e cents continuam seguindo as Core rules.
-
-## Ordem de execução
-
-1. Migration (FKs + colunas `escopo`/`tipo_resposta`/`observacao`).
-2. `TeamChecklist.tsx`: incluir eventos onde `user_id = auth.uid()` + escopo + UI condicional.
-3. `ChecklistManagement.tsx`: cadastro com escopo/tipo_resposta + filtro/exibição no histórico.
-4. (Opcional) seed da categoria "Viatura — Inspeção do Condutor".
+- **Quando o checklist deve ser obrigatoriamente finalizado?** Sugestão: bloquear o checkout final da equipe enquanto o checklist do evento estiver em rascunho. Confirmar se concorda ou se prefere apenas um aviso visual.
+- **Permissão de edição do rascunho:** somente o profissional que criou pode editar, ou qualquer membro da equipe escalada para o evento? Sugestão: qualquer membro escalado, com nome/assinatura sendo de quem finalizar.
