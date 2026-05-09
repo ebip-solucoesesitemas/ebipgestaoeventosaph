@@ -88,11 +88,13 @@ interface SubmissionRow {
   checklist_submission_items: Array<{
     status: string;
     quantidade_atual: number | null;
+    observacao: string | null;
     checklist_items: {
       nome: string;
       quantidade_ideal: number;
       unidade: string | null;
-      checklist_categories: { nome: string; base_id: string | null } | null;
+      tipo_resposta: string;
+      checklist_categories: { nome: string; base_id: string | null; escopo: string } | null;
     } | null;
   }>;
 }
