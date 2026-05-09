@@ -85,7 +85,7 @@ interface VehicleOption {
 
 export default function TeamChecklist() {
   const { profile, user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
