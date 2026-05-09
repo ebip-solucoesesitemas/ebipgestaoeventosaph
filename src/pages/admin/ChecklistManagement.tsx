@@ -108,6 +108,7 @@ export default function ChecklistManagement() {
 
   const [bases, setBases] = useState<Base[]>([]);
   const [selectedBaseId, setSelectedBaseId] = useState<string>("");
+  const [baseVehicles, setBaseVehicles] = useState<Array<{ id: string; prefixo: string; placa: string }>>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,6 +185,16 @@ export default function ChecklistManagement() {
 
   useEffect(() => {
     loadCatalog();
+    if (selectedBaseId) {
+      supabase
+        .from("vehicles")
+        .select("id, prefixo, placa")
+        .eq("base_id", selectedBaseId)
+        .order("prefixo")
+        .then(({ data }) => setBaseVehicles(data || []));
+    } else {
+      setBaseVehicles([]);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBaseId]);
 
@@ -838,15 +849,38 @@ export default function ChecklistManagement() {
           <div className="space-y-3">
             <div>
               <Label>Nome *</Label>
-              <Input
-                value={catForm.nome}
-                onChange={(e) => setCatForm({ ...catForm, nome: e.target.value })}
-                placeholder="Ex.: Mochila Azul - Vias Aéreas"
-              />
+              {catForm.escopo === "viatura" ? (
+                <>
+                  <Select
+                    value={catForm.nome}
+                    onValueChange={(v) => setCatForm({ ...catForm, nome: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={baseVehicles.length === 0 ? "Nenhuma viatura nesta base" : "Selecione a viatura"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {baseVehicles.map((v) => (
+                        <SelectItem key={v.id} value={`Viatura ${v.prefixo} — ${v.placa}`}>
+                          {v.prefixo} — {v.placa}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Selecione a viatura desta base. Cada viatura pode ter sua própria checklist.
+                  </p>
+                </>
+              ) : (
+                <Input
+                  value={catForm.nome}
+                  onChange={(e) => setCatForm({ ...catForm, nome: e.target.value })}
+                  placeholder="Ex.: Mochila Azul - Vias Aéreas"
+                />
+              )}
             </div>
             <div>
               <Label>Escopo *</Label>
-              <Select value={catForm.escopo} onValueChange={(v) => setCatForm({ ...catForm, escopo: v })}>
+              <Select value={catForm.escopo} onValueChange={(v) => setCatForm({ ...catForm, escopo: v, nome: "" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="medico">Kit Médico (quantidade)</SelectItem>
