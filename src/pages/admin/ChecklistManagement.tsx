@@ -77,6 +77,8 @@ interface SubmissionRow {
   id: string;
   created_at: string;
   tipo: string;
+  status?: string | null;
+  intercorrencias?: string | null;
   observacoes: string | null;
   base_id: string | null;
   vehicle_id: string | null;
