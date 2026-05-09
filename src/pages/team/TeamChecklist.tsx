@@ -325,6 +325,7 @@ export default function TeamChecklist() {
     setObservacoes("");
     setEventId("");
     setVehicleId("");
+    sigRef.current?.clear();
     setHistory((prev) =>
       [
         { id: sub.id, created_at: sub.created_at, tipo: sub.tipo, observacoes: sub.observacoes },
