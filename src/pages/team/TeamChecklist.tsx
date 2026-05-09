@@ -108,6 +108,7 @@ export default function TeamChecklist() {
   const [vehicleId, setVehicleId] = useState<string>("");
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftStatus, setDraftStatus] = useState<string>("rascunho");
+  const [draftProfileId, setDraftProfileId] = useState<string | null>(null);
   const [eventStatus, setEventStatus] = useState<string | null>(null);
 
   // Load categories + items filtered by user's base AND selected scope
