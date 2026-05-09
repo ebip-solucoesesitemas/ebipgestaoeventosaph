@@ -60,6 +60,7 @@ interface Category {
   ordem: number;
   ativo: boolean;
   base_id: string | null;
+  escopo: string;
 }
 interface Item {
   id: string;
@@ -69,6 +70,7 @@ interface Item {
   unidade: string | null;
   ordem: number;
   ativo: boolean;
+  tipo_resposta: string;
 }
 
 interface SubmissionRow {
