@@ -1026,7 +1026,7 @@ export default function ChecklistManagement() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="quantidade">Quantidade (ideal vs atual)</SelectItem>
-                  <SelectItem value="condicao">Condição (OK / NOK / N/A)</SelectItem>
+                  <SelectItem value="condicao">Condição (OK / Com Defeito / Não se Aplica)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
