@@ -160,16 +160,39 @@ export default function EventDetail() {
     setTeam((teamRes.data || []).filter((m: any) => m.profiles) as TeamMember[]);
     setSignatures((sigRes.data || []) as SignatureRecord[]);
 
-    // Checklist status for this event (any teammate)
-    const { data: chk } = await supabase
+    // Per-escopo checklist status: pending = no finalized submission for that escopo
+    const baseId = (eventData as any)?.base_id || profile?.base_id || null;
+    const { data: catsData } = await (supabase as any)
+      .from("checklist_categories")
+      .select("escopo, base_id")
+      .eq("ativo", true);
+    const availableEscopos = Array.from(
+      new Set(
+        ((catsData || []) as any[])
+          .filter((c) => !c.base_id || c.base_id === baseId)
+          .map((c) => (c.escopo || "medico") as string)
+      )
+    );
+
+    const { data: chkAll } = await (supabase as any)
       .from("checklist_submissions")
-      .select("status")
+      .select("status, escopo")
       .eq("event_id", id)
-      .in("status", ["rascunho", "finalizado"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setChecklistStatus(((chk as any)?.status as any) || "none");
+      .in("status", ["rascunho", "finalizado"]);
+
+    const finalizedSet = new Set(
+      ((chkAll || []) as any[])
+        .filter((s) => s.status === "finalizado")
+        .map((s) => s.escopo || "medico")
+    );
+    const draftSet = new Set(
+      ((chkAll || []) as any[])
+        .filter((s) => s.status === "rascunho")
+        .map((s) => s.escopo || "medico")
+    );
+
+    setPendingEscopos(availableEscopos.filter((e) => !finalizedSet.has(e)));
+    setDraftEscopos(availableEscopos.filter((e) => draftSet.has(e) && !finalizedSet.has(e)));
 
     setIsLoading(false);
   }; // <--- ESSA CHAVE FECHA A FUNÇÃO fetchData
