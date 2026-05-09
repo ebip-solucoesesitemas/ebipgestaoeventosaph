@@ -114,7 +114,7 @@ export default function ChecklistManagement() {
 
   const [catDialog, setCatDialog] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
-  const [catForm, setCatForm] = useState({ nome: "", descricao: "", ordem: 0 });
+  const [catForm, setCatForm] = useState({ nome: "", descricao: "", ordem: 0, escopo: "medico" });
 
   const [itemDialog, setItemDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -124,6 +124,7 @@ export default function ChecklistManagement() {
     quantidade_ideal: 1,
     unidade: "",
     ordem: 0,
+    tipo_resposta: "quantidade",
   });
 
   // History
@@ -133,6 +134,7 @@ export default function ChecklistManagement() {
   const [filtroProfile, setFiltroProfile] = useState<string>(ALL);
   const [filtroEvento, setFiltroEvento] = useState<string>(ALL);
   const [filtroTipo, setFiltroTipo] = useState<string>(ALL);
+  const [filtroEscopo, setFiltroEscopo] = useState<string>(ALL);
   const [filtroDe, setFiltroDe] = useState<string>("");
   const [filtroAte, setFiltroAte] = useState<string>("");
   const [detail, setDetail] = useState<SubmissionRow | null>(null);
