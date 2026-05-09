@@ -428,7 +428,9 @@ export default function ChecklistManagement() {
     const dateStr = format(new Date(s.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     const meta = [
       ["Data/Hora", dateStr],
-      ["Profissional", `${s.profiles?.nome || "—"} (${s.profiles?.especialidade || "—"})`],
+      ["Profissional (conta)", `${s.profiles?.nome || "—"} (${s.profiles?.especialidade || "—"})`],
+      ["Responsável pelo checklist", s.responsavel_nome || "—"],
+      ["Cargo / Função", s.responsavel_cargo || "—"],
       ["Base", baseName(s.base_id || s.profiles?.base_id)],
       ["Tipo", s.tipo],
       ["Evento", s.events?.nome_evento || "—"],
@@ -461,8 +463,8 @@ export default function ChecklistManagement() {
         body: list.map((it) => {
           const isCond = it.checklist_items?.tipo_resposta === "condicao";
           const statusLabel = isCond
-            ? it.status === "ok" ? "OK" : it.status === "divergente" ? "NOK" : "N/A"
-            : it.status.toUpperCase();
+            ? it.status === "ok" ? "OK" : it.status === "divergente" ? "Com Defeito" : "Não se Aplica"
+            : it.status === "ok" ? "OK" : it.status === "divergente" ? "Divergente" : "Falta";
           return [
             it.checklist_items?.nome || "—",
             isCond ? "Condição" : `${it.checklist_items?.quantidade_ideal ?? "-"}${it.checklist_items?.unidade ? " " + it.checklist_items.unidade : ""}`,
@@ -476,6 +478,28 @@ export default function ChecklistManagement() {
       });
       y = (doc as any).lastAutoTable.finalY + 6;
     });
+
+    // Signature block
+    const pageHeight = doc.internal.pageSize.getHeight();
+    if (y > pageHeight - 70) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.setFontSize(11);
+    doc.text("Assinatura do Responsável", 14, y + 4);
+    if (s.assinatura && s.assinatura.startsWith("data:image")) {
+      try {
+        doc.addImage(s.assinatura, "JPEG", 14, y + 8, 70, 30);
+      } catch {
+        try { doc.addImage(s.assinatura, "PNG", 14, y + 8, 70, 30); } catch { /* ignore */ }
+      }
+    } else {
+      doc.setFontSize(9);
+      doc.text("(sem assinatura registrada)", 14, y + 16);
+    }
+    doc.setFontSize(9);
+    doc.text(`${s.responsavel_nome || "—"} — ${s.responsavel_cargo || "—"}`, 14, y + 44);
+    doc.text(`Assinado em ${dateStr}`, 14, y + 49);
 
     doc.save(`checklist-${dateStr.replace(/[/: ]/g, "-")}.pdf`);
   };
