@@ -364,7 +364,7 @@ export default function TeamChecklist() {
     setSubmitting(true);
 
     const payload: any = {
-      profile_id: profile.id,
+      profile_id: draftId && draftProfileId ? draftProfileId : profile.id,
       base_id: profile.base_id || null,
       tipo,
       status: finalize ? "finalizado" : "rascunho",
