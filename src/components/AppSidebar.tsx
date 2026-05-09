@@ -72,11 +72,13 @@ const configLinks: MenuLink[] = [
   { href: "/admin/payroll", label: "Pagamentos", icon: Wallet, permissionKey: "payroll.view" },
   { href: "/admin/payroll-report", label: "Folha de Pagamento", icon: ClipboardList, permissionKey: "payroll.view" },
   { href: "/admin/audit-logs", label: "Logs de Auditoria", icon: Shield, permissionKey: "audit_logs.view" },
+  { href: "/admin/checklist", label: "Checklist (Itens)", icon: ClipboardList },
   { href: "/tickets", label: "Chamados", icon: MessageSquare },
 ];
 
 const teamLinks: MenuLink[] = [
   { href: "/events", label: "Meus Eventos", icon: Calendar },
+  { href: "/checklist", label: "Checklist", icon: ClipboardList },
   { href: "/tickets", label: "Chamados", icon: MessageSquare },
 ];
 
