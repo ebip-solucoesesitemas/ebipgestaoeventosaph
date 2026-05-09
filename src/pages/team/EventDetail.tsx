@@ -98,7 +98,8 @@ export default function EventDetail() {
   const [showForm, setShowForm] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
   const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
-  const [checklistStatus, setChecklistStatus] = useState<"none" | "rascunho" | "finalizado">("none");
+  const [pendingEscopos, setPendingEscopos] = useState<string[]>([]);
+  const [draftEscopos, setDraftEscopos] = useState<string[]>([]);
 
   // KM state
   const [kmInicial, setKmInicial] = useState("");
