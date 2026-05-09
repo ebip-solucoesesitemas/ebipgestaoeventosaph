@@ -856,8 +856,39 @@ export default function ChecklistManagement() {
               />
             </div>
             <div>
+              <Label>Nome *</Label>
+              {catForm.escopo === "viatura" ? (
+                <>
+                  <Select
+                    value={catForm.nome}
+                    onValueChange={(v) => setCatForm({ ...catForm, nome: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={baseVehicles.length === 0 ? "Nenhuma viatura nesta base" : "Selecione a viatura"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {baseVehicles.map((v) => (
+                        <SelectItem key={v.id} value={`Viatura ${v.prefixo} — ${v.placa}`}>
+                          {v.prefixo} — {v.placa}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Selecione a viatura desta base. Cada viatura pode ter sua própria checklist.
+                  </p>
+                </>
+              ) : (
+                <Input
+                  value={catForm.nome}
+                  onChange={(e) => setCatForm({ ...catForm, nome: e.target.value })}
+                  placeholder="Ex.: Mochila Azul - Vias Aéreas"
+                />
+              )}
+            </div>
+            <div>
               <Label>Escopo *</Label>
-              <Select value={catForm.escopo} onValueChange={(v) => setCatForm({ ...catForm, escopo: v })}>
+              <Select value={catForm.escopo} onValueChange={(v) => setCatForm({ ...catForm, escopo: v, nome: "" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="medico">Kit Médico (quantidade)</SelectItem>
