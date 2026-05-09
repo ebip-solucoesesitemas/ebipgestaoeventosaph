@@ -62,6 +62,9 @@ interface Submission {
   created_at: string;
   tipo: string;
   observacoes: string | null;
+  status?: string;
+  intercorrencias?: string | null;
+  event_id?: string | null;
 }
 
 interface EventOption {
