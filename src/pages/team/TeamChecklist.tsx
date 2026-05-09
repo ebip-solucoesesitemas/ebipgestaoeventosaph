@@ -238,28 +238,32 @@ export default function TeamChecklist() {
       .then(({ data }) => setEventStatus((data as any)?.status || null));
   }, [tipo, eventId]);
 
-  // Load existing draft/finalized checklist for selected event
+  // Load existing draft/finalized checklist for selected event (shared by team)
   useEffect(() => {
     if (tipo !== "evento" || !eventId || !profile?.id || items.length === 0) {
       setDraftId(null);
       setDraftStatus("rascunho");
+      setDraftProfileId(null);
       return;
     }
     (async () => {
       const { data: sub } = await supabase
         .from("checklist_submissions")
-        .select("id, status, observacoes, intercorrencias, responsavel_nome, responsavel_cargo")
+        .select("id, status, observacoes, intercorrencias, responsavel_nome, responsavel_cargo, profile_id")
         .eq("event_id", eventId)
-        .eq("profile_id", profile.id)
         .in("status", ["rascunho", "finalizado"])
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (!sub) {
         setDraftId(null);
         setDraftStatus("rascunho");
+        setDraftProfileId(null);
         return;
       }
       setDraftId(sub.id);
       setDraftStatus(sub.status || "rascunho");
+      setDraftProfileId((sub as any).profile_id || null);
       setObservacoes(sub.observacoes || "");
       setIntercorrencias((sub as any).intercorrencias || "");
       if ((sub as any).responsavel_nome) setResponsavelNome((sub as any).responsavel_nome);
