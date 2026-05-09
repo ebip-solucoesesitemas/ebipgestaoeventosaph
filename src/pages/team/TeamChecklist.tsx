@@ -205,11 +205,11 @@ export default function TeamChecklist() {
     if (!responsavelCargo && profile.especialidade) setResponsavelCargo(profile.especialidade);
     supabase
       .from("checklist_submissions")
-      .select("id, created_at, tipo, observacoes")
+      .select("id, created_at, tipo, observacoes, status, intercorrencias, event_id")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(5)
-      .then(({ data }) => setHistory(data || []));
+      .then(({ data }) => setHistory((data as any) || []));
   }, [profile?.id]);
 
   const selectedEvent = useMemo(
@@ -222,6 +222,69 @@ export default function TeamChecklist() {
       setVehicleId(selectedEvent.viatura_id || "");
     }
   }, [tipo, selectedEvent]);
+
+  // Fetch event status (works even when event isn't in the dropdown list)
+  useEffect(() => {
+    if (tipo !== "evento" || !eventId) {
+      setEventStatus(null);
+      return;
+    }
+    supabase
+      .from("events")
+      .select("status")
+      .eq("id", eventId)
+      .maybeSingle()
+      .then(({ data }) => setEventStatus((data as any)?.status || null));
+  }, [tipo, eventId]);
+
+  // Load existing draft/finalized checklist for selected event
+  useEffect(() => {
+    if (tipo !== "evento" || !eventId || !profile?.id || items.length === 0) {
+      setDraftId(null);
+      setDraftStatus("rascunho");
+      return;
+    }
+    (async () => {
+      const { data: sub } = await supabase
+        .from("checklist_submissions")
+        .select("id, status, observacoes, intercorrencias, responsavel_nome, responsavel_cargo")
+        .eq("event_id", eventId)
+        .eq("profile_id", profile.id)
+        .in("status", ["rascunho", "finalizado"])
+        .maybeSingle();
+      if (!sub) {
+        setDraftId(null);
+        setDraftStatus("rascunho");
+        return;
+      }
+      setDraftId(sub.id);
+      setDraftStatus(sub.status || "rascunho");
+      setObservacoes(sub.observacoes || "");
+      setIntercorrencias((sub as any).intercorrencias || "");
+      if ((sub as any).responsavel_nome) setResponsavelNome((sub as any).responsavel_nome);
+      if ((sub as any).responsavel_cargo) setResponsavelCargo((sub as any).responsavel_cargo);
+
+      const { data: itRows } = await supabase
+        .from("checklist_submission_items")
+        .select("item_id, status, quantidade_atual, observacao")
+        .eq("submission_id", sub.id);
+      if (itRows && itRows.length > 0) {
+        setAnswers((prev) => {
+          const next = { ...prev };
+          itRows.forEach((r: any) => {
+            if (next[r.item_id]) {
+              next[r.item_id] = {
+                status: r.status as ItemStatus,
+                quantidade_atual: r.quantidade_atual,
+                observacao: r.observacao || "",
+              };
+            }
+          });
+          return next;
+        });
+      }
+    })();
+  }, [tipo, eventId, profile?.id, items.length]);
 
   // ---- Quantidade handlers ----
   const setOk = (item: Item) =>
