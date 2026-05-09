@@ -471,13 +471,16 @@ export default function TeamChecklist() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Escopo *</Label>
-              <Select value={escopo} onValueChange={(v) => setEscopo(v as "medico" | "viatura")}>
+              <Select value={escopo} onValueChange={(v) => setEscopo(v as "medico" | "enfermagem" | "viatura")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="medico">
                     <span className="flex items-center gap-2"><Stethoscope className="w-3 h-3" /> Kit Médico</span>
+                  </SelectItem>
+                  <SelectItem value="enfermagem">
+                    <span className="flex items-center gap-2"><Stethoscope className="w-3 h-3" /> Kit Enfermagem</span>
                   </SelectItem>
                   <SelectItem value="viatura">
                     <span className="flex items-center gap-2"><Wrench className="w-3 h-3" /> Viatura (lataria, óleo, pneus...)</span>
