@@ -250,11 +250,11 @@ export default function TeamChecklist() {
       return;
     }
     (async () => {
-      const { data: sub } = await supabase
+      const { data: sub } = await (supabase as any)
         .from("checklist_submissions")
         .select("id, status, observacoes, intercorrencias, responsavel_nome, responsavel_cargo, profile_id")
         .eq("event_id", eventId)
-        .eq("escopo" as any, escopo)
+        .eq("escopo", escopo)
         .in("status", ["rascunho", "finalizado"])
         .order("created_at", { ascending: false })
         .limit(1)
