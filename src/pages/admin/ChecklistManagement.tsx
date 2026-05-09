@@ -306,6 +306,7 @@ export default function ChecklistManagement() {
       .from("checklist_submissions")
       .select(
         `id, created_at, tipo, observacoes, base_id, vehicle_id, event_id, profile_id,
+         responsavel_nome, responsavel_cargo, assinatura,
          profiles:profile_id (nome, especialidade, base_id),
          events:event_id (nome_evento),
          vehicles:vehicle_id (prefixo, placa)`
