@@ -23,6 +23,11 @@ interface AttendanceData {
   sexo: string | null;
   queixa_principal: string;
   evolucao_clinica: string | null;
+  evolucao_medica?: string | null;
+  medico_nome?: string | null;
+  medico_crm?: string | null;
+  enfermeiro_nome?: string | null;
+  enfermeiro_coren?: string | null;
   status: string;
   created_at: string;
   profiles?: { nome: string; especialidade: string; registro_profissional: string };
