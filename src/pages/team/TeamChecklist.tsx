@@ -783,8 +783,31 @@ export default function TeamChecklist() {
                     {format(new Date(h.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                   </p>
                   {h.observacoes && <p className="text-xs text-muted-foreground">{h.observacoes}</p>}
+                  {h.intercorrencias && (
+                    <p className="text-xs text-warning">⚠ {h.intercorrencias}</p>
+                  )}
                 </div>
-                <Badge variant="outline">{h.tipo}</Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant="outline">{h.tipo}</Badge>
+                  {h.status && (
+                    <Badge
+                      className={
+                        h.status === "finalizado"
+                          ? "bg-stable text-stable-foreground"
+                          : h.status === "rascunho"
+                          ? "bg-warning text-warning-foreground"
+                          : ""
+                      }
+                      variant={h.status === "nao_realizado" ? "destructive" : "default"}
+                    >
+                      {h.status === "finalizado"
+                        ? "Finalizado"
+                        : h.status === "rascunho"
+                        ? "Rascunho"
+                        : h.status}
+                    </Badge>
+                  )}
+                </div>
               </div>
             ))}
           </CardContent>
