@@ -232,12 +232,14 @@ export default function ChecklistManagement() {
   const openNewItem = (categoryId?: string) => {
     setEditingItem(null);
     const catItems = categoryId ? items.filter((i) => i.category_id === categoryId) : [];
+    const cat = categories.find((c) => c.id === (categoryId || categories[0]?.id));
     setItemForm({
       category_id: categoryId || categories[0]?.id || "",
       nome: "",
       quantidade_ideal: 1,
       unidade: "",
       ordem: catItems.length,
+      tipo_resposta: cat?.escopo === "viatura" ? "condicao" : "quantidade",
     });
     setItemDialog(true);
   };
@@ -249,6 +251,7 @@ export default function ChecklistManagement() {
       quantidade_ideal: it.quantidade_ideal,
       unidade: it.unidade || "",
       ordem: it.ordem,
+      tipo_resposta: it.tipo_resposta || "quantidade",
     });
     setItemDialog(true);
   };
@@ -263,6 +266,7 @@ export default function ChecklistManagement() {
       quantidade_ideal: Math.max(0, Number(itemForm.quantidade_ideal) || 0),
       unidade: itemForm.unidade.trim() || null,
       ordem: itemForm.ordem,
+      tipo_resposta: itemForm.tipo_resposta,
     };
     const { error } = editingItem
       ? await supabase.from("checklist_items").update(payload).eq("id", editingItem.id)
