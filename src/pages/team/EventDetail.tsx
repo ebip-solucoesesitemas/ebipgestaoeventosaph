@@ -26,6 +26,7 @@ import {
   Ambulance,
   Phone,
   User,
+  AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
