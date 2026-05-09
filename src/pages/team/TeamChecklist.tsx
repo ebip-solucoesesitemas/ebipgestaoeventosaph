@@ -520,14 +520,14 @@ export default function TeamChecklist() {
                             className={a?.status === "divergente" ? "bg-warning text-warning-foreground hover:bg-warning/90" : ""}
                             onClick={() => setCond(it, "divergente")}
                           >
-                            <AlertTriangle className="w-4 h-4 mr-1" /> NOK
+                            <AlertTriangle className="w-4 h-4 mr-1" /> Com Defeito
                           </Button>
                           <Button
                             size="sm"
                             variant={a?.status === "falta" ? "destructive" : "outline"}
                             onClick={() => setCond(it, "falta")}
                           >
-                            <MinusCircle className="w-4 h-4 mr-1" /> N/A
+                            <MinusCircle className="w-4 h-4 mr-1" /> Não se Aplica
                           </Button>
                         </div>
                         <Input
