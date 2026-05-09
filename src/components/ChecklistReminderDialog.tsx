@@ -27,8 +27,6 @@ export default function ChecklistReminderDialog() {
     if (isLoading) return;
     if (!profile?.id) return;
     if (profile.is_account_only || profile.hidden) return;
-    // Apenas para quem opera em campo
-    if (profile.cargo !== "equipe" && profile.cargo !== "operacional") return;
 
     (async () => {
       const today = new Date();
