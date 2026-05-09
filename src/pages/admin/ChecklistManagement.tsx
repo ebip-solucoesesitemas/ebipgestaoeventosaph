@@ -632,7 +632,7 @@ export default function ChecklistManagement() {
                               <p className="font-medium">{it.nome}</p>
                               <p className="text-xs text-muted-foreground">
                                 {it.tipo_resposta === "condicao"
-                                  ? "Condição (OK / NOK / N/A)"
+                                  ? "Condição (OK / Com Defeito / Não se Aplica)"
                                   : `Qtd ideal: ${it.quantidade_ideal}${it.unidade ? ` ${it.unidade}` : ""}`}
                               </p>
                             </div>
