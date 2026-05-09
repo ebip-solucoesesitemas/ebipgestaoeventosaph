@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import SignaturePad, { type SignaturePadRef } from "@/components/SignaturePad";
 import {
   Select,
   SelectContent,
@@ -86,6 +87,10 @@ export default function TeamChecklist() {
   const [observacoes, setObservacoes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [history, setHistory] = useState<Submission[]>([]);
+
+  const [responsavelNome, setResponsavelNome] = useState("");
+  const [responsavelCargo, setResponsavelCargo] = useState("");
+  const sigRef = useRef<SignaturePadRef>(null);
 
   const [tipo, setTipo] = useState<"diario" | "evento">("diario");
   const [escopo, setEscopo] = useState<"medico" | "viatura">("medico");
@@ -185,6 +190,8 @@ export default function TeamChecklist() {
 
   useEffect(() => {
     if (!profile?.id) return;
+    if (!responsavelNome && profile.nome) setResponsavelNome(profile.nome);
+    if (!responsavelCargo && profile.especialidade) setResponsavelCargo(profile.especialidade);
     supabase
       .from("checklist_submissions")
       .select("id, created_at, tipo, observacoes")
@@ -250,6 +257,18 @@ export default function TeamChecklist() {
       toast.error("Não há itens cadastrados para sua base.");
       return;
     }
+    if (!responsavelNome.trim()) {
+      toast.error("Informe o nome de quem está fazendo o checklist.");
+      return;
+    }
+    if (!responsavelCargo.trim()) {
+      toast.error("Informe o cargo de quem está fazendo o checklist.");
+      return;
+    }
+    if (!sigRef.current || sigRef.current.isEmpty()) {
+      toast.error("Assine no campo de assinatura antes de enviar.");
+      return;
+    }
     if (tipo === "evento") {
       if (!eventId) {
         toast.error("Selecione o evento.");
@@ -260,6 +279,7 @@ export default function TeamChecklist() {
         return;
       }
     }
+    const assinatura = sigRef.current.getDataUrl("image/jpeg", 0.5);
     setSubmitting(true);
     const { data: sub, error: subErr } = await supabase
       .from("checklist_submissions")
@@ -273,6 +293,9 @@ export default function TeamChecklist() {
             ? selectedEvent?.viatura_id || null
             : vehicleId || null,
         observacoes: observacoes.trim() || null,
+        responsavel_nome: responsavelNome.trim(),
+        responsavel_cargo: responsavelCargo.trim(),
+        assinatura,
       })
       .select()
       .single();
@@ -302,6 +325,7 @@ export default function TeamChecklist() {
     setObservacoes("");
     setEventId("");
     setVehicleId("");
+    sigRef.current?.clear();
     setHistory((prev) =>
       [
         { id: sub.id, created_at: sub.created_at, tipo: sub.tipo, observacoes: sub.observacoes },
@@ -426,8 +450,8 @@ export default function TeamChecklist() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Itens</p><p className="text-2xl font-bold">{stats.total}</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">OK</p><p className="text-2xl font-bold text-stable">{stats.ok}</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">{escopo === "viatura" ? "NOK" : "Divergentes"}</p><p className="text-2xl font-bold text-warning">{stats.div}</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">{escopo === "viatura" ? "N/A" : "Em Falta"}</p><p className="text-2xl font-bold text-destructive">{stats.falta}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">{escopo === "viatura" ? "Com Defeito" : "Divergentes"}</p><p className="text-2xl font-bold text-warning">{stats.div}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">{escopo === "viatura" ? "Não se Aplica" : "Em Falta"}</p><p className="text-2xl font-bold text-destructive">{stats.falta}</p></CardContent></Card>
       </div>
 
       {categories.length === 0 && (
@@ -468,13 +492,13 @@ export default function TeamChecklist() {
                       )}
                       {a?.status === "divergente" && (
                         <Badge className="bg-warning text-warning-foreground gap-1">
-                          <AlertTriangle className="w-3 h-3" /> {isCond ? "NOK" : "Divergente"}
+                          <AlertTriangle className="w-3 h-3" /> {isCond ? "Com Defeito" : "Divergente"}
                         </Badge>
                       )}
                       {a?.status === "falta" && (
                         <Badge variant="destructive" className="gap-1">
                           {isCond ? <MinusCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                          {isCond ? "N/A" : "Falta"}
+                          {isCond ? "Não se Aplica" : "Falta"}
                         </Badge>
                       )}
                     </div>
@@ -496,14 +520,14 @@ export default function TeamChecklist() {
                             className={a?.status === "divergente" ? "bg-warning text-warning-foreground hover:bg-warning/90" : ""}
                             onClick={() => setCond(it, "divergente")}
                           >
-                            <AlertTriangle className="w-4 h-4 mr-1" /> NOK
+                            <AlertTriangle className="w-4 h-4 mr-1" /> Com Defeito
                           </Button>
                           <Button
                             size="sm"
                             variant={a?.status === "falta" ? "destructive" : "outline"}
                             onClick={() => setCond(it, "falta")}
                           >
-                            <MinusCircle className="w-4 h-4 mr-1" /> N/A
+                            <MinusCircle className="w-4 h-4 mr-1" /> Não se Aplica
                           </Button>
                         </div>
                         <Input
@@ -552,20 +576,45 @@ export default function TeamChecklist() {
 
       {items.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Observações gerais</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Responsável e Assinatura</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <Textarea
-              placeholder="Anotações da conferência (opcional)"
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-              rows={3}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label>Nome do responsável *</Label>
+                <Input
+                  value={responsavelNome}
+                  onChange={(e) => setResponsavelNome(e.target.value)}
+                  placeholder="Quem está fazendo o checklist"
+                />
+              </div>
+              <div>
+                <Label>Cargo / Função *</Label>
+                <Input
+                  value={responsavelCargo}
+                  onChange={(e) => setResponsavelCargo(e.target.value)}
+                  placeholder="Ex.: Enfermeiro, Motorista, Socorrista"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Observações gerais</Label>
+              <Textarea
+                placeholder="Anotações da conferência (opcional)"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <SignaturePad ref={sigRef} label="Assinatura do responsável *" />
+
             <Button className="w-full gap-2" onClick={handleSubmit} disabled={submitting}>
               <Send className="w-4 h-4" />
-              {submitting ? "Enviando..." : `Assinar e Enviar como ${profile?.nome || ""}`}
+              {submitting ? "Enviando..." : "Assinar e Enviar Checklist"}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              A submissão registra automaticamente seu nome, especialidade e data/hora.
+              A submissão registra o nome, cargo, assinatura e data/hora do responsável.
             </p>
           </CardContent>
         </Card>
