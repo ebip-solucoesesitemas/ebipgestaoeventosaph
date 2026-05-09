@@ -85,10 +85,12 @@ interface VehicleOption {
 
 export default function TeamChecklist() {
   const { profile, user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [observacoes, setObservacoes] = useState("");
+  const [intercorrencias, setIntercorrencias] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [history, setHistory] = useState<Submission[]>([]);
 
@@ -96,14 +98,19 @@ export default function TeamChecklist() {
   const [responsavelCargo, setResponsavelCargo] = useState("");
   const sigRef = useRef<SignaturePadRef>(null);
 
-  const [tipo, setTipo] = useState<"diario" | "evento">("diario");
+  const [tipo, setTipo] = useState<"diario" | "evento">(
+    searchParams.get("event_id") ? "evento" : "diario"
+  );
   const [escopo, setEscopo] = useState<"medico" | "viatura">("medico");
   const [events, setEvents] = useState<EventOption[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
-  const [eventId, setEventId] = useState<string>("");
+  const [eventId, setEventId] = useState<string>(searchParams.get("event_id") || "");
   const [vehicleId, setVehicleId] = useState<string>("");
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftStatus, setDraftStatus] = useState<string>("rascunho");
+  const [eventStatus, setEventStatus] = useState<string | null>(null);
 
-  // Load categories + items filtered by user's base AND selected scope
+  // Load existing draft for selected event
   useEffect(() => {
     (async () => {
       const catsRes = await supabase
