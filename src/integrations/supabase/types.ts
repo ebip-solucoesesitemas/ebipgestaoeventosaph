@@ -209,6 +209,7 @@ export type Database = {
           assinatura: string | null
           base_id: string | null
           created_at: string
+          escopo: string
           event_id: string | null
           id: string
           intercorrencias: string | null
@@ -224,6 +225,7 @@ export type Database = {
           assinatura?: string | null
           base_id?: string | null
           created_at?: string
+          escopo?: string
           event_id?: string | null
           id?: string
           intercorrencias?: string | null
@@ -239,6 +241,7 @@ export type Database = {
           assinatura?: string | null
           base_id?: string | null
           created_at?: string
+          escopo?: string
           event_id?: string | null
           id?: string
           intercorrencias?: string | null

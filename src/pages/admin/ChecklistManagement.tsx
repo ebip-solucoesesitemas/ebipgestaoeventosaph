@@ -607,7 +607,7 @@ export default function ChecklistManagement() {
                           {catItems.length} {catItems.length === 1 ? "item" : "itens"}
                         </Badge>
                         <Badge variant={cat.escopo === "viatura" ? "default" : "outline"}>
-                          {cat.escopo === "viatura" ? "Viatura" : "Kit Médico"}
+                          {cat.escopo === "viatura" ? "Viatura" : cat.escopo === "enfermagem" ? "Kit Enfermagem" : "Kit Médico"}
                         </Badge>
                       </CardTitle>
                       {cat.descricao && (
@@ -726,6 +726,7 @@ export default function ChecklistManagement() {
                   <SelectContent>
                     <SelectItem value={ALL}>Todos</SelectItem>
                     <SelectItem value="medico">Kit Médico</SelectItem>
+                    <SelectItem value="enfermagem">Kit Enfermagem</SelectItem>
                     <SelectItem value="viatura">Viatura</SelectItem>
                   </SelectContent>
                 </Select>
@@ -991,6 +992,7 @@ export default function ChecklistManagement() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="medico">Kit Médico (quantidade)</SelectItem>
+                  <SelectItem value="enfermagem">Kit Enfermagem (quantidade)</SelectItem>
                   <SelectItem value="viatura">Viatura (condição: OK / Com Defeito / Não se Aplica)</SelectItem>
                 </SelectContent>
               </Select>

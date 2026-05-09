@@ -98,7 +98,8 @@ export default function EventDetail() {
   const [showForm, setShowForm] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
   const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
-  const [checklistStatus, setChecklistStatus] = useState<"none" | "rascunho" | "finalizado">("none");
+  const [pendingEscopos, setPendingEscopos] = useState<string[]>([]);
+  const [draftEscopos, setDraftEscopos] = useState<string[]>([]);
 
   // KM state
   const [kmInicial, setKmInicial] = useState("");
@@ -159,16 +160,39 @@ export default function EventDetail() {
     setTeam((teamRes.data || []).filter((m: any) => m.profiles) as TeamMember[]);
     setSignatures((sigRes.data || []) as SignatureRecord[]);
 
-    // Checklist status for this event (any teammate)
-    const { data: chk } = await supabase
+    // Per-escopo checklist status: pending = no finalized submission for that escopo
+    const baseId = (eventData as any)?.base_id || profile?.base_id || null;
+    const { data: catsData } = await (supabase as any)
+      .from("checklist_categories")
+      .select("escopo, base_id")
+      .eq("ativo", true);
+    const availableEscopos = Array.from(
+      new Set(
+        ((catsData || []) as any[])
+          .filter((c) => !c.base_id || c.base_id === baseId)
+          .map((c) => (c.escopo || "medico") as string)
+      )
+    );
+
+    const { data: chkAll } = await (supabase as any)
       .from("checklist_submissions")
-      .select("status")
+      .select("status, escopo")
       .eq("event_id", id)
-      .in("status", ["rascunho", "finalizado"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setChecklistStatus(((chk as any)?.status as any) || "none");
+      .in("status", ["rascunho", "finalizado"]);
+
+    const finalizedSet = new Set(
+      ((chkAll || []) as any[])
+        .filter((s) => s.status === "finalizado")
+        .map((s) => s.escopo || "medico")
+    );
+    const draftSet = new Set(
+      ((chkAll || []) as any[])
+        .filter((s) => s.status === "rascunho")
+        .map((s) => s.escopo || "medico")
+    );
+
+    setPendingEscopos(availableEscopos.filter((e) => !finalizedSet.has(e)));
+    setDraftEscopos(availableEscopos.filter((e) => draftSet.has(e) && !finalizedSet.has(e)));
 
     setIsLoading(false);
   }; // <--- ESSA CHAVE FECHA A FUNÇÃO fetchData
@@ -608,26 +632,37 @@ export default function EventDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 space-y-3">
-          {checklistStatus !== "finalizado" && (
-            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
-              <AlertTriangle className="w-4 h-4 mt-0.5 text-warning shrink-0" />
-              <div className="flex-1">
-                <p className="font-medium text-warning-foreground">
-                  {checklistStatus === "rascunho"
-                    ? "Checklist do evento ainda em rascunho."
-                    : "Checklist do evento ainda não foi realizado."}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Recomendado finalizar antes do checkout da equipe (não bloqueia).
-                </p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/checklist?event_id=${event.id}`)}
-              >
-                Abrir checklist
-              </Button>
+          {pendingEscopos.length > 0 && (
+            <div className="space-y-2">
+              {pendingEscopos.map((esc) => {
+                const label =
+                  esc === "viatura" ? "Viatura" : esc === "enfermagem" ? "Kit Enfermagem" : "Kit Médico";
+                const isDraft = draftEscopos.includes(esc);
+                return (
+                  <div
+                    key={esc}
+                    className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm"
+                  >
+                    <AlertTriangle className="w-4 h-4 mt-0.5 text-warning shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-medium text-warning-foreground">
+                        Checklist {label}{" "}
+                        {isDraft ? "ainda em rascunho." : "ainda não foi realizado."}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Recomendado finalizar antes do checkout da equipe (não bloqueia).
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/checklist?event_id=${event.id}&escopo=${esc}`)}
+                    >
+                      Abrir
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           )}
           {team.length === 0 ? (

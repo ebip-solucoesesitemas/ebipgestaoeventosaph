@@ -101,7 +101,10 @@ export default function TeamChecklist() {
   const [tipo, setTipo] = useState<"diario" | "evento">(
     searchParams.get("event_id") ? "evento" : "diario"
   );
-  const [escopo, setEscopo] = useState<"medico" | "viatura">("medico");
+  const initialEscopo = (searchParams.get("escopo") as "medico" | "enfermagem" | "viatura") || "medico";
+  const [escopo, setEscopo] = useState<"medico" | "enfermagem" | "viatura">(
+    ["medico", "enfermagem", "viatura"].includes(initialEscopo) ? initialEscopo : "medico"
+  );
   const [events, setEvents] = useState<EventOption[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [eventId, setEventId] = useState<string>(searchParams.get("event_id") || "");
@@ -238,7 +241,7 @@ export default function TeamChecklist() {
       .then(({ data }) => setEventStatus((data as any)?.status || null));
   }, [tipo, eventId]);
 
-  // Load existing draft/finalized checklist for selected event (shared by team)
+  // Load existing draft/finalized checklist for selected event + escopo (shared by team)
   useEffect(() => {
     if (tipo !== "evento" || !eventId || !profile?.id || items.length === 0) {
       setDraftId(null);
@@ -247,10 +250,11 @@ export default function TeamChecklist() {
       return;
     }
     (async () => {
-      const { data: sub } = await supabase
+      const { data: sub } = await (supabase as any)
         .from("checklist_submissions")
         .select("id, status, observacoes, intercorrencias, responsavel_nome, responsavel_cargo, profile_id")
         .eq("event_id", eventId)
+        .eq("escopo", escopo)
         .in("status", ["rascunho", "finalizado"])
         .order("created_at", { ascending: false })
         .limit(1)
@@ -259,6 +263,8 @@ export default function TeamChecklist() {
         setDraftId(null);
         setDraftStatus("rascunho");
         setDraftProfileId(null);
+        setObservacoes("");
+        setIntercorrencias("");
         return;
       }
       setDraftId(sub.id);
@@ -289,7 +295,7 @@ export default function TeamChecklist() {
         });
       }
     })();
-  }, [tipo, eventId, profile?.id, items.length]);
+  }, [tipo, eventId, escopo, profile?.id, items.length]);
 
   // ---- Quantidade handlers ----
   const setOk = (item: Item) =>
@@ -367,6 +373,7 @@ export default function TeamChecklist() {
       profile_id: draftId && draftProfileId ? draftProfileId : profile.id,
       base_id: profile.base_id || null,
       tipo,
+      escopo,
       status: finalize ? "finalizado" : "rascunho",
       event_id: tipo === "evento" ? eventId : null,
       vehicle_id:
@@ -464,13 +471,16 @@ export default function TeamChecklist() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Escopo *</Label>
-              <Select value={escopo} onValueChange={(v) => setEscopo(v as "medico" | "viatura")}>
+              <Select value={escopo} onValueChange={(v) => setEscopo(v as "medico" | "enfermagem" | "viatura")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="medico">
                     <span className="flex items-center gap-2"><Stethoscope className="w-3 h-3" /> Kit Médico</span>
+                  </SelectItem>
+                  <SelectItem value="enfermagem">
+                    <span className="flex items-center gap-2"><Stethoscope className="w-3 h-3" /> Kit Enfermagem</span>
                   </SelectItem>
                   <SelectItem value="viatura">
                     <span className="flex items-center gap-2"><Wrench className="w-3 h-3" /> Viatura (lataria, óleo, pneus...)</span>
