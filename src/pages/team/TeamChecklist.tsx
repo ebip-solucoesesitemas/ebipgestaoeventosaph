@@ -576,20 +576,45 @@ export default function TeamChecklist() {
 
       {items.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Observações gerais</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Responsável e Assinatura</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <Textarea
-              placeholder="Anotações da conferência (opcional)"
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-              rows={3}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label>Nome do responsável *</Label>
+                <Input
+                  value={responsavelNome}
+                  onChange={(e) => setResponsavelNome(e.target.value)}
+                  placeholder="Quem está fazendo o checklist"
+                />
+              </div>
+              <div>
+                <Label>Cargo / Função *</Label>
+                <Input
+                  value={responsavelCargo}
+                  onChange={(e) => setResponsavelCargo(e.target.value)}
+                  placeholder="Ex.: Enfermeiro, Motorista, Socorrista"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Observações gerais</Label>
+              <Textarea
+                placeholder="Anotações da conferência (opcional)"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <SignaturePad ref={sigRef} label="Assinatura do responsável *" />
+
             <Button className="w-full gap-2" onClick={handleSubmit} disabled={submitting}>
               <Send className="w-4 h-4" />
-              {submitting ? "Enviando..." : `Assinar e Enviar como ${profile?.nome || ""}`}
+              {submitting ? "Enviando..." : "Assinar e Enviar Checklist"}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              A submissão registra automaticamente seu nome, especialidade e data/hora.
+              A submissão registra o nome, cargo, assinatura e data/hora do responsável.
             </p>
           </CardContent>
         </Card>
