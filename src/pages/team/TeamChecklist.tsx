@@ -257,6 +257,18 @@ export default function TeamChecklist() {
       toast.error("Não há itens cadastrados para sua base.");
       return;
     }
+    if (!responsavelNome.trim()) {
+      toast.error("Informe o nome de quem está fazendo o checklist.");
+      return;
+    }
+    if (!responsavelCargo.trim()) {
+      toast.error("Informe o cargo de quem está fazendo o checklist.");
+      return;
+    }
+    if (!sigRef.current || sigRef.current.isEmpty()) {
+      toast.error("Assine no campo de assinatura antes de enviar.");
+      return;
+    }
     if (tipo === "evento") {
       if (!eventId) {
         toast.error("Selecione o evento.");
@@ -267,6 +279,7 @@ export default function TeamChecklist() {
         return;
       }
     }
+    const assinatura = sigRef.current.getDataUrl("image/jpeg", 0.5);
     setSubmitting(true);
     const { data: sub, error: subErr } = await supabase
       .from("checklist_submissions")
@@ -280,6 +293,9 @@ export default function TeamChecklist() {
             ? selectedEvent?.viatura_id || null
             : vehicleId || null,
         observacoes: observacoes.trim() || null,
+        responsavel_nome: responsavelNome.trim(),
+        responsavel_cargo: responsavelCargo.trim(),
+        assinatura,
       })
       .select()
       .single();
