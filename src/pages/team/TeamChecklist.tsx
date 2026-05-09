@@ -492,13 +492,13 @@ export default function TeamChecklist() {
                       )}
                       {a?.status === "divergente" && (
                         <Badge className="bg-warning text-warning-foreground gap-1">
-                          <AlertTriangle className="w-3 h-3" /> {isCond ? "NOK" : "Divergente"}
+                          <AlertTriangle className="w-3 h-3" /> {isCond ? "Com Defeito" : "Divergente"}
                         </Badge>
                       )}
                       {a?.status === "falta" && (
                         <Badge variant="destructive" className="gap-1">
                           {isCond ? <MinusCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                          {isCond ? "N/A" : "Falta"}
+                          {isCond ? "Não se Aplica" : "Falta"}
                         </Badge>
                       )}
                     </div>
