@@ -26,20 +26,23 @@ export default function ChecklistReminderDialog() {
   useEffect(() => {
     if (isLoading) return;
     if (!profile?.id) return;
-    if (profile.is_account_only || profile.hidden) return;
+    if (profile.hidden) return;
 
     (async () => {
       const today = new Date();
       const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+      const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
       const { data, error } = await supabase
         .from("checklist_submissions")
         .select("id")
         .eq("profile_id", profile.id)
         .gte("created_at", start)
+        .lt("created_at", end)
         .limit(1);
 
       if (error) {
         console.warn("[ChecklistReminder] erro ao consultar:", error.message);
+        setOpen(true);
         return;
       }
 
