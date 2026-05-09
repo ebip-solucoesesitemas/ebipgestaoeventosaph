@@ -157,6 +157,18 @@ export default function EventDetail() {
     setAttendances(attendancesRes.data || []);
     setTeam((teamRes.data || []).filter((m: any) => m.profiles) as TeamMember[]);
     setSignatures((sigRes.data || []) as SignatureRecord[]);
+
+    // Checklist status for this event (any teammate)
+    const { data: chk } = await supabase
+      .from("checklist_submissions")
+      .select("status")
+      .eq("event_id", id)
+      .in("status", ["rascunho", "finalizado"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setChecklistStatus(((chk as any)?.status as any) || "none");
+
     setIsLoading(false);
   }; // <--- ESSA CHAVE FECHA A FUNÇÃO fetchData
 
