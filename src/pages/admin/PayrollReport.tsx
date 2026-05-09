@@ -349,6 +349,9 @@ export default function PayrollReport() {
           <Button onClick={handleExportPDF} className="gap-2">
             <Download className="h-4 w-4" /> Exportar PDF
           </Button>
+          <Button onClick={handleExportExcel} className="gap-2 bg-stable text-stable-foreground hover:bg-stable/90">
+            <FileSpreadsheet className="h-4 w-4" /> Gerar Relatório em Excel
+          </Button>
         </div>
       </div>
 
