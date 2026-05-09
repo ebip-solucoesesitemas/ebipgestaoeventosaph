@@ -74,6 +74,7 @@ export type Database = {
           base_id: string | null
           created_at: string
           descricao: string | null
+          escopo: string
           id: string
           nome: string
           ordem: number
@@ -84,6 +85,7 @@ export type Database = {
           base_id?: string | null
           created_at?: string
           descricao?: string | null
+          escopo?: string
           id?: string
           nome: string
           ordem?: number
@@ -94,12 +96,20 @@ export type Database = {
           base_id?: string | null
           created_at?: string
           descricao?: string | null
+          escopo?: string
           id?: string
           nome?: string
           ordem?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "checklist_categories_base_fk"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "checklist_categories_base_id_fkey"
             columns: ["base_id"]
@@ -118,6 +128,7 @@ export type Database = {
           nome: string
           ordem: number
           quantidade_ideal: number
+          tipo_resposta: string
           unidade: string | null
           updated_at: string
         }
@@ -129,6 +140,7 @@ export type Database = {
           nome: string
           ordem?: number
           quantidade_ideal?: number
+          tipo_resposta?: string
           unidade?: string | null
           updated_at?: string
         }
@@ -140,10 +152,18 @@ export type Database = {
           nome?: string
           ordem?: number
           quantidade_ideal?: number
+          tipo_resposta?: string
           unidade?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "checklist_items_category_fk"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "checklist_items_category_id_fkey"
             columns: ["category_id"]
@@ -158,6 +178,7 @@ export type Database = {
           created_at: string
           id: string
           item_id: string
+          observacao: string | null
           quantidade_atual: number | null
           status: string
           submission_id: string
@@ -166,6 +187,7 @@ export type Database = {
           created_at?: string
           id?: string
           item_id: string
+          observacao?: string | null
           quantidade_atual?: number | null
           status?: string
           submission_id: string
@@ -174,6 +196,7 @@ export type Database = {
           created_at?: string
           id?: string
           item_id?: string
+          observacao?: string | null
           quantidade_atual?: number | null
           status?: string
           submission_id?: string
@@ -188,6 +211,20 @@ export type Database = {
           },
           {
             foreignKeyName: "checklist_submission_items_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csi_item_fk"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csi_submission_fk"
             columns: ["submission_id"]
             isOneToOne: false
             referencedRelation: "checklist_submissions"
@@ -226,7 +263,36 @@ export type Database = {
           tipo?: string
           vehicle_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "checklist_submissions_base_fk"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_submissions_event_fk"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_submissions_profile_fk"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_submissions_vehicle_fk"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_contracts: {
         Row: {

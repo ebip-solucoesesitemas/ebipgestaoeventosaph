@@ -1,75 +1,90 @@
-## Objetivo
+## Problemas identificados
 
-1. **Checklists por base**: cada base tem suas próprias categorias e itens.
-2. **Vincular submission a evento + viatura** (com base derivada do evento).
-3. **Aba Histórico no admin** com filtros (data, profissional, evento, base).
+**1. Erro "Could not find a relationship between 'checklist_submissions' and 'profile_id'"**
+As tabelas de checklist foram criadas **sem foreign keys** (ver `<foreign-keys>No foreign keys</foreign-keys>` em `checklist_submissions`, `checklist_submission_items`, `checklist_items`, `checklist_categories`). Por isso o PostgREST não consegue resolver os joins implícitos `profiles(...)`, `events(...)`, `vehicles(...)`, `checklist_submission_items(...)` usados em `ChecklistManagement.tsx` e `TeamChecklist.tsx`.
 
----
+**2. "Vinculado a evento" não lista eventos**
+Hoje só busca via `event_assignments` (membro escalado). Quando o usuário é o **responsável pela conta do evento** (`events.user_id`), ele não aparece. Precisa unir as duas fontes.
 
-## 1. Banco de dados — escopo por base
-
-Migration:
-- Adicionar `base_id uuid` em `checklist_categories` (nullable inicialmente para compatibilidade; depois exigir).
-- Index em `checklist_categories(base_id)`.
-- Atualizar RLS:
-  - **Leitura** de `checklist_categories` e `checklist_items`: autenticados podem ver apenas itens da própria `base_id` (do profile) **OU** `is_admin()` vê tudo.
-  - **Escrita**: `is_admin()` (admin/gestor/operacional). Operacional já é restrito por base na UI.
-- `checklist_items` herda a base via `category_id` (sem coluna duplicada).
+**3. Falta um checklist específico de viatura (lataria, óleo, pneus, etc.)**
+Hoje o checklist é genérico de itens médicos. O socorrista/condutor precisa conferir a viatura também antes de sair.
 
 ---
 
-## 2. Admin — Gestão por Base (`ChecklistManagement.tsx`)
+## Plano
 
-Refatorar em **Tabs**:
+### 1. Migration — corrigir relacionamentos e adicionar checklist de viatura
 
-### Aba "Categorias e Itens"
-- **Seletor de Base** no topo (admin/gestor: todas as bases; operacional: trava na própria).
-- CRUD de categorias e itens **filtrado pela base selecionada**. Ao criar categoria, gravar `base_id` da base ativa.
-- Indicador visual ("Editando checklist da Base X").
+```sql
+-- Foreign keys que estão faltando (causa do erro do PostgREST)
+ALTER TABLE checklist_categories
+  ADD CONSTRAINT checklist_categories_base_fk
+  FOREIGN KEY (base_id) REFERENCES bases(id) ON DELETE SET NULL;
 
-### Aba "Histórico de Conferências"
-- Filtros: Base (Select), Intervalo de datas (De/Até via Popover+Calendar, comparação `YYYY-MM-DD`), Profissional, Evento, Tipo (Diário/Evento/Todos).
-- Tabela: Data/Hora | Profissional | Base | Tipo | Evento | Viatura | Total | OK | Divergente | Falta | Ações.
-- Dialog de detalhe com itens agrupados por categoria + badges de status + botão **Baixar PDF** (`jsPDF + autoTable`, cabeçalho "Anjos da Vida Saúde").
+ALTER TABLE checklist_items
+  ADD CONSTRAINT checklist_items_category_fk
+  FOREIGN KEY (category_id) REFERENCES checklist_categories(id) ON DELETE CASCADE;
 
-Query:
-```ts
-supabase.from('checklist_submissions').select(`
-  *, profiles(nome, especialidade, bases(nome)),
-  events(nome_evento), vehicles(prefixo, placa),
-  checklist_submission_items(status, quantidade_atual,
-    checklist_items(nome, quantidade_ideal, unidade,
-      checklist_categories(nome, base_id)))
-`).order('created_at', { ascending: false })
+ALTER TABLE checklist_submissions
+  ADD CONSTRAINT checklist_submissions_profile_fk
+    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+  ADD CONSTRAINT checklist_submissions_event_fk
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL,
+  ADD CONSTRAINT checklist_submissions_vehicle_fk
+    FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,
+  ADD CONSTRAINT checklist_submissions_base_fk
+    FOREIGN KEY (base_id) REFERENCES bases(id) ON DELETE SET NULL;
+
+ALTER TABLE checklist_submission_items
+  ADD CONSTRAINT csi_submission_fk
+    FOREIGN KEY (submission_id) REFERENCES checklist_submissions(id) ON DELETE CASCADE,
+  ADD CONSTRAINT csi_item_fk
+    FOREIGN KEY (item_id) REFERENCES checklist_items(id) ON DELETE CASCADE;
+
+-- Diferenciar checklist médico vs. viatura
+ALTER TABLE checklist_categories
+  ADD COLUMN escopo text NOT NULL DEFAULT 'medico';
+  -- valores: 'medico' (kit médico/ambulância — itens com qtd) | 'viatura' (condições da viatura — OK/NOK)
+
+ALTER TABLE checklist_items
+  ADD COLUMN tipo_resposta text NOT NULL DEFAULT 'quantidade';
+  -- valores: 'quantidade' (qtd ideal vs atual) | 'condicao' (OK / NOK / N/A com observação)
+
+ALTER TABLE checklist_submission_items
+  ADD COLUMN observacao text;
 ```
-Filtro de base aplicado client-side via `profiles.base_id` ou `checklist_categories.base_id`.
+
+### 2. `TeamChecklist.tsx` — corrigir lista de eventos e suportar dois escopos
+
+- **Eventos do usuário**: unir `event_assignments` (escalado) **+** `events` onde `user_id = auth.uid()` (responsável pela conta), filtrando `agendado`/`em_andamento`. Deduplicar por `id`.
+- **Seletor de Escopo do checklist** (após escolher Tipo): `Kit Médico` ou `Viatura`. Filtra categorias por `escopo`.
+- **Renderização condicional dos itens**:
+  - `tipo_resposta = 'quantidade'`: mantém UI atual (OK / qtd / falta).
+  - `tipo_resposta = 'condicao'`: três botões (OK / NOK / N/A) + campo de observação opcional. Status salvo: `ok` | `divergente` (NOK) | `falta` mapeado para compatibilidade — ou estender enum se preferir, mas manter `text` evita migração de dados.
+- Quando "Vinculado a evento", manter auto-fill da viatura.
+
+### 3. `ChecklistManagement.tsx`
+
+- **Aba Categorias e Itens**: adicionar seletor `Escopo` (Médico / Viatura) ao criar categoria; ao criar item, expor seletor `Tipo de resposta` (Quantidade / Condição). Mostrar badge do escopo na lista.
+- **Aba Histórico**: filtro adicional por **Escopo** (Médico / Viatura / Todos). Tabela e PDF passam a mostrar coluna "Escopo" e, quando `condicao`, exibir OK/NOK/NA + observação no detalhe.
+- Após adicionar as FKs, os joins `profiles(...)`, `events(...)`, `vehicles(...)`, `checklist_submission_items(checklist_items(checklist_categories(...)))` voltam a funcionar — erro do print desaparece.
+
+### 4. Sementes opcionais (apenas se a base não tem itens de viatura)
+
+Inserir 1 categoria modelo "Viatura — Inspeção do Condutor" (escopo `viatura`) com itens condicionais: Lataria, Pneus, Óleo do motor, Água do radiador, Combustível, Faróis, Sirene/Giroflex, Cinto de segurança, Extintor, Macaco/estepe. **Confirmar com o usuário antes de semear** para evitar duplicar caso já vá cadastrar manualmente por base.
 
 ---
 
-## 3. Profissional — Preenchimento (`TeamChecklist.tsx`)
+## Detalhes técnicos
 
-- Buscar categorias/itens **apenas da base do profissional** (`profile.base_id`).
-- Adicionar **seletor de Tipo**: `Diário (base)` ou `Vinculado a Evento`.
-- Quando "Vinculado a Evento":
-  - Select de evento (eventos do profissional ativos: `agendado`/`em_andamento` da sua base).
-  - Auto-preenche `vehicle_id` com `events.viatura_id` (somente leitura, mostra prefixo/placa).
-  - Salvar `event_id`, `vehicle_id`, `tipo='evento'`.
-- Quando "Diário": Select opcional de viatura (viaturas da base). Salvar `tipo='diario'`.
-- Histórico pessoal continua mostrando últimas 5.
-
----
-
-## 4. Detalhes técnicos
-
-- Datas via string `YYYY-MM-DD` (regra Core).
-- Toasts Sonner top-right.
-- Componentes shadcn já presentes: `Tabs`, `Dialog`, `Select`, `Popover`, `Calendar`, `Table`, `Badge`.
-- PDF: `jsPDF + jspdf-autotable` (já instalado).
-- Sem mudanças em sidebar/rotas — tudo dentro de `/admin/checklist` e `/team/checklist`.
+- Tudo continua client-side; sem novas rotas.
+- RLS atual já cobre os novos campos (sem mudança de policies).
+- `src/integrations/supabase/types.ts` será regenerado automaticamente após a migration.
+- Datas e cents continuam seguindo as Core rules.
 
 ## Ordem de execução
 
-1. Migration: `ALTER TABLE checklist_categories ADD COLUMN base_id` + atualizar RLS de leitura para filtrar por base do profile.
-2. `ChecklistManagement.tsx`: Tabs + seletor de Base na aba "Categorias e Itens".
-3. `TeamChecklist.tsx`: filtrar por `base_id`, adicionar tipo + evento + viatura.
-4. Aba "Histórico" com filtros, tabela, dialog e PDF.
+1. Migration (FKs + colunas `escopo`/`tipo_resposta`/`observacao`).
+2. `TeamChecklist.tsx`: incluir eventos onde `user_id = auth.uid()` + escopo + UI condicional.
+3. `ChecklistManagement.tsx`: cadastro com escopo/tipo_resposta + filtro/exibição no histórico.
+4. (Opcional) seed da categoria "Viatura — Inspeção do Condutor".
