@@ -110,7 +110,7 @@ export default function TeamChecklist() {
   const [draftStatus, setDraftStatus] = useState<string>("rascunho");
   const [eventStatus, setEventStatus] = useState<string | null>(null);
 
-  // Load existing draft for selected event
+  // Load categories + items filtered by user's base AND selected scope
   useEffect(() => {
     (async () => {
       const catsRes = await supabase
