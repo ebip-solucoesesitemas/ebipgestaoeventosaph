@@ -726,6 +726,7 @@ export default function ChecklistManagement() {
                   <SelectContent>
                     <SelectItem value={ALL}>Todos</SelectItem>
                     <SelectItem value="medico">Kit Médico</SelectItem>
+                    <SelectItem value="enfermagem">Kit Enfermagem</SelectItem>
                     <SelectItem value="viatura">Viatura</SelectItem>
                   </SelectContent>
                 </Select>
