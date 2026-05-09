@@ -648,6 +648,7 @@ export default function ChecklistManagement() {
                     <SelectItem value="viatura">Viatura</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
               <div>
                 <Label className="text-xs">De</Label>
                 <Input type="date" value={filtroDe} onChange={(e) => setFiltroDe(e.target.value)} />
