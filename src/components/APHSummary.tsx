@@ -23,6 +23,11 @@ interface AttendanceData {
   sexo: string | null;
   queixa_principal: string;
   evolucao_clinica: string | null;
+  evolucao_medica?: string | null;
+  medico_nome?: string | null;
+  medico_crm?: string | null;
+  enfermeiro_nome?: string | null;
+  enfermeiro_coren?: string | null;
   status: string;
   created_at: string;
   profiles?: { nome: string; especialidade: string; registro_profissional: string };
@@ -188,18 +193,40 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
         styles: { fontSize: 9, cellPadding: 3 },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as any).lastAutoTable.finalY + 4;
+      y = (doc as any).lastAutoTable.finalY + 1;
+      if (attendance.enfermeiro_nome || attendance.enfermeiro_coren) {
+        autoTable(doc, {
+          startY: y,
+          body: [[`Assinado por: ${attendance.enfermeiro_nome ?? '-'}    COREN: ${attendance.enfermeiro_coren ?? '-'}`]],
+          styles: { fontSize: 9, cellPadding: 2, fontStyle: 'bold', fillColor: [243, 244, 246] },
+          margin: { left: 14, right: 14 },
+        });
+        y = (doc as any).lastAutoTable.finalY + 4;
+      } else {
+        y += 3;
+      }
     }
 
-    if ((attendance as any).evolucao_medica) {
+    if (attendance.evolucao_medica) {
       autoTable(doc, {
         startY: y,
         head: [[{ content: 'EVOLUÇÃO MÉDICA', styles: { halign: 'left', fillColor: [30, 64, 175], textColor: 255 } }]],
-        body: [[(attendance as any).evolucao_medica]],
+        body: [[attendance.evolucao_medica]],
         styles: { fontSize: 9, cellPadding: 3 },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as any).lastAutoTable.finalY + 4;
+      y = (doc as any).lastAutoTable.finalY + 1;
+      if (attendance.medico_nome || attendance.medico_crm) {
+        autoTable(doc, {
+          startY: y,
+          body: [[`Assinado por: ${attendance.medico_nome ?? '-'}    CRM: ${attendance.medico_crm ?? '-'}`]],
+          styles: { fontSize: 9, cellPadding: 2, fontStyle: 'bold', fillColor: [243, 244, 246] },
+          margin: { left: 14, right: 14 },
+        });
+        y = (doc as any).lastAutoTable.finalY + 4;
+      } else {
+        y += 3;
+      }
     }
 
     // Signatures
@@ -404,19 +431,33 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
               <p className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap">
                 {attendance.evolucao_clinica}
               </p>
+              {(attendance.enfermeiro_nome || attendance.enfermeiro_coren) && (
+                <div className="border-l-4 border-primary bg-muted/40 p-3 rounded">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Assinatura da Enfermagem</p>
+                  <p className="text-sm font-semibold">{attendance.enfermeiro_nome || '—'}</p>
+                  <p className="text-xs text-muted-foreground">COREN: {attendance.enfermeiro_coren || '—'}</p>
+                </div>
+              )}
             </div>
           )}
 
           {/* Medical Evolution */}
-          {(attendance as any).evolucao_medica && (
+          {attendance.evolucao_medica && (
             <div className="space-y-3 border-t pt-4">
               <h3 className="font-semibold flex items-center gap-2 text-primary">
                 <FileText className="w-4 h-4" />
                 EVOLUÇÃO MÉDICA
               </h3>
               <p className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap">
-                {(attendance as any).evolucao_medica}
+                {attendance.evolucao_medica}
               </p>
+              {(attendance.medico_nome || attendance.medico_crm) && (
+                <div className="border-l-4 border-destructive bg-muted/40 p-3 rounded">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Assinatura Médica</p>
+                  <p className="text-sm font-semibold">{attendance.medico_nome || '—'}</p>
+                  <p className="text-xs text-muted-foreground">CRM: {attendance.medico_crm || '—'}</p>
+                </div>
+              )}
             </div>
           )}
 

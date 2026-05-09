@@ -68,6 +68,155 @@ export type Database = {
         }
         Relationships: []
       }
+      checklist_categories: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      checklist_items: {
+        Row: {
+          ativo: boolean
+          category_id: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          quantidade_ideal: number
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          category_id: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          quantidade_ideal?: number
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          category_id?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          quantidade_ideal?: number
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_submission_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          quantidade_atual: number | null
+          status: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          quantidade_atual?: number | null
+          status?: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          quantidade_atual?: number | null
+          status?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_submission_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_submission_items_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_submissions: {
+        Row: {
+          base_id: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          observacoes: string | null
+          profile_id: string
+          tipo: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          base_id?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          observacoes?: string | null
+          profile_id: string
+          tipo?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          base_id?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          observacoes?: string | null
+          profile_id?: string
+          tipo?: string
+          vehicle_id?: string | null
+        }
+        Relationships: []
+      }
       client_contracts: {
         Row: {
           client_id: string
@@ -213,12 +362,16 @@ export type Database = {
           data_remocao: string | null
           desfecho: string | null
           documento: string | null
+          enfermeiro_coren: string | null
+          enfermeiro_nome: string | null
           event_id: string
           evolucao_clinica: string | null
           evolucao_medica: string | null
           hospital_destino: string | null
           id: string
           idade: number | null
+          medico_crm: string | null
+          medico_nome: string | null
           nome_paciente: string
           nome_receptor: string | null
           profissional_id: string
@@ -234,12 +387,16 @@ export type Database = {
           data_remocao?: string | null
           desfecho?: string | null
           documento?: string | null
+          enfermeiro_coren?: string | null
+          enfermeiro_nome?: string | null
           event_id: string
           evolucao_clinica?: string | null
           evolucao_medica?: string | null
           hospital_destino?: string | null
           id?: string
           idade?: number | null
+          medico_crm?: string | null
+          medico_nome?: string | null
           nome_paciente: string
           nome_receptor?: string | null
           profissional_id: string
@@ -255,12 +412,16 @@ export type Database = {
           data_remocao?: string | null
           desfecho?: string | null
           documento?: string | null
+          enfermeiro_coren?: string | null
+          enfermeiro_nome?: string | null
           event_id?: string
           evolucao_clinica?: string | null
           evolucao_medica?: string | null
           hospital_destino?: string | null
           id?: string
           idade?: number | null
+          medico_crm?: string | null
+          medico_nome?: string | null
           nome_paciente?: string
           nome_receptor?: string | null
           profissional_id?: string

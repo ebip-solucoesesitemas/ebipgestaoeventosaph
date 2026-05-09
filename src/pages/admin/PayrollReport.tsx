@@ -9,10 +9,11 @@ import {
   SelectTrigger,
   SelectValue } from
 "@/components/ui/select";
-import { Printer, FileText, Download } from "lucide-react";
+import { Printer, FileText, Download, FileSpreadsheet } from "lucide-react";
 import { format, startOfMonth, endOfMonth, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { generatePDF } from "@/lib/pdf";
+import * as XLSX from "xlsx";
 
 interface PayrollLine {
   profile_id: string;
@@ -236,6 +237,56 @@ export default function PayrollReport() {
     printWindow.onload = () => {printWindow.print();};
   };
 
+  const handleExportExcel = () => {
+    if (filteredLines.length === 0) return;
+    const baseName = selectedBase === "all"
+      ? "Todas"
+      : (bases.find((b) => b.id === selectedBase)?.sigla || "Base");
+    const monthLabel = `${months[parseInt(selectedMonth)]}-${selectedYear}`;
+
+    const rows: any[] = [];
+    Object.entries(profileGroups).forEach(([profileId, groupLines]) => {
+      const pData = profileDataMap.get(profileId);
+      groupLines.forEach((l) => {
+        rows.push({
+          Profissional: l.profile_name,
+          Especialidade: l.especialidade,
+          CPF: pData?.cpf || "",
+          "Chave PIX": pData?.chave_pix || "",
+          Evento: l.event_name,
+          Data: l.event_date,
+          "Check-in": l.checkin_at,
+          "Check-out": l.checkout_at,
+          Duração: l.minutes_display,
+          "Valor/Hora (R$)": l.valor_hora || 0,
+          "Valor/Evento (R$)": l.valor_evento || 0,
+          "Ajuda Custo (R$)": l.ajuda_custo || 0,
+          "Subtotal (R$)": Number(l.line_total.toFixed(2)),
+        });
+      });
+      const subtotal = groupLines.reduce((s, l) => s + l.line_total, 0);
+      rows.push({
+        Profissional: `Subtotal — ${groupLines[0].profile_name}`,
+        "Subtotal (R$)": Number(subtotal.toFixed(2)),
+      });
+      rows.push({});
+    });
+    rows.push({
+      Profissional: "TOTAL GERAL",
+      "Subtotal (R$)": Number(grandTotal.toFixed(2)),
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [
+      { wch: 28 }, { wch: 18 }, { wch: 16 }, { wch: 22 }, { wch: 28 },
+      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Folha de Pagamento");
+    XLSX.writeFile(wb, `folha-pagamento-${baseName}-${monthLabel}.xlsx`);
+  };
+
   const currentYear = new Date().getFullYear();
   const years = [currentYear - 1, currentYear, currentYear + 1];
 
@@ -297,6 +348,9 @@ export default function PayrollReport() {
           </Button>
           <Button onClick={handleExportPDF} className="gap-2">
             <Download className="h-4 w-4" /> Exportar PDF
+          </Button>
+          <Button onClick={handleExportExcel} className="gap-2 bg-stable text-stable-foreground hover:bg-stable/90">
+            <FileSpreadsheet className="h-4 w-4" /> Gerar Relatório em Excel
           </Button>
         </div>
       </div>

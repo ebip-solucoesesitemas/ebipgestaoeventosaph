@@ -79,6 +79,12 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
   const [evolucao, setEvolucao] = useState('');
   const [evolucaoMedica, setEvolucaoMedica] = useState('');
 
+  // Signature data (CRM/COREN)
+  const [medicoNome, setMedicoNome] = useState('');
+  const [medicoCrm, setMedicoCrm] = useState('');
+  const [enfermeiroNome, setEnfermeiroNome] = useState('');
+  const [enfermeiroCoren, setEnfermeiroCoren] = useState('');
+
   // Signatures
   const patientSigRef = useRef<SignaturePadRef>(null);
   const professionalSigRef = useRef<SignaturePadRef>(null);
@@ -105,6 +111,10 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
         setQueixaPrincipal(attendance.queixa_principal);
         setEvolucao(attendance.evolucao_clinica || '');
         setEvolucaoMedica((attendance as any).evolucao_medica || '');
+        setMedicoNome((attendance as any).medico_nome || '');
+        setMedicoCrm((attendance as any).medico_crm || '');
+        setEnfermeiroNome((attendance as any).enfermeiro_nome || '');
+        setEnfermeiroCoren((attendance as any).enfermeiro_coren || '');
 
         if (attendance.status === 'finalizado') {
           setShowSummary(true);
@@ -157,7 +167,11 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
       queixa_principal: queixaPrincipal,
       evolucao_clinica: evolucao,
       evolucao_medica: evolucaoMedica,
-    };
+      medico_nome: medicoNome.trim() || null,
+      medico_crm: medicoCrm.trim() || null,
+      enfermeiro_nome: enfermeiroNome.trim() || null,
+      enfermeiro_coren: enfermeiroCoren.trim() || null,
+    } as any;
 
     if (savedAttendanceId) {
       const { error } = await supabase
@@ -330,6 +344,14 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
     } else if (step === 'vitals') {
       setStep('evolution');
     } else if (step === 'evolution') {
+      if (evolucao.trim() && (!enfermeiroNome.trim() || !enfermeiroCoren.trim())) {
+        toast({ title: 'Informe nome e COREN da enfermagem', variant: 'destructive' });
+        return;
+      }
+      if (evolucaoMedica.trim() && (!medicoNome.trim() || !medicoCrm.trim())) {
+        toast({ title: 'Informe nome e CRM do médico', variant: 'destructive' });
+        return;
+      }
       await savePatientData();
       setStep('signatures');
     } else if (step === 'signatures') {
@@ -550,6 +572,31 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
                   placeholder="Descreva o atendimento realizado, procedimentos, medicamentos administrados, etc."
                   className="min-h-[150px] text-base"
                 />
+                {evolucao.trim() && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border-l-4 border-primary bg-muted/40 rounded">
+                    <div className="md:col-span-2">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Assinatura da Enfermagem</Label>
+                    </div>
+                    <div>
+                      <Label>Nome Completo *</Label>
+                      <Input
+                        value={enfermeiroNome}
+                        onChange={(e) => setEnfermeiroNome(e.target.value)}
+                        placeholder="Nome do(a) Enfermeiro(a)"
+                        className="input-touch"
+                      />
+                    </div>
+                    <div>
+                      <Label>COREN *</Label>
+                      <Input
+                        value={enfermeiroCoren}
+                        onChange={(e) => setEnfermeiroCoren(e.target.value)}
+                        placeholder="Ex.: COREN-SC 123456"
+                        className="input-touch"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Evolução Médica</Label>
@@ -559,6 +606,31 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
                   placeholder="Avaliação médica, diagnóstico, condutas e prescrições..."
                   className="min-h-[150px] text-base"
                 />
+                {evolucaoMedica.trim() && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border-l-4 border-destructive bg-muted/40 rounded">
+                    <div className="md:col-span-2">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Assinatura Médica</Label>
+                    </div>
+                    <div>
+                      <Label>Nome Completo *</Label>
+                      <Input
+                        value={medicoNome}
+                        onChange={(e) => setMedicoNome(e.target.value)}
+                        placeholder="Nome do(a) Médico(a)"
+                        className="input-touch"
+                      />
+                    </div>
+                    <div>
+                      <Label>CRM *</Label>
+                      <Input
+                        value={medicoCrm}
+                        onChange={(e) => setMedicoCrm(e.target.value)}
+                        placeholder="Ex.: CRM-SC 12345"
+                        className="input-touch"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
