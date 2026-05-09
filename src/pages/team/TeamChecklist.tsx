@@ -161,7 +161,7 @@ export default function TeamChecklist() {
           .from("events")
           .select("id")
           .eq("user_id", user.id)
-          .in("status", ["agendado", "em_andamento"]),
+          .in("status", ["agendado", "em_andamento", "finalizado"]),
       ]);
       const assignedIds = (assignsRes.data || []).map((a: any) => a.event_id);
       const ownedIds = (ownedRes.data || []).map((e: any) => e.id);
@@ -174,7 +174,7 @@ export default function TeamChecklist() {
         .from("events")
         .select("id, nome_evento, data_inicio, status, viatura_id, base_id, vehicles:viatura_id(id, prefixo, placa)")
         .in("id", allIds)
-        .in("status", ["agendado", "em_andamento"])
+        .in("status", ["agendado", "em_andamento", "finalizado"])
         .order("data_inicio", { ascending: false });
       setEvents(
         (evs || []).map((e: any) => ({
