@@ -211,10 +211,12 @@ export type Database = {
           created_at: string
           event_id: string | null
           id: string
+          intercorrencias: string | null
           observacoes: string | null
           profile_id: string
           responsavel_cargo: string | null
           responsavel_nome: string | null
+          status: string
           tipo: string
           vehicle_id: string | null
         }
@@ -224,10 +226,12 @@ export type Database = {
           created_at?: string
           event_id?: string | null
           id?: string
+          intercorrencias?: string | null
           observacoes?: string | null
           profile_id: string
           responsavel_cargo?: string | null
           responsavel_nome?: string | null
+          status?: string
           tipo?: string
           vehicle_id?: string | null
         }
@@ -237,10 +241,12 @@ export type Database = {
           created_at?: string
           event_id?: string | null
           id?: string
+          intercorrencias?: string | null
           observacoes?: string | null
           profile_id?: string
           responsavel_cargo?: string | null
           responsavel_nome?: string | null
+          status?: string
           tipo?: string
           vehicle_id?: string | null
         }
