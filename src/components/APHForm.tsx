@@ -79,6 +79,12 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
   const [evolucao, setEvolucao] = useState('');
   const [evolucaoMedica, setEvolucaoMedica] = useState('');
 
+  // Signature data (CRM/COREN)
+  const [medicoNome, setMedicoNome] = useState('');
+  const [medicoCrm, setMedicoCrm] = useState('');
+  const [enfermeiroNome, setEnfermeiroNome] = useState('');
+  const [enfermeiroCoren, setEnfermeiroCoren] = useState('');
+
   // Signatures
   const patientSigRef = useRef<SignaturePadRef>(null);
   const professionalSigRef = useRef<SignaturePadRef>(null);
@@ -105,6 +111,10 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
         setQueixaPrincipal(attendance.queixa_principal);
         setEvolucao(attendance.evolucao_clinica || '');
         setEvolucaoMedica((attendance as any).evolucao_medica || '');
+        setMedicoNome((attendance as any).medico_nome || '');
+        setMedicoCrm((attendance as any).medico_crm || '');
+        setEnfermeiroNome((attendance as any).enfermeiro_nome || '');
+        setEnfermeiroCoren((attendance as any).enfermeiro_coren || '');
 
         if (attendance.status === 'finalizado') {
           setShowSummary(true);
@@ -157,7 +167,11 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
       queixa_principal: queixaPrincipal,
       evolucao_clinica: evolucao,
       evolucao_medica: evolucaoMedica,
-    };
+      medico_nome: medicoNome.trim() || null,
+      medico_crm: medicoCrm.trim() || null,
+      enfermeiro_nome: enfermeiroNome.trim() || null,
+      enfermeiro_coren: enfermeiroCoren.trim() || null,
+    } as any;
 
     if (savedAttendanceId) {
       const { error } = await supabase
