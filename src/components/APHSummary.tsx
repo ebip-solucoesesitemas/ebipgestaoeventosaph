@@ -193,18 +193,40 @@ export default function APHSummary({ attendanceId, onClose }: APHSummaryProps) {
         styles: { fontSize: 9, cellPadding: 3 },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as any).lastAutoTable.finalY + 4;
+      y = (doc as any).lastAutoTable.finalY + 1;
+      if (attendance.enfermeiro_nome || attendance.enfermeiro_coren) {
+        autoTable(doc, {
+          startY: y,
+          body: [[`Assinado por: ${attendance.enfermeiro_nome ?? '-'}    COREN: ${attendance.enfermeiro_coren ?? '-'}`]],
+          styles: { fontSize: 9, cellPadding: 2, fontStyle: 'bold', fillColor: [243, 244, 246] },
+          margin: { left: 14, right: 14 },
+        });
+        y = (doc as any).lastAutoTable.finalY + 4;
+      } else {
+        y += 3;
+      }
     }
 
-    if ((attendance as any).evolucao_medica) {
+    if (attendance.evolucao_medica) {
       autoTable(doc, {
         startY: y,
         head: [[{ content: 'EVOLUÇÃO MÉDICA', styles: { halign: 'left', fillColor: [30, 64, 175], textColor: 255 } }]],
-        body: [[(attendance as any).evolucao_medica]],
+        body: [[attendance.evolucao_medica]],
         styles: { fontSize: 9, cellPadding: 3 },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as any).lastAutoTable.finalY + 4;
+      y = (doc as any).lastAutoTable.finalY + 1;
+      if (attendance.medico_nome || attendance.medico_crm) {
+        autoTable(doc, {
+          startY: y,
+          body: [[`Assinado por: ${attendance.medico_nome ?? '-'}    CRM: ${attendance.medico_crm ?? '-'}`]],
+          styles: { fontSize: 9, cellPadding: 2, fontStyle: 'bold', fillColor: [243, 244, 246] },
+          margin: { left: 14, right: 14 },
+        });
+        y = (doc as any).lastAutoTable.finalY + 4;
+      } else {
+        y += 3;
+      }
     }
 
     // Signatures
