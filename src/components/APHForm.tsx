@@ -564,6 +564,31 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
                   placeholder="Descreva o atendimento realizado, procedimentos, medicamentos administrados, etc."
                   className="min-h-[150px] text-base"
                 />
+                {evolucao.trim() && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border-l-4 border-primary bg-muted/40 rounded">
+                    <div className="md:col-span-2">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Assinatura da Enfermagem</Label>
+                    </div>
+                    <div>
+                      <Label>Nome Completo *</Label>
+                      <Input
+                        value={enfermeiroNome}
+                        onChange={(e) => setEnfermeiroNome(e.target.value)}
+                        placeholder="Nome do(a) Enfermeiro(a)"
+                        className="input-touch"
+                      />
+                    </div>
+                    <div>
+                      <Label>COREN *</Label>
+                      <Input
+                        value={enfermeiroCoren}
+                        onChange={(e) => setEnfermeiroCoren(e.target.value)}
+                        placeholder="Ex.: COREN-SC 123456"
+                        className="input-touch"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Evolução Médica</Label>
@@ -573,6 +598,31 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
                   placeholder="Avaliação médica, diagnóstico, condutas e prescrições..."
                   className="min-h-[150px] text-base"
                 />
+                {evolucaoMedica.trim() && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border-l-4 border-destructive bg-muted/40 rounded">
+                    <div className="md:col-span-2">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Assinatura Médica</Label>
+                    </div>
+                    <div>
+                      <Label>Nome Completo *</Label>
+                      <Input
+                        value={medicoNome}
+                        onChange={(e) => setMedicoNome(e.target.value)}
+                        placeholder="Nome do(a) Médico(a)"
+                        className="input-touch"
+                      />
+                    </div>
+                    <div>
+                      <Label>CRM *</Label>
+                      <Input
+                        value={medicoCrm}
+                        onChange={(e) => setMedicoCrm(e.target.value)}
+                        placeholder="Ex.: CRM-SC 12345"
+                        className="input-touch"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
