@@ -85,7 +85,7 @@ export default function ChecklistReminderDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) markSeen(); setOpen(v); }}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-md">
         {step === "ask" ? (
           <>
