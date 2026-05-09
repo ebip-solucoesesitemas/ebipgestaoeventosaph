@@ -101,7 +101,10 @@ export default function TeamChecklist() {
   const [tipo, setTipo] = useState<"diario" | "evento">(
     searchParams.get("event_id") ? "evento" : "diario"
   );
-  const [escopo, setEscopo] = useState<"medico" | "viatura">("medico");
+  const initialEscopo = (searchParams.get("escopo") as "medico" | "enfermagem" | "viatura") || "medico";
+  const [escopo, setEscopo] = useState<"medico" | "enfermagem" | "viatura">(
+    ["medico", "enfermagem", "viatura"].includes(initialEscopo) ? initialEscopo : "medico"
+  );
   const [events, setEvents] = useState<EventOption[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [eventId, setEventId] = useState<string>(searchParams.get("event_id") || "");
