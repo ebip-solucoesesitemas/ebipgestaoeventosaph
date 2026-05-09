@@ -790,6 +790,24 @@ export default function ChecklistManagement() {
                                 {s.tipo}
                               </Badge>
                             </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={
+                                  s.status === "finalizado"
+                                    ? "bg-stable text-stable-foreground"
+                                    : s.status === "rascunho"
+                                    ? "bg-warning text-warning-foreground"
+                                    : ""
+                                }
+                                variant={!s.status || s.status === "nao_realizado" ? "outline" : "default"}
+                              >
+                                {s.status === "finalizado"
+                                  ? "Finalizado"
+                                  : s.status === "rascunho"
+                                  ? "Rascunho"
+                                  : (s.status || "—")}
+                              </Badge>
+                            </TableCell>
                             <TableCell className="text-sm">{s.events?.nome_evento || "—"}</TableCell>
                             <TableCell className="text-sm">
                               {s.vehicles ? `${s.vehicles.prefixo}` : "—"}
