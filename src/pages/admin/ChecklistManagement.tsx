@@ -82,6 +82,9 @@ interface SubmissionRow {
   vehicle_id: string | null;
   event_id: string | null;
   profile_id: string;
+  responsavel_nome: string | null;
+  responsavel_cargo: string | null;
+  assinatura: string | null;
   profiles?: { nome: string; especialidade: string; base_id: string | null } | null;
   events?: { nome_evento: string } | null;
   vehicles?: { prefixo: string; placa: string } | null;
