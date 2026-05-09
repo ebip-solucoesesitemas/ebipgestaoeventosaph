@@ -430,6 +430,7 @@ export default function ChecklistManagement() {
     setFiltroProfile(ALL);
     setFiltroEvento(ALL);
     setFiltroTipo(ALL);
+    setFiltroEscopo(ALL);
     setFiltroDe("");
     setFiltroAte("");
   };
