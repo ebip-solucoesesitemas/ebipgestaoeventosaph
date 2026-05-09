@@ -901,27 +901,42 @@ export default function ChecklistManagement() {
                 placeholder="Ex.: Cânula de Guedel nº 3"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Quantidade Ideal *</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={itemForm.quantidade_ideal}
-                  onChange={(e) =>
-                    setItemForm({ ...itemForm, quantidade_ideal: Number(e.target.value) })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Unidade</Label>
-                <Input
-                  value={itemForm.unidade}
-                  onChange={(e) => setItemForm({ ...itemForm, unidade: e.target.value })}
-                  placeholder="un, amp, fr…"
-                />
-              </div>
+            <div>
+              <Label>Tipo de resposta *</Label>
+              <Select
+                value={itemForm.tipo_resposta}
+                onValueChange={(v) => setItemForm({ ...itemForm, tipo_resposta: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="quantidade">Quantidade (ideal vs atual)</SelectItem>
+                  <SelectItem value="condicao">Condição (OK / NOK / N/A)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            {itemForm.tipo_resposta === "quantidade" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Quantidade Ideal *</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={itemForm.quantidade_ideal}
+                    onChange={(e) =>
+                      setItemForm({ ...itemForm, quantidade_ideal: Number(e.target.value) })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Unidade</Label>
+                  <Input
+                    value={itemForm.unidade}
+                    onChange={(e) => setItemForm({ ...itemForm, unidade: e.target.value })}
+                    placeholder="un, amp, fr…"
+                  />
+                </div>
+              </div>
+            )}
             <div>
               <Label>Ordem dentro da categoria</Label>
               <Input
