@@ -344,6 +344,14 @@ export default function APHForm({ eventId, attendanceId, onClose }: APHFormProps
     } else if (step === 'vitals') {
       setStep('evolution');
     } else if (step === 'evolution') {
+      if (evolucao.trim() && (!enfermeiroNome.trim() || !enfermeiroCoren.trim())) {
+        toast({ title: 'Informe nome e COREN da enfermagem', variant: 'destructive' });
+        return;
+      }
+      if (evolucaoMedica.trim() && (!medicoNome.trim() || !medicoCrm.trim())) {
+        toast({ title: 'Informe nome e CRM do médico', variant: 'destructive' });
+        return;
+      }
       await savePatientData();
       setStep('signatures');
     } else if (step === 'signatures') {
