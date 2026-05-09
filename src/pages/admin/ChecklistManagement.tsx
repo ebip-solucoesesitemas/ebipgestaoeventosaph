@@ -435,9 +435,11 @@ export default function ChecklistManagement() {
       ["Cargo / Função", s.responsavel_cargo || "—"],
       ["Base", baseName(s.base_id || s.profiles?.base_id)],
       ["Tipo", s.tipo],
+      ["Status", s.status === "finalizado" ? "Finalizado" : s.status === "rascunho" ? "Rascunho" : (s.status || "—")],
       ["Evento", s.events?.nome_evento || "—"],
       ["Viatura", s.vehicles ? `${s.vehicles.prefixo} — ${s.vehicles.placa}` : "—"],
       ["Observações", s.observacoes || "—"],
+      ["Intercorrências", s.intercorrencias || "—"],
     ];
     autoTable(doc, {
       startY: 30,
