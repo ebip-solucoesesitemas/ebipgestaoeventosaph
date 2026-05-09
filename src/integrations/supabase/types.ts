@@ -206,32 +206,41 @@ export type Database = {
       }
       checklist_submissions: {
         Row: {
+          assinatura: string | null
           base_id: string | null
           created_at: string
           event_id: string | null
           id: string
           observacoes: string | null
           profile_id: string
+          responsavel_cargo: string | null
+          responsavel_nome: string | null
           tipo: string
           vehicle_id: string | null
         }
         Insert: {
+          assinatura?: string | null
           base_id?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
           observacoes?: string | null
           profile_id: string
+          responsavel_cargo?: string | null
+          responsavel_nome?: string | null
           tipo?: string
           vehicle_id?: string | null
         }
         Update: {
+          assinatura?: string | null
           base_id?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
           observacoes?: string | null
           profile_id?: string
+          responsavel_cargo?: string | null
+          responsavel_nome?: string | null
           tipo?: string
           vehicle_id?: string | null
         }

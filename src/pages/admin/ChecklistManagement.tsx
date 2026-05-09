@@ -82,6 +82,9 @@ interface SubmissionRow {
   vehicle_id: string | null;
   event_id: string | null;
   profile_id: string;
+  responsavel_nome: string | null;
+  responsavel_cargo: string | null;
+  assinatura: string | null;
   profiles?: { nome: string; especialidade: string; base_id: string | null } | null;
   events?: { nome_evento: string } | null;
   vehicles?: { prefixo: string; placa: string } | null;
@@ -303,6 +306,7 @@ export default function ChecklistManagement() {
       .from("checklist_submissions")
       .select(
         `id, created_at, tipo, observacoes, base_id, vehicle_id, event_id, profile_id,
+         responsavel_nome, responsavel_cargo, assinatura,
          profiles:profile_id (nome, especialidade, base_id),
          events:event_id (nome_evento),
          vehicles:vehicle_id (prefixo, placa)`
@@ -424,7 +428,9 @@ export default function ChecklistManagement() {
     const dateStr = format(new Date(s.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     const meta = [
       ["Data/Hora", dateStr],
-      ["Profissional", `${s.profiles?.nome || "—"} (${s.profiles?.especialidade || "—"})`],
+      ["Profissional (conta)", `${s.profiles?.nome || "—"} (${s.profiles?.especialidade || "—"})`],
+      ["Responsável pelo checklist", s.responsavel_nome || "—"],
+      ["Cargo / Função", s.responsavel_cargo || "—"],
       ["Base", baseName(s.base_id || s.profiles?.base_id)],
       ["Tipo", s.tipo],
       ["Evento", s.events?.nome_evento || "—"],
@@ -457,8 +463,8 @@ export default function ChecklistManagement() {
         body: list.map((it) => {
           const isCond = it.checklist_items?.tipo_resposta === "condicao";
           const statusLabel = isCond
-            ? it.status === "ok" ? "OK" : it.status === "divergente" ? "NOK" : "N/A"
-            : it.status.toUpperCase();
+            ? it.status === "ok" ? "OK" : it.status === "divergente" ? "Com Defeito" : "Não se Aplica"
+            : it.status === "ok" ? "OK" : it.status === "divergente" ? "Divergente" : "Falta";
           return [
             it.checklist_items?.nome || "—",
             isCond ? "Condição" : `${it.checklist_items?.quantidade_ideal ?? "-"}${it.checklist_items?.unidade ? " " + it.checklist_items.unidade : ""}`,
@@ -472,6 +478,28 @@ export default function ChecklistManagement() {
       });
       y = (doc as any).lastAutoTable.finalY + 6;
     });
+
+    // Signature block
+    const pageHeight = doc.internal.pageSize.getHeight();
+    if (y > pageHeight - 70) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.setFontSize(11);
+    doc.text("Assinatura do Responsável", 14, y + 4);
+    if (s.assinatura && s.assinatura.startsWith("data:image")) {
+      try {
+        doc.addImage(s.assinatura, "JPEG", 14, y + 8, 70, 30);
+      } catch {
+        try { doc.addImage(s.assinatura, "PNG", 14, y + 8, 70, 30); } catch { /* ignore */ }
+      }
+    } else {
+      doc.setFontSize(9);
+      doc.text("(sem assinatura registrada)", 14, y + 16);
+    }
+    doc.setFontSize(9);
+    doc.text(`${s.responsavel_nome || "—"} — ${s.responsavel_cargo || "—"}`, 14, y + 44);
+    doc.text(`Assinado em ${dateStr}`, 14, y + 49);
 
     doc.save(`checklist-${dateStr.replace(/[/: ]/g, "-")}.pdf`);
   };
@@ -604,7 +632,7 @@ export default function ChecklistManagement() {
                               <p className="font-medium">{it.nome}</p>
                               <p className="text-xs text-muted-foreground">
                                 {it.tipo_resposta === "condicao"
-                                  ? "Condição (OK / NOK / N/A)"
+                                  ? "Condição (OK / Com Defeito / Não se Aplica)"
                                   : `Qtd ideal: ${it.quantidade_ideal}${it.unidade ? ` ${it.unidade}` : ""}`}
                               </p>
                             </div>
@@ -793,10 +821,14 @@ export default function ChecklistManagement() {
                 <div><span className="text-muted-foreground">Data:</span>{" "}
                   {format(new Date(detail.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</div>
                 <div><span className="text-muted-foreground">Tipo:</span> {detail.tipo}</div>
-                <div><span className="text-muted-foreground">Profissional:</span>{" "}
+                <div><span className="text-muted-foreground">Profissional (conta):</span>{" "}
                   {detail.profiles?.nome} ({detail.profiles?.especialidade})</div>
                 <div><span className="text-muted-foreground">Base:</span>{" "}
                   {baseName(detail.base_id || detail.profiles?.base_id)}</div>
+                <div><span className="text-muted-foreground">Responsável:</span>{" "}
+                  {detail.responsavel_nome || "—"}</div>
+                <div><span className="text-muted-foreground">Cargo / Função:</span>{" "}
+                  {detail.responsavel_cargo || "—"}</div>
                 <div><span className="text-muted-foreground">Evento:</span>{" "}
                   {detail.events?.nome_evento || "—"}</div>
                 <div><span className="text-muted-foreground">Viatura:</span>{" "}
@@ -805,6 +837,13 @@ export default function ChecklistManagement() {
               {detail.observacoes && (
                 <div className="bg-muted p-3 rounded-md text-sm">
                   <strong>Observações:</strong> {detail.observacoes}
+                </div>
+              )}
+
+              {detail.assinatura && (
+                <div className="border rounded-md p-3 bg-white">
+                  <p className="text-xs text-muted-foreground mb-1">Assinatura do responsável</p>
+                  <img src={detail.assinatura} alt="Assinatura" className="max-h-32" />
                 </div>
               )}
 
@@ -824,8 +863,8 @@ export default function ChecklistManagement() {
                     {list.map((it, idx) => {
                       const isCond = it.checklist_items?.tipo_resposta === "condicao";
                       const statusLabel = isCond
-                        ? it.status === "ok" ? "OK" : it.status === "divergente" ? "NOK" : "N/A"
-                        : it.status.toUpperCase();
+                        ? it.status === "ok" ? "OK" : it.status === "divergente" ? "Com Defeito" : "Não se Aplica"
+                        : it.status === "ok" ? "OK" : it.status === "divergente" ? "Divergente" : "Falta";
                       return (
                         <div key={idx} className="p-2 text-sm">
                           <div className="flex items-center justify-between">
@@ -917,7 +956,7 @@ export default function ChecklistManagement() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="medico">Kit Médico (quantidade)</SelectItem>
-                  <SelectItem value="viatura">Viatura (condição: OK/NOK/NA)</SelectItem>
+                  <SelectItem value="viatura">Viatura (condição: OK / Com Defeito / Não se Aplica)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
@@ -987,7 +1026,7 @@ export default function ChecklistManagement() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="quantidade">Quantidade (ideal vs atual)</SelectItem>
-                  <SelectItem value="condicao">Condição (OK / NOK / N/A)</SelectItem>
+                  <SelectItem value="condicao">Condição (OK / Com Defeito / Não se Aplica)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
