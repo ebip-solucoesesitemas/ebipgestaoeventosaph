@@ -849,14 +849,6 @@ export default function ChecklistManagement() {
           <div className="space-y-3">
             <div>
               <Label>Nome *</Label>
-              <Input
-                value={catForm.nome}
-                onChange={(e) => setCatForm({ ...catForm, nome: e.target.value })}
-                placeholder="Ex.: Mochila Azul - Vias Aéreas"
-              />
-            </div>
-            <div>
-              <Label>Nome *</Label>
               {catForm.escopo === "viatura" ? (
                 <>
                   <Select
