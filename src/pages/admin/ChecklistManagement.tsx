@@ -529,6 +529,9 @@ export default function ChecklistManagement() {
                         <Badge variant="secondary">
                           {catItems.length} {catItems.length === 1 ? "item" : "itens"}
                         </Badge>
+                        <Badge variant={cat.escopo === "viatura" ? "default" : "outline"}>
+                          {cat.escopo === "viatura" ? "Viatura" : "Kit Médico"}
+                        </Badge>
                       </CardTitle>
                       {cat.descricao && (
                         <p className="text-sm text-muted-foreground mt-1">{cat.descricao}</p>
