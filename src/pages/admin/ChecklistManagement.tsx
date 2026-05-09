@@ -639,6 +639,16 @@ export default function ChecklistManagement() {
                 </Select>
               </div>
               <div>
+                <Label className="text-xs">Escopo</Label>
+                <Select value={filtroEscopo} onValueChange={setFiltroEscopo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>Todos</SelectItem>
+                    <SelectItem value="medico">Kit Médico</SelectItem>
+                    <SelectItem value="viatura">Viatura</SelectItem>
+                  </SelectContent>
+                </Select>
+              <div>
                 <Label className="text-xs">De</Label>
                 <Input type="date" value={filtroDe} onChange={(e) => setFiltroDe(e.target.value)} />
               </div>
