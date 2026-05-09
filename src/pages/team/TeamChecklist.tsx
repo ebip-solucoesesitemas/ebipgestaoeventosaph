@@ -241,7 +241,7 @@ export default function TeamChecklist() {
       .then(({ data }) => setEventStatus((data as any)?.status || null));
   }, [tipo, eventId]);
 
-  // Load existing draft/finalized checklist for selected event (shared by team)
+  // Load existing draft/finalized checklist for selected event + escopo (shared by team)
   useEffect(() => {
     if (tipo !== "evento" || !eventId || !profile?.id || items.length === 0) {
       setDraftId(null);
@@ -254,6 +254,7 @@ export default function TeamChecklist() {
         .from("checklist_submissions")
         .select("id, status, observacoes, intercorrencias, responsavel_nome, responsavel_cargo, profile_id")
         .eq("event_id", eventId)
+        .eq("escopo" as any, escopo)
         .in("status", ["rascunho", "finalizado"])
         .order("created_at", { ascending: false })
         .limit(1)
@@ -262,6 +263,8 @@ export default function TeamChecklist() {
         setDraftId(null);
         setDraftStatus("rascunho");
         setDraftProfileId(null);
+        setObservacoes("");
+        setIntercorrencias("");
         return;
       }
       setDraftId(sub.id);
@@ -292,7 +295,7 @@ export default function TeamChecklist() {
         });
       }
     })();
-  }, [tipo, eventId, profile?.id, items.length]);
+  }, [tipo, eventId, escopo, profile?.id, items.length]);
 
   // ---- Quantidade handlers ----
   const setOk = (item: Item) =>
