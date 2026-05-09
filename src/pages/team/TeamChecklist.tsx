@@ -776,40 +776,57 @@ export default function TeamChecklist() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {history.map((h) => (
-              <div key={h.id} className="flex items-center justify-between border-b last:border-0 pb-2">
-                <div>
-                  <p className="text-sm font-medium">
-                    {format(new Date(h.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </p>
-                  {h.observacoes && <p className="text-xs text-muted-foreground">{h.observacoes}</p>}
-                  {h.intercorrencias && (
-                    <p className="text-xs text-warning">⚠ {h.intercorrencias}</p>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <Badge variant="outline">{h.tipo}</Badge>
-                  {h.status && (
-                    <Badge
-                      className={
-                        h.status === "finalizado"
-                          ? "bg-stable text-stable-foreground"
+            {history.map((h) => {
+              const canOpen = h.tipo === "evento" && h.event_id && h.status !== "finalizado";
+              return (
+                <div
+                  key={h.id}
+                  className={`flex items-center justify-between border-b last:border-0 pb-2 ${
+                    canOpen ? "cursor-pointer hover:bg-muted/40 rounded px-2 -mx-2" : ""
+                  }`}
+                  onClick={() => {
+                    if (!canOpen) return;
+                    setTipo("evento");
+                    setEventId(h.event_id!);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      {format(new Date(h.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                    {h.observacoes && <p className="text-xs text-muted-foreground">{h.observacoes}</p>}
+                    {h.intercorrencias && (
+                      <p className="text-xs text-warning">⚠ {h.intercorrencias}</p>
+                    )}
+                    {canOpen && (
+                      <p className="text-xs text-primary mt-1">Clique para continuar editando</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="outline">{h.tipo}</Badge>
+                    {h.status && (
+                      <Badge
+                        className={
+                          h.status === "finalizado"
+                            ? "bg-stable text-stable-foreground"
+                            : h.status === "rascunho"
+                            ? "bg-warning text-warning-foreground"
+                            : ""
+                        }
+                        variant={h.status === "nao_realizado" ? "destructive" : "default"}
+                      >
+                        {h.status === "finalizado"
+                          ? "Finalizado"
                           : h.status === "rascunho"
-                          ? "bg-warning text-warning-foreground"
-                          : ""
-                      }
-                      variant={h.status === "nao_realizado" ? "destructive" : "default"}
-                    >
-                      {h.status === "finalizado"
-                        ? "Finalizado"
-                        : h.status === "rascunho"
-                        ? "Rascunho"
-                        : h.status}
-                    </Badge>
-                  )}
+                          ? "Rascunho"
+                          : h.status}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       )}
