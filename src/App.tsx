@@ -30,6 +30,7 @@ import AdminPermissions from "./pages/admin/Permissions";
 import AdminPayrollReport from "./pages/admin/PayrollReport";
 import AdminSystemNotices from "./pages/admin/SystemNotices";
 import AdminChecklist from "./pages/admin/ChecklistManagement";
+import AdminSystemBackup from "./pages/admin/SystemBackup";
 import TeamChecklist from "./pages/team/TeamChecklist";
 import BaseEvents from "./pages/admin/base/BaseEvents";
 import BaseProfessionals from "./pages/admin/base/BaseProfessionals";
