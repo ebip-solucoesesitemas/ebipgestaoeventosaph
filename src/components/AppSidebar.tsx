@@ -149,7 +149,10 @@ export function AppSidebar() {
   );
 
   const filteredCommercial = filterLinks(commercialLinks);
-  const filteredConfig = filterLinks(configLinks);
+  const filteredConfig = filterLinks([
+    ...configLinks,
+    ...(profile?.hidden ? [{ href: "/admin/audit-logs", label: "Logs de Auditoria", icon: Shield } as MenuLink] : []),
+  ]);
 
   return (
     <Sidebar collapsible="offcanvas">
