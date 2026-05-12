@@ -88,8 +88,23 @@ function pad(n: number) {
 
 async function authorize(req: Request): Promise<{ ok: boolean; userId: string | null; reason?: string }> {
   const internal = req.headers.get('x-internal-secret');
-  if (internal && CRON_SECRET && internal === CRON_SECRET) {
-    return { ok: true, userId: null };
+  if (internal) {
+    if (CRON_SECRET && internal === CRON_SECRET) return { ok: true, userId: null };
+    // Compare against vault-stored secret used by the cron job
+    try {
+      const svc = createClient(SUPABASE_URL, SERVICE_ROLE);
+      const { data } = await svc
+        .schema('vault' as any)
+        .from('decrypted_secrets')
+        .select('decrypted_secret')
+        .eq('name', 'backup_cron_secret')
+        .maybeSingle();
+      if (data?.decrypted_secret && data.decrypted_secret === internal) {
+        return { ok: true, userId: null };
+      }
+    } catch (_e) {
+      // fall through to JWT path
+    }
   }
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) return { ok: false, userId: null, reason: 'no auth' };
