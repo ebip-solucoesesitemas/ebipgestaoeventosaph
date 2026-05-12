@@ -83,6 +83,7 @@ const App = () => (
               <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
               <Route path="/admin/system-notices" element={<AdminRoute><AdminSystemNotices /></AdminRoute>} />
               <Route path="/admin/checklist" element={<AdminRoute><AdminChecklist /></AdminRoute>} />
+              <Route path="/admin/system-backup" element={<AdminRoute><AdminSystemBackup /></AdminRoute>} />
               
               {/* Base-specific Routes */}
               <Route path="/admin/base/:baseId/events" element={<AdminRoute><BaseEvents /></AdminRoute>} />
