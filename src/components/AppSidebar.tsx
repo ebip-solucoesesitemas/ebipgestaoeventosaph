@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Bell,
   HeartPulse,
+  Database,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
