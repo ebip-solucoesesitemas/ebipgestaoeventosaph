@@ -248,6 +248,7 @@ export function AppSidebar() {
                 <SidebarGroupContent>
                   {renderMenuItems([
                     { href: "/admin/system-notices", label: "Avisos do Sistema", icon: Bell },
+                    { href: "/admin/system-backup", label: "Sistema e Backup", icon: Database },
                   ])}
                 </SidebarGroupContent>
               </SidebarGroup>
