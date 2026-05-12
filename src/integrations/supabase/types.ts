@@ -1444,6 +1444,7 @@ export type Database = {
         Args: { event_uuid: string }
         Returns: undefined
       }
+      get_backup_cron_secret: { Args: never; Returns: string }
       get_event_teammates: {
         Args: { p_event_id: string }
         Returns: {
