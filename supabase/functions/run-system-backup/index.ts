@@ -93,13 +93,8 @@ async function authorize(req: Request): Promise<{ ok: boolean; userId: string | 
     // Compare against vault-stored secret used by the cron job
     try {
       const svc = createClient(SUPABASE_URL, SERVICE_ROLE);
-      const { data } = await svc
-        .schema('vault' as any)
-        .from('decrypted_secrets')
-        .select('decrypted_secret')
-        .eq('name', 'backup_cron_secret')
-        .maybeSingle();
-      if (data?.decrypted_secret && data.decrypted_secret === internal) {
+      const { data } = await svc.rpc('get_backup_cron_secret');
+      if (data && typeof data === 'string' && data === internal) {
         return { ok: true, userId: null };
       }
     } catch (_e) {
