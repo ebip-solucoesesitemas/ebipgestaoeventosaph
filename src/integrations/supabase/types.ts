@@ -1210,6 +1210,48 @@ export type Database = {
         }
         Relationships: []
       }
+      system_backups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          file_size_bytes: number
+          id: string
+          manifest: Json | null
+          source: string
+          status: string
+          storage_path: string
+          tables_count: number
+          total_rows: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_size_bytes?: number
+          id?: string
+          manifest?: Json | null
+          source: string
+          status?: string
+          storage_path: string
+          tables_count?: number
+          total_rows?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_size_bytes?: number
+          id?: string
+          manifest?: Json | null
+          source?: string
+          status?: string
+          storage_path?: string
+          tables_count?: number
+          total_rows?: number
+        }
+        Relationships: []
+      }
       system_notices: {
         Row: {
           color: string
@@ -1402,6 +1444,7 @@ export type Database = {
         Args: { event_uuid: string }
         Returns: undefined
       }
+      get_backup_cron_secret: { Args: never; Returns: string }
       get_event_teammates: {
         Args: { p_event_id: string }
         Returns: {
