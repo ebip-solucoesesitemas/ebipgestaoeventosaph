@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
+import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -22,6 +24,8 @@ const actionColors: Record<string, string> = {
 };
 
 export default function AuditLogs() {
+  const { profile, isLoading: authLoading } = useAuth();
+  if (!authLoading && !profile?.hidden) return <Navigate to="/events" replace />;
   const { data: logs, isLoading } = useQuery({
     queryKey: ['audit-logs'],
     queryFn: async () => {

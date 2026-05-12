@@ -72,7 +72,7 @@ const configLinks: MenuLink[] = [
   { href: "/admin/professional-report", label: "Relatórios", icon: ClipboardList, permissionKey: "professionals.view" },
   { href: "/admin/payroll", label: "Pagamentos", icon: Wallet, permissionKey: "payroll.view" },
   { href: "/admin/payroll-report", label: "Folha de Pagamento", icon: ClipboardList, permissionKey: "payroll.view" },
-  { href: "/admin/audit-logs", label: "Logs de Auditoria", icon: Shield, permissionKey: "audit_logs.view" },
+  ...(/* super-admin only */ [] as MenuLink[]),
   { href: "/admin/checklist", label: "Checklist (Itens)", icon: ClipboardList },
   { href: "/tickets", label: "Chamados", icon: MessageSquare },
 ];
@@ -149,7 +149,10 @@ export function AppSidebar() {
   );
 
   const filteredCommercial = filterLinks(commercialLinks);
-  const filteredConfig = filterLinks(configLinks);
+  const filteredConfig = filterLinks([
+    ...configLinks,
+    ...(profile?.hidden ? [{ href: "/admin/audit-logs", label: "Logs de Auditoria", icon: Shield } as MenuLink] : []),
+  ]);
 
   return (
     <Sidebar collapsible="offcanvas">

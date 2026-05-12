@@ -26,6 +26,7 @@ import AdminUsers from "./pages/admin/Users";
 import AdminContractTemplates from "./pages/admin/ContractTemplates";
 import AdminRegulationPhones from "./pages/admin/RegulationPhones";
 import AdminAuditLogs from "./pages/admin/AuditLogs";
+import SuperAdminRoute from "./components/SuperAdminRoute";
 import AdminPermissions from "./pages/admin/Permissions";
 import AdminPayrollReport from "./pages/admin/PayrollReport";
 import AdminSystemNotices from "./pages/admin/SystemNotices";
@@ -80,7 +81,7 @@ const App = () => (
               <Route path="/admin/regulation-phones" element={<AdminRoute><AdminRegulationPhones /></AdminRoute>} />
               <Route path="/admin/permissions" element={<AdminRoute><AdminPermissions /></AdminRoute>} />
               <Route path="/admin/payroll-report" element={<AdminRoute><AdminPayrollReport /></AdminRoute>} />
-              <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
+              <Route path="/admin/audit-logs" element={<SuperAdminRoute><AdminAuditLogs /></SuperAdminRoute>} />
               <Route path="/admin/system-notices" element={<AdminRoute><AdminSystemNotices /></AdminRoute>} />
               <Route path="/admin/checklist" element={<AdminRoute><AdminChecklist /></AdminRoute>} />
               <Route path="/admin/system-backup" element={<AdminRoute><AdminSystemBackup /></AdminRoute>} />
