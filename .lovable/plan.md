@@ -1,59 +1,96 @@
+## Backup Automático Agendado
 
-## Objetivo
+Evolução do módulo de Backup atual para rodar automaticamente todos os dias às 03:00, com histórico, retenção de 30 backups e download/exclusão pelo Super-Admin.
 
-Transformar o checklist de "diário por usuário" em "um checklist por evento/viatura", com possibilidade de salvar como rascunho durante o evento, registrar intercorrências e finalizar somente após o término. O alerta deve reaparecer automaticamente sempre que a equipe iniciar um novo evento sem checklist.
+---
 
-## Comportamento esperado
+### 1. Banco de dados (migração)
 
-1. **Alerta por evento (não mais por dia)**
-   - Ao entrar no app, verificar todos os eventos do dia em que o usuário está escalado (ou é responsável) e que ainda **não possuem** um checklist finalizado.
-   - Para cada evento pendente, exibir o popup "Conferência de Checklist" indicando o nome do evento e a viatura.
-   - Quando o primeiro evento finalizar e o próximo começar, o popup reaparece automaticamente para o segundo checklist.
+**Bucket privado** `system-backups` (Storage):
+- Sem políticas públicas. Acesso somente via service role da edge function.
+- Super-Admin baixa via URL assinada gerada pela edge function (expira em ~5 min).
 
-2. **Salvar como rascunho**
-   - Botão **"Salvar rascunho"** no formulário de checklist: grava as respostas, assinatura e dados do responsável, mas mantém status `rascunho`.
-   - Ao reabrir o checklist do mesmo evento, as respostas anteriores são carregadas para edição.
-   - Botão **"Finalizar checklist"** só fica habilitado após o evento estar `finalizado` (ou pode ser usado durante, mas com confirmação) — define status `finalizado` e bloqueia novas edições.
+**Tabela `system_backups`**:
+- `id`, `created_at`, `created_by` (nullable — null = automático)
+- `source` ('auto' | 'manual')
+- `storage_path` (texto)
+- `file_size_bytes` (bigint)
+- `total_rows` (int), `tables_count` (int)
+- `status` ('success' | 'partial' | 'failed')
+- `error_message` (text, nullable)
+- `manifest` (jsonb — contagem por tabela, versão)
 
-3. **Campo de intercorrências**
-   - Novo campo de texto livre **"Intercorrências durante o evento"** dentro do formulário, visível durante todo o ciclo (rascunho e finalização).
-   - Permite descrever, por exemplo, problemas com a viatura, materiais danificados etc.
-   - Aparece nos detalhes do histórico admin e no PDF gerado.
+**RLS**:
+- SELECT e DELETE: somente `is_super_admin()`.
+- INSERT/UPDATE: bloqueado para clientes (apenas service role da edge function escreve).
 
-4. **Histórico**
-   - Lista de checklists passa a mostrar: evento vinculado, viatura, status (Rascunho / Finalizado) e intercorrências (se houver).
+**Extensões**: habilitar `pg_cron` e `pg_net` se ainda não estiverem.
 
-## Mudanças técnicas
+**Cron job** (`0 3 * * *`): chama a edge function `run-system-backup` via `net.http_post` com header `x-internal-secret` (secret BACKUP_CRON_SECRET) e body `{ "source": "auto" }`. Inserido via tool `supabase--insert` (não migration, pois contém URL/chaves do projeto).
 
-### Banco de dados (migração)
-Tabela `checklist_submissions`:
-- Adicionar coluna `status` (text, default `'rascunho'`, valores: `rascunho`, `finalizado`, `nao_realizado`).
-- Adicionar coluna `intercorrencias` (text, nullable).
-- Garantir índice/regras para que cada `(event_id, profile_id)` tenha no máximo um checklist em rascunho/finalizado (constraint única parcial).
-- `event_id` e `vehicle_id` já existem na tabela.
+---
 
-### `ChecklistReminderDialog.tsx`
-- Substituir consulta "checklist hoje" por:
-  - Buscar eventos do usuário (assignments + eventos onde ele é `user_id`) com `data_inicio` no dia atual e status diferente de `cancelado`.
-  - Filtrar os que ainda não têm `checklist_submissions` com status `finalizado` (rascunho ainda exige conclusão).
-- Para cada pendente, mostrar popup com nome do evento e botão "Fazer checklist agora" que navega para `/checklist?event_id=...`.
-- Se houver mais de um pendente, processa em fila (próximo aparece após fechar o anterior).
+### 2. Edge function `run-system-backup`
 
-### `TeamChecklist.tsx`
-- Aceitar `event_id` via query string e pré-selecionar o evento/viatura.
-- Carregar rascunho existente do evento (se houver) e popular respostas, intercorrências, nome/cargo e assinatura.
-- Adicionar:
-  - Campo Textarea **Intercorrências**.
-  - Botão **Salvar rascunho** (sempre disponível).
-  - Botão **Finalizar checklist** (habilitado quando o evento já está `finalizado`, ou com diálogo de confirmação se feito antes).
-- Ao salvar: faz `upsert` em `checklist_submissions` por `(event_id, profile_id)` e substitui os `checklist_submission_items`.
+- Roda com `SUPABASE_SERVICE_ROLE_KEY` (ignora RLS).
+- Aceita `source: 'auto' | 'manual'`.
+  - `auto`: exige header `x-internal-secret == BACKUP_CRON_SECRET`.
+  - `manual`: exige JWT válido + verificação `is_super_admin()` via `profiles.hidden = true`.
+- Para cada uma das 22 tabelas vitais (mesma lista do backup manual atual): pagina em blocos de 1000 e monta CSV.
+- Gera `_manifesto.json` (timestamp, autor, contagem por tabela, versão).
+- Compacta com `jszip` (via `npm:jszip`) em memória.
+- Faz upload em `system-backups/{YYYY}/{MM}/backup-ebip-{YYYY-MM-DD-HHmm}-{auto|manual}.zip`.
+- Insere linha em `system_backups` com manifest e tamanho.
+- **Rotação**: lista todos os backups (auto+manual juntos) ordenados por `created_at` desc, apaga do Storage e da tabela os que excederem 30.
+- Falha parcial em alguma tabela → salva o ZIP com o que conseguiu, marca `status = 'partial'`, preenche `error_message`.
 
-### `ChecklistManagement.tsx` (admin)
-- Mostrar coluna **Status** (Rascunho/Finalizado) e o evento vinculado.
-- Exibir **Intercorrências** no detalhe e no PDF.
-- Filtro opcional por status.
+**Secret necessário**: `BACKUP_CRON_SECRET` (gerado e adicionado via tool de secrets antes de criar o cron).
 
-## Pontos a confirmar
+`supabase/config.toml`: adicionar bloco para a função com `verify_jwt = false` (a função valida internamente o JWT manual e o secret do cron).
 
-- **Quando o checklist deve ser obrigatoriamente finalizado?** Sugestão: bloquear o checkout final da equipe enquanto o checklist do evento estiver em rascunho. Confirmar se concorda ou se prefere apenas um aviso visual.
-- **Permissão de edição do rascunho:** somente o profissional que criou pode editar, ou qualquer membro da equipe escalada para o evento? Sugestão: qualquer membro escalado, com nome/assinatura sendo de quem finalizar.
+---
+
+### 3. Frontend — `src/pages/SystemBackup.tsx`
+
+Adicionar abaixo do botão atual de "Gerar Backup Completo":
+
+**Seção "Backup Automático"**:
+- Card com badge "Ativo — diário às 03:00 · retenção 30".
+- Último backup automático: data/hora, tamanho, status.
+- Botão "Executar agora" → invoca `run-system-backup` com `{ source: 'manual' }`.
+
+**Seção "Histórico de Backups"** (tabela paginada, mais recentes primeiro):
+- Colunas: Data/hora, Origem (badge auto/manual), Tamanho, Registros, Status.
+- Ações: **Baixar** (chama edge function endpoint `?action=signed-url&id=...` que retorna URL assinada e dispara download) e **Excluir** (remove do Storage + tabela; só Super-Admin).
+
+O backup manual local (gerado no navegador) **continua funcionando** como hoje, separado.
+
+---
+
+### 4. Segurança
+
+- Bucket privado, sem URLs públicas.
+- URLs assinadas expiram em ~5 min.
+- Edge function valida JWT + `is_super_admin` para chamadas manuais; valida `x-internal-secret` para o cron.
+- Nenhuma mudança em RLS de outras tabelas.
+
+---
+
+### 5. Validação
+
+1. Disparar "Executar agora" → ZIP aparece no histórico em segundos.
+2. Baixar e conferir os 22 CSVs + `_manifesto.json`.
+3. Em teste, inserir 31 registros simulados → confirmar que só sobram 30 (Storage e tabela).
+4. Logar como gestor/operacional → página de Backup permanece bloqueada e o histórico não retorna nada.
+5. Verificar logs da edge function após execução do cron de 03:00.
+
+---
+
+### Arquivos afetados
+
+- **Nova migração**: tabela `system_backups` + RLS + extensões + bucket.
+- **Nova edge function**: `supabase/functions/run-system-backup/index.ts`.
+- **Atualização**: `supabase/config.toml` (bloco da função).
+- **Atualização**: `src/pages/SystemBackup.tsx` (seções automático + histórico).
+- **Insert SQL** (via tool insert, não migration): cron schedule chamando a edge function.
+- **Secret novo**: `BACKUP_CRON_SECRET`.
