@@ -24,6 +24,8 @@ const actionColors: Record<string, string> = {
 };
 
 export default function AuditLogs() {
+  const { profile, isLoading: authLoading } = useAuth();
+  if (!authLoading && !profile?.hidden) return <Navigate to="/events" replace />;
   const { data: logs, isLoading } = useQuery({
     queryKey: ['audit-logs'],
     queryFn: async () => {
