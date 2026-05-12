@@ -26,6 +26,7 @@ import AdminUsers from "./pages/admin/Users";
 import AdminContractTemplates from "./pages/admin/ContractTemplates";
 import AdminRegulationPhones from "./pages/admin/RegulationPhones";
 import AdminAuditLogs from "./pages/admin/AuditLogs";
+import SuperAdminRoute from "./components/SuperAdminRoute";
 import AdminPermissions from "./pages/admin/Permissions";
 import AdminPayrollReport from "./pages/admin/PayrollReport";
 import AdminSystemNotices from "./pages/admin/SystemNotices";
