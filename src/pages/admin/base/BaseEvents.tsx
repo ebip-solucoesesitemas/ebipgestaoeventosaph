@@ -126,6 +126,10 @@ export default function BaseEvents() {
     tipo_unidade: "",
     responsavel_evento: "",
     responsavel_telefone: "",
+    valor_evento: "",
+    forma_cobranca: "",
+    data_vencimento: "",
+    existing_budget_id: "",
   });
 
   // Cancel dialog state
