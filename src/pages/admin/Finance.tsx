@@ -492,37 +492,195 @@ export default function Finance() {
     );
   }
 
-  const handleExportFinancePDF = () => {
-    const columns = [
-      { header: "Evento", dataKey: "evento" },
-      { header: "Cliente", dataKey: "cliente" },
-      { header: "Valor Contrato", dataKey: "valor", halign: "right" as const },
-      { header: "Status", dataKey: "status" },
-      { header: "Forma Cobrança", dataKey: "forma" },
-      { header: "Vencimento", dataKey: "vencimento" },
-    ];
+  const brl = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+  const fmtDate = (d: string | null | undefined) => (d ? format(new Date(d.length <= 10 ? d + "T00:00:00" : d), "dd/MM/yyyy") : "—");
 
-    const rows = budgets.map((b) => ({
+  // Extract YYYY-MM-DD from any date or timestamp string (timezone-safe)
+  const extractDate = (d: string | null | undefined): string | null => {
+    if (!d) return null;
+    return d.length >= 10 ? d.slice(0, 10) : null;
+  };
+
+  const inPeriod = (dateStr: string | null | undefined, period: ExportPeriod): boolean => {
+    const ds = extractDate(dateStr);
+    if (period.kind === "all") return true;
+    if (!ds) return false;
+    if (period.kind === "month") {
+      const prefix = `${period.year}-${String(period.month).padStart(2, "0")}`;
+      return ds.startsWith(prefix);
+    }
+    if (period.kind === "year") return ds.startsWith(`${period.year}`);
+    if (period.kind === "range") {
+      const ok1 = !period.start || ds >= period.start;
+      const ok2 = !period.end || ds <= period.end;
+      return ok1 && ok2;
+    }
+    return true;
+  };
+
+  const periodLabel = (p: ExportPeriod): string => {
+    if (p.kind === "all") return "Todos os registros";
+    if (p.kind === "month") return `Período: ${String(p.month).padStart(2, "0")}/${p.year}`;
+    if (p.kind === "year") return `Ano: ${p.year}`;
+    if (p.kind === "range") return `${p.start ? format(new Date(p.start + "T00:00:00"), "dd/MM/yyyy") : "—"} a ${p.end ? format(new Date(p.end + "T00:00:00"), "dd/MM/yyyy") : "—"}`;
+    return "";
+  };
+
+  const buildBudgetRows = (list: Budget[]) =>
+    list.map((b) => ({
       evento: b.nome_evento || b.events?.nome_evento || "—",
       cliente: b.clients?.nome || "—",
-      valor: `R$ ${Number(b.valor_contrato).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      valor: brl(Number(b.valor_contrato)),
       status: b.status,
       forma: b.forma_cobranca ? (formaCobrancaLabels[b.forma_cobranca] || b.forma_cobranca) : "—",
-      vencimento: b.data_vencimento ? format(new Date(b.data_vencimento), "dd/MM/yyyy") : "—",
+      vencimento: fmtDate(b.data_vencimento),
     }));
 
-    generatePDF({
-      title: "Relatório Financeiro",
-      subtitle: `Gerado em ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}`,
-      columns,
-      rows,
-      totals: [
-        { label: "Receitas (Pago)", value: `R$ ${totalReceitas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
-        { label: "Pendente", value: `R$ ${totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
-        { label: "Despesas", value: `R$ ${totalDespesas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
-        { label: "Saldo", value: `R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
-      ],
-    });
+  const budgetColumns = [
+    { header: "Evento", dataKey: "evento" },
+    { header: "Cliente", dataKey: "cliente" },
+    { header: "Valor", dataKey: "valor", halign: "right" as const },
+    { header: "Status", dataKey: "status" },
+    { header: "Forma Cobrança", dataKey: "forma" },
+    { header: "Vencimento", dataKey: "vencimento" },
+  ];
+
+  const expenseColumns = [
+    { header: "Evento", dataKey: "evento" },
+    { header: "Categoria", dataKey: "categoria" },
+    { header: "Descrição", dataKey: "descricao" },
+    { header: "Data", dataKey: "data" },
+    { header: "Valor", dataKey: "valor", halign: "right" as const },
+  ];
+
+  const paymentColumns = [
+    { header: "Evento", dataKey: "evento" },
+    { header: "Cliente", dataKey: "cliente" },
+    { header: "Tipo", dataKey: "tipo" },
+    { header: "Data", dataKey: "data" },
+    { header: "Valor", dataKey: "valor", halign: "right" as const },
+  ];
+
+  const buildExpenseRows = (list: Expense[]) =>
+    list.map((e) => ({
+      evento: e.events?.nome_evento || "—",
+      categoria: categoriaLabels[e.categoria] || e.categoria,
+      descricao: e.descricao,
+      data: fmtDate(e.data_despesa),
+      valor: brl(Number(e.valor)),
+    }));
+
+  const buildPaymentRows = (list: Payment[]) =>
+    list.map((p) => ({
+      evento: p.event_budgets?.events?.nome_evento || "—",
+      cliente: p.event_budgets?.clients?.nome || "—",
+      tipo: tipoPagamentoLabels[p.tipo_pagamento] || p.tipo_pagamento,
+      data: fmtDate(p.data_pagamento),
+      valor: brl(Number(p.valor)),
+    }));
+
+  const handleGenerateExport = () => {
+    const period = exportPeriod;
+    const subtitleBase = `${periodLabel(period)} — Gerado em ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}`;
+
+    if (exportType === "receitas" || exportType === "pendentes") {
+      const status = exportType === "receitas" ? "pago" : "pendente";
+      const filtered = budgets.filter((b) => b.status === status && inPeriod(b.data_vencimento || b.data_inicio, period));
+      const total = filtered.reduce((s, b) => s + Number(b.valor_contrato), 0);
+      generatePDF({
+        title: exportType === "receitas" ? "Relatório de Receitas" : "Relatório de Pendentes",
+        subtitle: subtitleBase,
+        columns: budgetColumns,
+        rows: buildBudgetRows(filtered),
+        totals: [{ label: "Total", value: brl(total) }],
+      });
+    } else if (exportType === "despesas") {
+      const filtered = expenses.filter((e) => inPeriod(e.data_despesa, period));
+      const total = filtered.reduce((s, e) => s + Number(e.valor), 0);
+      generatePDF({
+        title: "Relatório de Despesas",
+        subtitle: subtitleBase,
+        columns: expenseColumns,
+        rows: buildExpenseRows(filtered),
+        totals: [{ label: "Total", value: brl(total) }],
+      });
+    } else if (exportType === "pagamentos") {
+      const filtered = payments.filter((p) => inPeriod(p.data_pagamento, period));
+      const total = filtered.reduce((s, p) => s + Number(p.valor), 0);
+      generatePDF({
+        title: "Relatório de Pagamentos",
+        subtitle: subtitleBase,
+        columns: paymentColumns,
+        rows: buildPaymentRows(filtered),
+        totals: [{ label: "Total", value: brl(total) }],
+      });
+    } else {
+      // completo
+      const receitas = budgets.filter((b) => b.status === "pago" && inPeriod(b.data_vencimento || b.data_inicio, period));
+      const pendentes = budgets.filter((b) => b.status === "pendente" && inPeriod(b.data_vencimento || b.data_inicio, period));
+      const desp = expenses.filter((e) => inPeriod(e.data_despesa, period));
+      const pags = payments.filter((p) => inPeriod(p.data_pagamento, period));
+      const totReceitas = receitas.reduce((s, b) => s + Number(b.valor_contrato), 0);
+      const totPendentes = pendentes.reduce((s, b) => s + Number(b.valor_contrato), 0);
+      const totDesp = desp.reduce((s, e) => s + Number(e.valor), 0);
+      const totPags = pags.reduce((s, p) => s + Number(p.valor), 0);
+
+      // Use unified columns (budget shape) for groups; convert expense/payment rows to fit
+      const unifiedCols = [
+        { header: "Descrição", dataKey: "evento" },
+        { header: "Detalhe", dataKey: "cliente" },
+        { header: "Tipo/Status", dataKey: "status" },
+        { header: "Data", dataKey: "vencimento" },
+        { header: "Valor", dataKey: "valor", halign: "right" as const },
+      ];
+
+      const receitasRows = receitas.map((b) => ({
+        evento: b.nome_evento || b.events?.nome_evento || "—",
+        cliente: b.clients?.nome || "—",
+        status: "Pago",
+        vencimento: fmtDate(b.data_vencimento),
+        valor: brl(Number(b.valor_contrato)),
+      }));
+      const pendentesRows = pendentes.map((b) => ({
+        evento: b.nome_evento || b.events?.nome_evento || "—",
+        cliente: b.clients?.nome || "—",
+        status: "Pendente",
+        vencimento: fmtDate(b.data_vencimento),
+        valor: brl(Number(b.valor_contrato)),
+      }));
+      const despRows = desp.map((e) => ({
+        evento: e.descricao,
+        cliente: e.events?.nome_evento || "—",
+        status: categoriaLabels[e.categoria] || e.categoria,
+        vencimento: fmtDate(e.data_despesa),
+        valor: brl(Number(e.valor)),
+      }));
+      const pagsRows = pags.map((p) => ({
+        evento: p.event_budgets?.events?.nome_evento || "—",
+        cliente: p.event_budgets?.clients?.nome || "—",
+        status: tipoPagamentoLabels[p.tipo_pagamento] || p.tipo_pagamento,
+        vencimento: fmtDate(p.data_pagamento),
+        valor: brl(Number(p.valor)),
+      }));
+
+      generatePDF({
+        title: "Relatório Financeiro Completo",
+        subtitle: subtitleBase,
+        columns: unifiedCols,
+        rows: [],
+        groups: [
+          { label: "Receitas", rows: receitasRows, subtotalLabel: "Subtotal Receitas", subtotalValue: brl(totReceitas) },
+          { label: "Pendentes", rows: pendentesRows, subtotalLabel: "Subtotal Pendentes", subtotalValue: brl(totPendentes) },
+          { label: "Despesas", rows: despRows, subtotalLabel: "Subtotal Despesas", subtotalValue: brl(totDesp) },
+          { label: "Pagamentos Recebidos", rows: pagsRows, subtotalLabel: "Subtotal Pagamentos", subtotalValue: brl(totPags) },
+        ],
+        totals: [
+          { label: "Saldo (Receitas - Despesas)", value: brl(totReceitas - totDesp) },
+        ],
+      });
+    }
+
+    setExportDialogOpen(false);
   };
 
   return (
