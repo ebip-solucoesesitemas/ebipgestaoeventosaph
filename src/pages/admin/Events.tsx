@@ -151,6 +151,10 @@ export default function AdminEvents() {
     tipo_unidade: "",
     responsavel_evento: "",
     responsavel_telefone: "",
+    valor_evento: "",
+    forma_cobranca: "",
+    data_vencimento: "",
+    existing_budget_id: "",
   });
 
   // Cancel dialog state
@@ -257,6 +261,10 @@ export default function AdminEvents() {
       tipo_unidade: "",
       responsavel_evento: "",
       responsavel_telefone: "",
+      valor_evento: "",
+      forma_cobranca: "",
+      data_vencimento: "",
+      existing_budget_id: "",
     });
     setEditingEvent(null);
   };
@@ -270,9 +278,14 @@ export default function AdminEvents() {
           .select("user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade, responsavel_telefone")
           .eq("id", event.id)
           .single(),
-        supabase.from("event_budgets").select("client_id").eq("event_id", event.id).maybeSingle(),
+        supabase
+          .from("event_budgets")
+          .select("id, client_id, valor_contrato, forma_cobranca, data_vencimento")
+          .eq("event_id", event.id)
+          .maybeSingle(),
       ]);
       const data = eventRes.data;
+      const budget: any = budgetRes.data;
       setFormData({
         nome_evento: event.nome_evento,
         data_inicio: isoToLocalDatetime(event.data_inicio),
@@ -291,10 +304,14 @@ export default function AdminEvents() {
           ? isoToLocalDatetime((data as any).horario_saida_base)
           : "",
         selectedProfiles: assignments[event.id]?.map((a) => a.profile_id) || [],
-        client_id: (budgetRes.data as any)?.client_id || "",
+        client_id: budget?.client_id || "",
         tipo_unidade: (data as any)?.tipo_unidade || "",
         responsavel_evento: (data as any)?.responsavel_evento || "",
         responsavel_telefone: (data as any)?.responsavel_telefone || "",
+        valor_evento: budget?.valor_contrato ? String(budget.valor_contrato) : "",
+        forma_cobranca: budget?.forma_cobranca || "",
+        data_vencimento: budget?.data_vencimento || "",
+        existing_budget_id: budget?.id || "",
       });
     };
     fetchEventDetails();
@@ -426,6 +443,32 @@ export default function AdminEvents() {
       }
     }
 
+    // Sincronizar lançamento financeiro (orçamento simplificado vinculado ao evento)
+    const valorEventoNum = parseFloat(formData.valor_evento);
+    if (!Number.isNaN(valorEventoNum) && valorEventoNum > 0) {
+      const budgetPayload: Record<string, any> = {
+        event_id: eventId,
+        nome_evento: formData.nome_evento,
+        valor_contrato: valorEventoNum,
+        client_id: formData.client_id || null,
+        forma_cobranca: formData.forma_cobranca || null,
+        data_vencimento: formData.data_vencimento || null,
+        base_id: formData.base_id || null,
+        data_inicio: dataInicioISO,
+        data_fim: dataFimISO,
+        endereco_evento: formData.local || null,
+      };
+      if (formData.existing_budget_id) {
+        await supabase.from("event_budgets").update(budgetPayload).eq("id", formData.existing_budget_id);
+      } else if (!pendingBudgetId) {
+        budgetPayload.descricao = "Lançamento direto via cadastro de evento";
+        budgetPayload.status = "pendente";
+        await supabase.from("event_budgets").insert(budgetPayload as any);
+      }
+    } else if (formData.existing_budget_id && formData.valor_evento === "") {
+      // Valor zerado/limpado: manter orçamento existente intacto (não apaga)
+    }
+
     toast({ title: editingEvent ? "Evento atualizado!" : "Evento criado!" });
     setDialogOpen(false);
     resetForm();
@@ -504,6 +547,10 @@ export default function AdminEvents() {
         tipo_unidade: (data as any)?.tipo_unidade || "",
         responsavel_evento: (data as any)?.responsavel_evento || "",
         responsavel_telefone: (data as any)?.responsavel_telefone || "",
+        valor_evento: "",
+        forma_cobranca: "",
+        data_vencimento: "",
+        existing_budget_id: "",
       });
     };
     fetchEventDetails();
@@ -1031,6 +1078,61 @@ export default function AdminEvents() {
                     </p>
                   )}
                 </div>
+              </div>
+
+              {/* Financeiro (opcional) — gera lançamento direto sem precisar de orçamento detalhado */}
+              <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
+                <Label className="text-base font-semibold">Financeiro (opcional)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Informe o valor total do evento para lançá-lo automaticamente no financeiro.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Valor total do evento (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      value={formData.valor_evento}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, valor_evento: e.target.value }))}
+                      placeholder="Ex: 2500.00"
+                      className="input-touch"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Forma de cobrança</Label>
+                    <Select
+                      value={formData.forma_cobranca || undefined}
+                      onValueChange={(v) => setFormData((prev) => ({ ...prev, forma_cobranca: v }))}
+                    >
+                      <SelectTrigger className="input-touch">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[9999]">
+                        <SelectItem value="boleto">Boleto</SelectItem>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="emissao_nf">Emissão NF</SelectItem>
+                        <SelectItem value="empenho">Empenho</SelectItem>
+                        <SelectItem value="nao_cobrar">Não Cobrar</SelectItem>
+                        <SelectItem value="patrocinio">Patrocínio</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Data de vencimento</Label>
+                  <Input
+                    type="date"
+                    value={formData.data_vencimento}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, data_vencimento: e.target.value }))}
+                    className="input-touch"
+                  />
+                </div>
+                {formData.existing_budget_id && (
+                  <p className="text-xs text-muted-foreground">
+                    Este evento já possui um lançamento financeiro vinculado — alterações aqui irão atualizá-lo.
+                  </p>
+                )}
               </div>
 
               <Button type="submit" className="w-full btn-touch" disabled={saving}>
