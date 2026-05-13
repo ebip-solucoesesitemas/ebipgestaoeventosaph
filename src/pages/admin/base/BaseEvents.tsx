@@ -848,6 +848,62 @@ export default function BaseEvents() {
                     ))}
                 </div>
               </div>
+
+              {/* Financeiro (opcional) — gera lançamento direto sem precisar de orçamento detalhado */}
+              <div className="space-y-3 p-4 border rounded-xl bg-muted/50">
+                <Label className="text-base font-semibold">Financeiro (opcional)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Informe o valor total do evento para lançá-lo automaticamente no financeiro.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Valor total do evento (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      value={formData.valor_evento}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, valor_evento: e.target.value }))}
+                      placeholder="Ex: 2500.00"
+                      className="input-touch"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Forma de cobrança</Label>
+                    <Select
+                      value={formData.forma_cobranca || undefined}
+                      onValueChange={(v) => setFormData((prev) => ({ ...prev, forma_cobranca: v }))}
+                    >
+                      <SelectTrigger className="input-touch">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[9999]">
+                        <SelectItem value="boleto">Boleto</SelectItem>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="emissao_nf">Emissão NF</SelectItem>
+                        <SelectItem value="empenho">Empenho</SelectItem>
+                        <SelectItem value="nao_cobrar">Não Cobrar</SelectItem>
+                        <SelectItem value="patrocinio">Patrocínio</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Data de vencimento</Label>
+                  <Input
+                    type="date"
+                    value={formData.data_vencimento}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, data_vencimento: e.target.value }))}
+                    className="input-touch"
+                  />
+                </div>
+                {formData.existing_budget_id && (
+                  <p className="text-xs text-muted-foreground">
+                    Este evento já possui um lançamento financeiro vinculado — alterações aqui irão atualizá-lo.
+                  </p>
+                )}
+              </div>
+
               <Button type="submit" className="w-full btn-touch" disabled={saving}>
                 {saving ? "Salvando..." : editingEvent ? "Salvar" : "Criar Evento"}
               </Button>
