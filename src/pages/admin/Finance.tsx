@@ -1420,6 +1420,137 @@ export default function Finance() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Export Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exportar Relatório</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo de Relatório</Label>
+              <Select value={exportType} onValueChange={(v) => setExportType(v as typeof exportType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="receitas">Receitas (pagos)</SelectItem>
+                  <SelectItem value="pendentes">Pendentes</SelectItem>
+                  <SelectItem value="despesas">Despesas</SelectItem>
+                  <SelectItem value="pagamentos">Pagamentos</SelectItem>
+                  <SelectItem value="completo">Completo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Filtrar por Período</Label>
+              <Select
+                value={periodKind}
+                onValueChange={(v) => {
+                  const k = v as ExportPeriod['kind'];
+                  setPeriodKind(k);
+                  if (k === 'all') setExportPeriod({ kind: 'all' });
+                  else if (k === 'month') setExportPeriod({ kind: 'month', month: periodMonth, year: periodYear });
+                  else if (k === 'year') setExportPeriod({ kind: 'year', year: periodYear });
+                  else setExportPeriod({ kind: 'range', start: periodStart, end: periodEnd });
+                }}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="month">Mês/Ano</SelectItem>
+                  <SelectItem value="year">Ano inteiro</SelectItem>
+                  <SelectItem value="range">Intervalo personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {periodKind === 'month' && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Mês</Label>
+                  <Select
+                    value={String(periodMonth)}
+                    onValueChange={(v) => {
+                      const m = parseInt(v);
+                      setPeriodMonth(m);
+                      setExportPeriod({ kind: 'month', month: m, year: periodYear });
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <SelectItem key={m} value={String(m)}>{String(m).padStart(2, '0')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Ano</Label>
+                  <Input
+                    type="number"
+                    value={periodYear}
+                    onChange={(e) => {
+                      const y = parseInt(e.target.value) || now.getFullYear();
+                      setPeriodYear(y);
+                      setExportPeriod({ kind: 'month', month: periodMonth, year: y });
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {periodKind === 'year' && (
+              <div className="space-y-2">
+                <Label>Ano</Label>
+                <Input
+                  type="number"
+                  value={periodYear}
+                  onChange={(e) => {
+                    const y = parseInt(e.target.value) || now.getFullYear();
+                    setPeriodYear(y);
+                    setExportPeriod({ kind: 'year', year: y });
+                  }}
+                />
+              </div>
+            )}
+
+            {periodKind === 'range' && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>De</Label>
+                  <Input
+                    type="date"
+                    value={periodStart}
+                    onChange={(e) => {
+                      setPeriodStart(e.target.value);
+                      setExportPeriod({ kind: 'range', start: e.target.value, end: periodEnd });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Até</Label>
+                  <Input
+                    type="date"
+                    value={periodEnd}
+                    onChange={(e) => {
+                      setPeriodEnd(e.target.value);
+                      setExportPeriod({ kind: 'range', start: periodStart, end: e.target.value });
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" onClick={() => setExportDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleGenerateExport} className="gap-2">
+                <Download className="w-4 h-4" /> Gerar PDF
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
