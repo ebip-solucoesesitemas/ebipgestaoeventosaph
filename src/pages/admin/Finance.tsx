@@ -105,6 +105,12 @@ interface Event {
   data_inicio: string;
 }
 
+type ExportPeriod =
+  | { kind: 'all' }
+  | { kind: 'month'; month: number; year: number }
+  | { kind: 'year'; year: number }
+  | { kind: 'range'; start: string; end: string };
+
 const statusColors: Record<string, string> = {
   pendente: 'bg-warning/20 text-warning border-warning/30',
   pago: 'bg-stable/20 text-stable border-stable/30',
@@ -188,6 +194,15 @@ export default function Finance() {
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportType, setExportType] = useState<'receitas' | 'pendentes' | 'despesas' | 'pagamentos' | 'completo'>('completo');
+  const now = new Date();
+  const [exportPeriod, setExportPeriod] = useState<ExportPeriod>({ kind: 'all' });
+  const [periodKind, setPeriodKind] = useState<ExportPeriod['kind']>('all');
+  const [periodMonth, setPeriodMonth] = useState<number>(now.getMonth() + 1);
+  const [periodYear, setPeriodYear] = useState<number>(now.getFullYear());
+  const [periodStart, setPeriodStart] = useState<string>('');
+  const [periodEnd, setPeriodEnd] = useState<string>('');
 
   const [budgetForm, setBudgetForm] = useState({ ...emptyBudgetForm });
   const baseIdRef = useRef(budgetForm.base_id);
@@ -492,37 +507,195 @@ export default function Finance() {
     );
   }
 
-  const handleExportFinancePDF = () => {
-    const columns = [
-      { header: "Evento", dataKey: "evento" },
-      { header: "Cliente", dataKey: "cliente" },
-      { header: "Valor Contrato", dataKey: "valor", halign: "right" as const },
-      { header: "Status", dataKey: "status" },
-      { header: "Forma Cobrança", dataKey: "forma" },
-      { header: "Vencimento", dataKey: "vencimento" },
-    ];
+  const brl = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+  const fmtDate = (d: string | null | undefined) => (d ? format(new Date(d.length <= 10 ? d + "T00:00:00" : d), "dd/MM/yyyy") : "—");
 
-    const rows = budgets.map((b) => ({
+  // Extract YYYY-MM-DD from any date or timestamp string (timezone-safe)
+  const extractDate = (d: string | null | undefined): string | null => {
+    if (!d) return null;
+    return d.length >= 10 ? d.slice(0, 10) : null;
+  };
+
+  const inPeriod = (dateStr: string | null | undefined, period: ExportPeriod): boolean => {
+    const ds = extractDate(dateStr);
+    if (period.kind === "all") return true;
+    if (!ds) return false;
+    if (period.kind === "month") {
+      const prefix = `${period.year}-${String(period.month).padStart(2, "0")}`;
+      return ds.startsWith(prefix);
+    }
+    if (period.kind === "year") return ds.startsWith(`${period.year}`);
+    if (period.kind === "range") {
+      const ok1 = !period.start || ds >= period.start;
+      const ok2 = !period.end || ds <= period.end;
+      return ok1 && ok2;
+    }
+    return true;
+  };
+
+  const periodLabel = (p: ExportPeriod): string => {
+    if (p.kind === "all") return "Todos os registros";
+    if (p.kind === "month") return `Período: ${String(p.month).padStart(2, "0")}/${p.year}`;
+    if (p.kind === "year") return `Ano: ${p.year}`;
+    if (p.kind === "range") return `${p.start ? format(new Date(p.start + "T00:00:00"), "dd/MM/yyyy") : "—"} a ${p.end ? format(new Date(p.end + "T00:00:00"), "dd/MM/yyyy") : "—"}`;
+    return "";
+  };
+
+  const buildBudgetRows = (list: Budget[]) =>
+    list.map((b) => ({
       evento: b.nome_evento || b.events?.nome_evento || "—",
       cliente: b.clients?.nome || "—",
-      valor: `R$ ${Number(b.valor_contrato).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      valor: brl(Number(b.valor_contrato)),
       status: b.status,
       forma: b.forma_cobranca ? (formaCobrancaLabels[b.forma_cobranca] || b.forma_cobranca) : "—",
-      vencimento: b.data_vencimento ? format(new Date(b.data_vencimento), "dd/MM/yyyy") : "—",
+      vencimento: fmtDate(b.data_vencimento),
     }));
 
-    generatePDF({
-      title: "Relatório Financeiro",
-      subtitle: `Gerado em ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}`,
-      columns,
-      rows,
-      totals: [
-        { label: "Receitas (Pago)", value: `R$ ${totalReceitas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
-        { label: "Pendente", value: `R$ ${totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
-        { label: "Despesas", value: `R$ ${totalDespesas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
-        { label: "Saldo", value: `R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
-      ],
-    });
+  const budgetColumns = [
+    { header: "Evento", dataKey: "evento" },
+    { header: "Cliente", dataKey: "cliente" },
+    { header: "Valor", dataKey: "valor", halign: "right" as const },
+    { header: "Status", dataKey: "status" },
+    { header: "Forma Cobrança", dataKey: "forma" },
+    { header: "Vencimento", dataKey: "vencimento" },
+  ];
+
+  const expenseColumns = [
+    { header: "Evento", dataKey: "evento" },
+    { header: "Categoria", dataKey: "categoria" },
+    { header: "Descrição", dataKey: "descricao" },
+    { header: "Data", dataKey: "data" },
+    { header: "Valor", dataKey: "valor", halign: "right" as const },
+  ];
+
+  const paymentColumns = [
+    { header: "Evento", dataKey: "evento" },
+    { header: "Cliente", dataKey: "cliente" },
+    { header: "Tipo", dataKey: "tipo" },
+    { header: "Data", dataKey: "data" },
+    { header: "Valor", dataKey: "valor", halign: "right" as const },
+  ];
+
+  const buildExpenseRows = (list: Expense[]) =>
+    list.map((e) => ({
+      evento: e.events?.nome_evento || "—",
+      categoria: categoriaLabels[e.categoria] || e.categoria,
+      descricao: e.descricao,
+      data: fmtDate(e.data_despesa),
+      valor: brl(Number(e.valor)),
+    }));
+
+  const buildPaymentRows = (list: Payment[]) =>
+    list.map((p) => ({
+      evento: p.event_budgets?.events?.nome_evento || "—",
+      cliente: p.event_budgets?.clients?.nome || "—",
+      tipo: tipoPagamentoLabels[p.tipo_pagamento] || p.tipo_pagamento,
+      data: fmtDate(p.data_pagamento),
+      valor: brl(Number(p.valor)),
+    }));
+
+  const handleGenerateExport = () => {
+    const period = exportPeriod;
+    const subtitleBase = `${periodLabel(period)} — Gerado em ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}`;
+
+    if (exportType === "receitas" || exportType === "pendentes") {
+      const status = exportType === "receitas" ? "pago" : "pendente";
+      const filtered = budgets.filter((b) => b.status === status && inPeriod(b.data_vencimento || b.data_inicio, period));
+      const total = filtered.reduce((s, b) => s + Number(b.valor_contrato), 0);
+      generatePDF({
+        title: exportType === "receitas" ? "Relatório de Receitas" : "Relatório de Pendentes",
+        subtitle: subtitleBase,
+        columns: budgetColumns,
+        rows: buildBudgetRows(filtered),
+        totals: [{ label: "Total", value: brl(total) }],
+      });
+    } else if (exportType === "despesas") {
+      const filtered = expenses.filter((e) => inPeriod(e.data_despesa, period));
+      const total = filtered.reduce((s, e) => s + Number(e.valor), 0);
+      generatePDF({
+        title: "Relatório de Despesas",
+        subtitle: subtitleBase,
+        columns: expenseColumns,
+        rows: buildExpenseRows(filtered),
+        totals: [{ label: "Total", value: brl(total) }],
+      });
+    } else if (exportType === "pagamentos") {
+      const filtered = payments.filter((p) => inPeriod(p.data_pagamento, period));
+      const total = filtered.reduce((s, p) => s + Number(p.valor), 0);
+      generatePDF({
+        title: "Relatório de Pagamentos",
+        subtitle: subtitleBase,
+        columns: paymentColumns,
+        rows: buildPaymentRows(filtered),
+        totals: [{ label: "Total", value: brl(total) }],
+      });
+    } else {
+      // completo
+      const receitas = budgets.filter((b) => b.status === "pago" && inPeriod(b.data_vencimento || b.data_inicio, period));
+      const pendentes = budgets.filter((b) => b.status === "pendente" && inPeriod(b.data_vencimento || b.data_inicio, period));
+      const desp = expenses.filter((e) => inPeriod(e.data_despesa, period));
+      const pags = payments.filter((p) => inPeriod(p.data_pagamento, period));
+      const totReceitas = receitas.reduce((s, b) => s + Number(b.valor_contrato), 0);
+      const totPendentes = pendentes.reduce((s, b) => s + Number(b.valor_contrato), 0);
+      const totDesp = desp.reduce((s, e) => s + Number(e.valor), 0);
+      const totPags = pags.reduce((s, p) => s + Number(p.valor), 0);
+
+      // Use unified columns (budget shape) for groups; convert expense/payment rows to fit
+      const unifiedCols = [
+        { header: "Descrição", dataKey: "evento" },
+        { header: "Detalhe", dataKey: "cliente" },
+        { header: "Tipo/Status", dataKey: "status" },
+        { header: "Data", dataKey: "vencimento" },
+        { header: "Valor", dataKey: "valor", halign: "right" as const },
+      ];
+
+      const receitasRows = receitas.map((b) => ({
+        evento: b.nome_evento || b.events?.nome_evento || "—",
+        cliente: b.clients?.nome || "—",
+        status: "Pago",
+        vencimento: fmtDate(b.data_vencimento),
+        valor: brl(Number(b.valor_contrato)),
+      }));
+      const pendentesRows = pendentes.map((b) => ({
+        evento: b.nome_evento || b.events?.nome_evento || "—",
+        cliente: b.clients?.nome || "—",
+        status: "Pendente",
+        vencimento: fmtDate(b.data_vencimento),
+        valor: brl(Number(b.valor_contrato)),
+      }));
+      const despRows = desp.map((e) => ({
+        evento: e.descricao,
+        cliente: e.events?.nome_evento || "—",
+        status: categoriaLabels[e.categoria] || e.categoria,
+        vencimento: fmtDate(e.data_despesa),
+        valor: brl(Number(e.valor)),
+      }));
+      const pagsRows = pags.map((p) => ({
+        evento: p.event_budgets?.events?.nome_evento || "—",
+        cliente: p.event_budgets?.clients?.nome || "—",
+        status: tipoPagamentoLabels[p.tipo_pagamento] || p.tipo_pagamento,
+        vencimento: fmtDate(p.data_pagamento),
+        valor: brl(Number(p.valor)),
+      }));
+
+      generatePDF({
+        title: "Relatório Financeiro Completo",
+        subtitle: subtitleBase,
+        columns: unifiedCols,
+        rows: [],
+        groups: [
+          { label: "Receitas", rows: receitasRows, subtotalLabel: "Subtotal Receitas", subtotalValue: brl(totReceitas) },
+          { label: "Pendentes", rows: pendentesRows, subtotalLabel: "Subtotal Pendentes", subtotalValue: brl(totPendentes) },
+          { label: "Despesas", rows: despRows, subtotalLabel: "Subtotal Despesas", subtotalValue: brl(totDesp) },
+          { label: "Pagamentos Recebidos", rows: pagsRows, subtotalLabel: "Subtotal Pagamentos", subtotalValue: brl(totPags) },
+        ],
+        totals: [
+          { label: "Saldo (Receitas - Despesas)", value: brl(totReceitas - totDesp) },
+        ],
+      });
+    }
+
+    setExportDialogOpen(false);
   };
 
   return (
@@ -532,7 +705,7 @@ export default function Finance() {
           <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
           <p className="text-muted-foreground">Gestão de receitas e despesas</p>
         </div>
-        <Button onClick={handleExportFinancePDF} className="gap-2">
+        <Button onClick={() => setExportDialogOpen(true)} className="gap-2">
           <Download className="w-4 h-4" /> Exportar PDF
         </Button>
       </div>
@@ -1245,6 +1418,137 @@ export default function Finance() {
             </div>
             <Button type="submit" className="w-full btn-touch">Registrar Pagamento</Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exportar Relatório</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo de Relatório</Label>
+              <Select value={exportType} onValueChange={(v) => setExportType(v as typeof exportType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="receitas">Receitas (pagos)</SelectItem>
+                  <SelectItem value="pendentes">Pendentes</SelectItem>
+                  <SelectItem value="despesas">Despesas</SelectItem>
+                  <SelectItem value="pagamentos">Pagamentos</SelectItem>
+                  <SelectItem value="completo">Completo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Filtrar por Período</Label>
+              <Select
+                value={periodKind}
+                onValueChange={(v) => {
+                  const k = v as ExportPeriod['kind'];
+                  setPeriodKind(k);
+                  if (k === 'all') setExportPeriod({ kind: 'all' });
+                  else if (k === 'month') setExportPeriod({ kind: 'month', month: periodMonth, year: periodYear });
+                  else if (k === 'year') setExportPeriod({ kind: 'year', year: periodYear });
+                  else setExportPeriod({ kind: 'range', start: periodStart, end: periodEnd });
+                }}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="month">Mês/Ano</SelectItem>
+                  <SelectItem value="year">Ano inteiro</SelectItem>
+                  <SelectItem value="range">Intervalo personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {periodKind === 'month' && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Mês</Label>
+                  <Select
+                    value={String(periodMonth)}
+                    onValueChange={(v) => {
+                      const m = parseInt(v);
+                      setPeriodMonth(m);
+                      setExportPeriod({ kind: 'month', month: m, year: periodYear });
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <SelectItem key={m} value={String(m)}>{String(m).padStart(2, '0')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Ano</Label>
+                  <Input
+                    type="number"
+                    value={periodYear}
+                    onChange={(e) => {
+                      const y = parseInt(e.target.value) || now.getFullYear();
+                      setPeriodYear(y);
+                      setExportPeriod({ kind: 'month', month: periodMonth, year: y });
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {periodKind === 'year' && (
+              <div className="space-y-2">
+                <Label>Ano</Label>
+                <Input
+                  type="number"
+                  value={periodYear}
+                  onChange={(e) => {
+                    const y = parseInt(e.target.value) || now.getFullYear();
+                    setPeriodYear(y);
+                    setExportPeriod({ kind: 'year', year: y });
+                  }}
+                />
+              </div>
+            )}
+
+            {periodKind === 'range' && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>De</Label>
+                  <Input
+                    type="date"
+                    value={periodStart}
+                    onChange={(e) => {
+                      setPeriodStart(e.target.value);
+                      setExportPeriod({ kind: 'range', start: e.target.value, end: periodEnd });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Até</Label>
+                  <Input
+                    type="date"
+                    value={periodEnd}
+                    onChange={(e) => {
+                      setPeriodEnd(e.target.value);
+                      setExportPeriod({ kind: 'range', start: periodStart, end: e.target.value });
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" onClick={() => setExportDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleGenerateExport} className="gap-2">
+                <Download className="w-4 h-4" /> Gerar PDF
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
