@@ -443,6 +443,32 @@ export default function AdminEvents() {
       }
     }
 
+    // Sincronizar lançamento financeiro (orçamento simplificado vinculado ao evento)
+    const valorEventoNum = parseFloat(formData.valor_evento);
+    if (!Number.isNaN(valorEventoNum) && valorEventoNum > 0) {
+      const budgetPayload: Record<string, any> = {
+        event_id: eventId,
+        nome_evento: formData.nome_evento,
+        valor_contrato: valorEventoNum,
+        client_id: formData.client_id || null,
+        forma_cobranca: formData.forma_cobranca || null,
+        data_vencimento: formData.data_vencimento || null,
+        base_id: formData.base_id || null,
+        data_inicio: dataInicioISO,
+        data_fim: dataFimISO,
+        endereco_evento: formData.local || null,
+      };
+      if (formData.existing_budget_id) {
+        await supabase.from("event_budgets").update(budgetPayload).eq("id", formData.existing_budget_id);
+      } else if (!pendingBudgetId) {
+        budgetPayload.descricao = "Lançamento direto via cadastro de evento";
+        budgetPayload.status = "pendente";
+        await supabase.from("event_budgets").insert(budgetPayload as any);
+      }
+    } else if (formData.existing_budget_id && formData.valor_evento === "") {
+      // Valor zerado/limpado: manter orçamento existente intacto (não apaga)
+    }
+
     toast({ title: editingEvent ? "Evento atualizado!" : "Evento criado!" });
     setDialogOpen(false);
     resetForm();
