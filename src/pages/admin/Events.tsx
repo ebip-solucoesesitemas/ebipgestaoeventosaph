@@ -521,6 +521,10 @@ export default function AdminEvents() {
         tipo_unidade: (data as any)?.tipo_unidade || "",
         responsavel_evento: (data as any)?.responsavel_evento || "",
         responsavel_telefone: (data as any)?.responsavel_telefone || "",
+        valor_evento: "",
+        forma_cobranca: "",
+        data_vencimento: "",
+        existing_budget_id: "",
       });
     };
     fetchEventDetails();
