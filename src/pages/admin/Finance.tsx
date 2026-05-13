@@ -105,6 +105,12 @@ interface Event {
   data_inicio: string;
 }
 
+type ExportPeriod =
+  | { kind: 'all' }
+  | { kind: 'month'; month: number; year: number }
+  | { kind: 'year'; year: number }
+  | { kind: 'range'; start: string; end: string };
+
 const statusColors: Record<string, string> = {
   pendente: 'bg-warning/20 text-warning border-warning/30',
   pago: 'bg-stable/20 text-stable border-stable/30',
