@@ -188,6 +188,15 @@ export default function Finance() {
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportType, setExportType] = useState<'receitas' | 'pendentes' | 'despesas' | 'pagamentos' | 'completo'>('completo');
+  const now = new Date();
+  const [exportPeriod, setExportPeriod] = useState<ExportPeriod>({ kind: 'all' });
+  const [periodKind, setPeriodKind] = useState<ExportPeriod['kind']>('all');
+  const [periodMonth, setPeriodMonth] = useState<number>(now.getMonth() + 1);
+  const [periodYear, setPeriodYear] = useState<number>(now.getFullYear());
+  const [periodStart, setPeriodStart] = useState<string>('');
+  const [periodEnd, setPeriodEnd] = useState<string>('');
 
   const [budgetForm, setBudgetForm] = useState({ ...emptyBudgetForm });
   const baseIdRef = useRef(budgetForm.base_id);
