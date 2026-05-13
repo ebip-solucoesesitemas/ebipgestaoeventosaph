@@ -261,6 +261,10 @@ export default function AdminEvents() {
       tipo_unidade: "",
       responsavel_evento: "",
       responsavel_telefone: "",
+      valor_evento: "",
+      forma_cobranca: "",
+      data_vencimento: "",
+      existing_budget_id: "",
     });
     setEditingEvent(null);
   };
