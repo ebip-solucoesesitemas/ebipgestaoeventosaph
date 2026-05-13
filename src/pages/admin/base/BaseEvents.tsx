@@ -226,11 +226,20 @@ export default function BaseEvents() {
 
   const openEditDialog = async (event: Event) => {
     setEditingEvent(event);
-    const { data } = await supabase
-      .from("events")
-      .select("min_antes_saida_base, horario_saida_base, client_id, user_id, tipo_unidade, responsavel_telefone")
-      .eq("id", event.id)
-      .single();
+    const [eventRes, budgetRes] = await Promise.all([
+      supabase
+        .from("events")
+        .select("min_antes_saida_base, horario_saida_base, client_id, user_id, tipo_unidade, responsavel_telefone")
+        .eq("id", event.id)
+        .single(),
+      supabase
+        .from("event_budgets")
+        .select("id, client_id, valor_contrato, forma_cobranca, data_vencimento")
+        .eq("event_id", event.id)
+        .maybeSingle(),
+    ]);
+    const data = eventRes.data;
+    const budget: any = budgetRes.data;
     setFormData({
       nome_evento: event.nome_evento,
       data_inicio: isoToLocalDatetime(event.data_inicio),
@@ -238,7 +247,7 @@ export default function BaseEvents() {
       local: event.local,
       cep_local: "",
       viatura_id: event.viatura_id || "",
-      client_id: (data as any)?.client_id || "",
+      client_id: budget?.client_id || (data as any)?.client_id || "",
       equipe_completa: event.equipe_completa || false,
       equipe_minima: event.equipe_minima || 2,
       min_antes_saida_base: (data as any)?.min_antes_saida_base?.toString() || "",
@@ -248,6 +257,10 @@ export default function BaseEvents() {
       tipo_unidade: (data as any)?.tipo_unidade || "",
       responsavel_evento: (data as any)?.responsavel_evento || "",
       responsavel_telefone: (data as any)?.responsavel_telefone || "",
+      valor_evento: budget?.valor_contrato ? String(budget.valor_contrato) : "",
+      forma_cobranca: budget?.forma_cobranca || "",
+      data_vencimento: budget?.data_vencimento || "",
+      existing_budget_id: budget?.id || "",
     });
     setDialogOpen(true);
   };
