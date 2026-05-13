@@ -1,51 +1,51 @@
 ## Objetivo
 
-Permitir que o gestor crie um evento informando apenas o **valor total** (sem precisar abrir o módulo de orçamento), e que esse valor entre automaticamente no financeiro vinculado ao evento.
+Trocar o botão "Exportar PDF" por um diálogo que permite ao usuário escolher **o que** exportar e **qual período** filtrar antes de gerar o relatório.
 
-O fluxo atual de orçamento detalhado **continua existindo** para a funcionária que monta a proposta — nada é removido.
+## Mudanças (apenas em `src/pages/admin/Finance.tsx`)
 
-## Mudanças
+### 1. Novo diálogo "Exportar Relatório"
 
-### 1. Formulário "Novo Evento" (`src/pages/admin/Events.tsx` e `src/pages/admin/base/BaseEvents.tsx`)
+Ao clicar em "Exportar PDF", abre diálogo com:
 
-Adicionar uma seção opcional **"Financeiro (opcional)"** no diálogo de criação/edição de evento, com:
+- **Tipo de relatório** (select obrigatório):
+  - Receitas (orçamentos pagos)
+  - Pendentes (orçamentos pendentes)
+  - Despesas
+  - Pagamentos
+  - Completo (todos os anteriores em seções)
 
-- **Valor total do evento** (R$) — campo numérico, opcional
-- **Cliente** — select dos clientes existentes, opcional (já existe `client_id` no form, apenas reaproveitar)
-- **Forma de cobrança** — select (Boleto, PIX, Emissão NF, Empenho, Não Cobrar, Patrocínio), opcional
-- **Data de vencimento** — date, opcional
-- **Status inicial**: Pendente (padrão)
+- **Filtrar por período** (select):
+  - Mês/Ano específico (dois selects: mês 1–12 + ano)
+  - Ano inteiro (select de ano)
+  - Intervalo personalizado (dois campos data: início + fim)
+  - Todos (sem filtro)
 
-A seção fica recolhida/discreta para não poluir o form de quem não vai usar.
+- Botões: Cancelar / Gerar PDF
 
-### 2. Lógica de salvamento
+### 2. Lógica de filtragem
 
-Ao criar evento (não editar):
-- Se `valor_total > 0` **e** não existe `pendingBudgetId` (não veio de orçamento), criar automaticamente um registro em `event_budgets` com:
-  - `event_id` = id do evento recém-criado
-  - `nome_evento` = nome do evento
-  - `valor_contrato` = valor informado
-  - `client_id`, `forma_cobranca`, `data_vencimento` = se preenchidos
-  - `base_id`, `data_inicio`, `data_fim`, `endereco_evento` = espelhados do evento
-  - `status` = 'pendente'
-  - `descricao` = "Lançamento direto via cadastro de evento"
+Para cada tipo, definir o campo de data usado:
+- Receitas/Pendentes: `data_vencimento` (fallback `data_inicio`)
+- Despesas: `data_despesa`
+- Pagamentos: `data_pagamento`
 
-Ao editar evento existente:
-- Se já existe orçamento vinculado, mostrar o valor atual no campo (read-only ou editável conforme decisão — proposta: editável, atualizando o orçamento existente).
-- Se não existe e o gestor preencher valor, criar novo igual ao fluxo de criação.
+Filtrar o array antes de montar as linhas do PDF, conforme período escolhido (comparação por string YYYY-MM-DD para evitar bugs de timezone, conforme regra do projeto).
 
-### 3. Exibição no card do evento
+### 3. Geração do PDF
 
-Mostrar o valor do evento (se houver orçamento vinculado) no card da lista de eventos, próximo ao status.
+Reaproveitar `generatePDF` de `src/lib/pdf.ts`. Cada tipo tem suas colunas específicas:
+
+- **Receitas/Pendentes**: Evento, Cliente, Valor, Status, Forma Cobrança, Vencimento + total da soma.
+- **Despesas**: Evento, Categoria, Descrição, Data, Valor + total.
+- **Pagamentos**: Evento, Cliente, Valor, Tipo Pagamento, Data + total.
+- **Completo**: usar `groups` do `generatePDF` com 4 seções (Receitas, Pendentes, Despesas, Pagamentos), cada uma com seu subtotal, e total geral (Saldo) ao final.
+
+Subtítulo do PDF reflete o filtro escolhido (ex.: "Período: 05/2026", "Ano: 2026", "01/05/2026 a 13/05/2026", "Todos os registros").
 
 ## Não muda
 
-- Tela de Orçamentos (`/admin/finance`) e seu fluxo detalhado continuam idênticos.
-- Permissões/RLS de `event_budgets` já permitem admin/gestor — sem migration necessária.
-- Conversão "orçamento → evento" continua funcionando como hoje.
-
-## Detalhes técnicos
-
-- Sem alteração de schema: a tabela `event_budgets` já tem todos os campos necessários (`event_id`, `valor_contrato`, `nome_evento`, `client_id`, `forma_cobranca`, `data_vencimento`, `base_id`, `data_inicio`, `data_fim`).
-- Sem migration; apenas mudanças em frontend (`Events.tsx` e `BaseEvents.tsx`).
-- Tipos do Supabase já cobrem os campos.
+- Os 4 cards de resumo no topo continuam mostrando totais globais (sem filtro).
+- As tabs (Orçamentos / Despesas / Pagamentos) continuam exibindo tudo.
+- Schema, RLS, edge functions: sem alteração.
+- `src/lib/pdf.ts`: sem alteração.
