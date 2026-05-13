@@ -705,7 +705,7 @@ export default function Finance() {
           <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
           <p className="text-muted-foreground">Gestão de receitas e despesas</p>
         </div>
-        <Button onClick={handleExportFinancePDF} className="gap-2">
+        <Button onClick={() => setExportDialogOpen(true)} className="gap-2">
           <Download className="w-4 h-4" /> Exportar PDF
         </Button>
       </div>
