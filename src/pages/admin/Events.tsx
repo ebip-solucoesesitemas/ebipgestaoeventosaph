@@ -278,9 +278,14 @@ export default function AdminEvents() {
           .select("user_id, base_id, min_antes_saida_base, horario_saida_base, tipo_unidade, responsavel_telefone")
           .eq("id", event.id)
           .single(),
-        supabase.from("event_budgets").select("client_id").eq("event_id", event.id).maybeSingle(),
+        supabase
+          .from("event_budgets")
+          .select("id, client_id, valor_contrato, forma_cobranca, data_vencimento")
+          .eq("event_id", event.id)
+          .maybeSingle(),
       ]);
       const data = eventRes.data;
+      const budget: any = budgetRes.data;
       setFormData({
         nome_evento: event.nome_evento,
         data_inicio: isoToLocalDatetime(event.data_inicio),
@@ -299,10 +304,14 @@ export default function AdminEvents() {
           ? isoToLocalDatetime((data as any).horario_saida_base)
           : "",
         selectedProfiles: assignments[event.id]?.map((a) => a.profile_id) || [],
-        client_id: (budgetRes.data as any)?.client_id || "",
+        client_id: budget?.client_id || "",
         tipo_unidade: (data as any)?.tipo_unidade || "",
         responsavel_evento: (data as any)?.responsavel_evento || "",
         responsavel_telefone: (data as any)?.responsavel_telefone || "",
+        valor_evento: budget?.valor_contrato ? String(budget.valor_contrato) : "",
+        forma_cobranca: budget?.forma_cobranca || "",
+        data_vencimento: budget?.data_vencimento || "",
+        existing_budget_id: budget?.id || "",
       });
     };
     fetchEventDetails();
