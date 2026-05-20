@@ -1,51 +1,47 @@
 ## Objetivo
 
-Trocar o botão "Exportar PDF" por um diálogo que permite ao usuário escolher **o que** exportar e **qual período** filtrar antes de gerar o relatório.
+Em `src/pages/admin/base/BaseEvents.tsx` (Eventos da Base):
 
-## Mudanças (apenas em `src/pages/admin/Finance.tsx`)
+1. Adicionar **filtro por Tipo de Unidade** na barra de filtros existente.
+2. Adicionar botão **"Relatório Profissional"** que gera um PDF com:
+   - Total de eventos por **tipo de unidade** (na base atual)
+   - Por evento: nome, data, tipo de unidade, quantidade de horas trabalhadas
+   - Totais gerais (total de eventos, total de horas, breakdown por tipo)
+   - Sempre limitado à base atual (`baseId`)
 
-### 1. Novo diálogo "Exportar Relatório"
+## Mudanças
 
-Ao clicar em "Exportar PDF", abre diálogo com:
+### 1. Filtro por Tipo de Unidade
+- Novo state `filterTipoUnidade`.
+- Como o campo `tipo_unidade` não vem hoje no `select("*")` de events? Vem, pois usa `*`. Confirmar incluindo no tipo `Event` o campo `tipo_unidade?: string | null`.
+- Novo `<Select>` na barra de filtros (ao lado de "Profissional") com as mesmas opções do formulário (Semi Presencial, Presencial, USB, USA, USB dois Técnicos, USA dois Enfermeiros, Ambulatório, USB somente condutor, Usb Plantão, Usb Plantão + Médico) + opção "Todos".
+- Incluir filtro na função de filtragem dos cards (linha ~1013) e no botão "Limpar filtros".
 
-- **Tipo de relatório** (select obrigatório):
-  - Receitas (orçamentos pagos)
-  - Pendentes (orçamentos pendentes)
-  - Despesas
-  - Pagamentos
-  - Completo (todos os anteriores em seções)
+### 2. Relatório Profissional da Base (PDF)
 
-- **Filtrar por período** (select):
-  - Mês/Ano específico (dois selects: mês 1–12 + ano)
-  - Ano inteiro (select de ano)
-  - Intervalo personalizado (dois campos data: início + fim)
-  - Todos (sem filtro)
+Novo botão **"Relatório de Eventos"** no header, ao lado de "Novo Evento", abre um pequeno diálogo com:
+- Período (mês/ano ou intervalo, padrão = mês atual)
+- Tipo de unidade (opcional)
 
-- Botões: Cancelar / Gerar PDF
+Ao confirmar, busca:
+- Eventos da base no período (`events` onde `base_id = baseId` e `data_inicio` no período)
+- Para cada evento, somar horas via `event_assignments` (checkin/checkout) — total de horas do evento = maior intervalo dos profissionais OU soma; **usaremos o intervalo de tempo do evento real** = duração entre o `min(checkin_at)` e o `max(checkout_at)` dos assignments (se nenhum check-in, cai para `data_fim - data_inicio` previstos, marcado como "previsto").
 
-### 2. Lógica de filtragem
+PDF (usando `generatePDF` de `src/lib/pdf.ts`):
+- **Seção 1 — Resumo por Tipo de Unidade**: tabela com Tipo, Qtd Eventos, Horas totais.
+- **Seção 2 — Detalhamento por Evento**: Nome, Data, Tipo Unidade, Horas.
+- **Totais finais**: Total de Eventos, Total de Horas.
 
-Para cada tipo, definir o campo de data usado:
-- Receitas/Pendentes: `data_vencimento` (fallback `data_inicio`)
-- Despesas: `data_despesa`
-- Pagamentos: `data_pagamento`
-
-Filtrar o array antes de montar as linhas do PDF, conforme período escolhido (comparação por string YYYY-MM-DD para evitar bugs de timezone, conforme regra do projeto).
-
-### 3. Geração do PDF
-
-Reaproveitar `generatePDF` de `src/lib/pdf.ts`. Cada tipo tem suas colunas específicas:
-
-- **Receitas/Pendentes**: Evento, Cliente, Valor, Status, Forma Cobrança, Vencimento + total da soma.
-- **Despesas**: Evento, Categoria, Descrição, Data, Valor + total.
-- **Pagamentos**: Evento, Cliente, Valor, Tipo Pagamento, Data + total.
-- **Completo**: usar `groups` do `generatePDF` com 4 seções (Receitas, Pendentes, Despesas, Pagamentos), cada uma com seu subtotal, e total geral (Saldo) ao final.
-
-Subtítulo do PDF reflete o filtro escolhido (ex.: "Período: 05/2026", "Ano: 2026", "01/05/2026 a 13/05/2026", "Todos os registros").
+Subtítulo do PDF: `Base XXX — Período MM/AAAA` (ou intervalo).
 
 ## Não muda
 
-- Os 4 cards de resumo no topo continuam mostrando totais globais (sem filtro).
-- As tabs (Orçamentos / Despesas / Pagamentos) continuam exibindo tudo.
-- Schema, RLS, edge functions: sem alteração.
-- `src/lib/pdf.ts`: sem alteração.
+- Schema, RLS, edge functions.
+- Outras páginas de relatório (`ProfessionalReport`, `Finance`).
+- Formulário de criação/edição de evento.
+
+## Detalhes técnicos
+
+- Reaproveitar lista de tipos de unidade definida no formulário (extrair como constante `UNIT_TYPES` no topo do arquivo para evitar duplicação).
+- Cálculo de horas: `differenceInMinutes(max(checkout_at), min(checkin_at)) / 60` por evento; se faltar dados de check-in, mostrar `—` e não somar.
+- Toda consulta filtrada por `base_id = baseId` para respeitar a base atual.
