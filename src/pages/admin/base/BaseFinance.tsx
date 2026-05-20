@@ -346,6 +346,24 @@ export default function BaseFinance() {
           )}
         </div>
       </div>
+
+      {/* Confirm dialog */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja marcar este orçamento como pago? O valor será transferido para Receitas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedBudgetId(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkAsPaid} className="bg-stable hover:bg-stable/90">
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
