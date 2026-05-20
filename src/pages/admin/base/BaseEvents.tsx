@@ -516,6 +516,145 @@ export default function BaseEvents() {
     setIsCancelling(false);
   };
 
+  const handleGenerateReport = async () => {
+    if (!baseId || !base) return;
+    setGeneratingReport(true);
+    try {
+      const monthIdx = parseInt(reportMonth, 10) - 1;
+      const year = parseInt(reportYear, 10);
+      const periodStart = startOfMonth(new Date(year, monthIdx, 1));
+      const periodEnd = endOfMonth(periodStart);
+
+      let query = supabase
+        .from("events")
+        .select("id, nome_evento, data_inicio, data_fim, tipo_unidade, status")
+        .eq("base_id", baseId)
+        .gte("data_inicio", periodStart.toISOString())
+        .lte("data_inicio", periodEnd.toISOString())
+        .order("data_inicio", { ascending: true });
+
+      if (reportTipoUnidade !== "all") {
+        query = query.eq("tipo_unidade", reportTipoUnidade);
+      }
+
+      const { data: evs, error } = await query;
+      if (error) {
+        toast({ title: "Erro ao gerar relatório", description: error.message, variant: "destructive" });
+        return;
+      }
+
+      const eventList = evs || [];
+      const eventIds = eventList.map((e) => e.id);
+
+      const assignsByEvent: Record<string, { checkin_at: string | null; checkout_at: string | null }[]> = {};
+      if (eventIds.length > 0) {
+        const { data: assigns } = await supabase
+          .from("event_assignments")
+          .select("event_id, checkin_at, checkout_at")
+          .in("event_id", eventIds);
+        assigns?.forEach((a: any) => {
+          if (!assignsByEvent[a.event_id]) assignsByEvent[a.event_id] = [];
+          assignsByEvent[a.event_id].push({ checkin_at: a.checkin_at, checkout_at: a.checkout_at });
+        });
+      }
+
+      // Compute hours per event
+      const computeHours = (eid: string, plannedStart: string, plannedEnd: string) => {
+        const list = assignsByEvent[eid] || [];
+        const checkins = list.map((a) => a.checkin_at).filter(Boolean) as string[];
+        const checkouts = list.map((a) => a.checkout_at).filter(Boolean) as string[];
+        if (checkins.length > 0 && checkouts.length > 0) {
+          const minIn = new Date(Math.min(...checkins.map((c) => new Date(c).getTime())));
+          const maxOut = new Date(Math.max(...checkouts.map((c) => new Date(c).getTime())));
+          const mins = differenceInMinutes(maxOut, minIn);
+          return { hours: mins / 60, real: true };
+        }
+        const mins = differenceInMinutes(new Date(plannedEnd), new Date(plannedStart));
+        return { hours: mins / 60, real: false };
+      };
+
+      // Group by tipo_unidade
+      const summaryMap = new Map<string, { count: number; hours: number }>();
+      const detailRows: Record<string, string>[] = [];
+      let totalHours = 0;
+
+      eventList.forEach((ev: any) => {
+        const tipo = ev.tipo_unidade || "Sem tipo";
+        const { hours, real } = computeHours(ev.id, ev.data_inicio, ev.data_fim);
+        const cur = summaryMap.get(tipo) || { count: 0, hours: 0 };
+        cur.count += 1;
+        cur.hours += hours;
+        summaryMap.set(tipo, cur);
+        totalHours += hours;
+
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        detailRows.push({
+          nome: ev.nome_evento,
+          data: format(new Date(ev.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+          tipo,
+          horas: `${h}h ${m}min${real ? "" : " (previsto)"}`,
+        });
+      });
+
+      const summaryRows = Array.from(summaryMap.entries())
+        .sort((a, b) => b[1].count - a[1].count)
+        .map(([tipo, v]) => {
+          const h = Math.floor(v.hours);
+          const m = Math.round((v.hours - h) * 60);
+          return {
+            tipo,
+            qtd: String(v.count),
+            horas: `${h}h ${m}min`,
+          };
+        });
+
+      const totalH = Math.floor(totalHours);
+      const totalM = Math.round((totalHours - totalH) * 60);
+
+      const monthLabel = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][monthIdx];
+      const subtitle = `Base ${base.sigla} — ${base.nome} · Período: ${monthLabel}/${year}${reportTipoUnidade !== "all" ? ` · Tipo: ${reportTipoUnidade}` : ""}`;
+
+      generatePDF({
+        title: "Relatório de Eventos por Tipo de Unidade",
+        subtitle,
+        orientation: "landscape",
+        columns: [
+          { header: "Tipo de Unidade / Evento", dataKey: "col1" },
+          { header: "Data", dataKey: "col2" },
+          { header: "Qtd / Tipo", dataKey: "col3", halign: "center" },
+          { header: "Horas", dataKey: "col4", halign: "right" },
+        ],
+        rows: [],
+        groups: [
+          {
+            label: "Resumo por Tipo de Unidade",
+            rows: summaryRows.map((r) => ({ col1: r.tipo, col2: "", col3: r.qtd, col4: r.horas })),
+            subtotalLabel: "Subtotal",
+            subtotalValue: `${totalH}h ${totalM}min`,
+          },
+          {
+            label: "Detalhamento por Evento",
+            rows: detailRows.map((r) => ({ col1: r.nome, col2: r.data, col3: r.tipo, col4: r.horas })),
+            subtotalLabel: `Total: ${eventList.length} evento(s)`,
+            subtotalValue: `${totalH}h ${totalM}min`,
+          },
+        ],
+        totals: [
+          { label: "Total de Eventos", value: String(eventList.length) },
+          { label: "Total de Horas", value: `${totalH}h ${totalM}min` },
+        ],
+      });
+
+      setReportDialogOpen(false);
+      toast({ title: "Relatório gerado", description: `${eventList.length} evento(s) no período.` });
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
+
+
   const sendWhatsApp = (event: Event, profileId: string) => {
     const sendMessage = async () => {
       const { data: profileData } = await supabase
