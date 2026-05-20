@@ -295,7 +295,7 @@ export default function BaseFinance() {
                           size="sm"
                           variant="outline"
                           className="h-7 gap-1 text-stable border-stable/30 hover:bg-stable/10"
-                          onClick={() => handleMarkAsPaid(budget.id)}
+                          onClick={() => openConfirmDialog(budget.id)}
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Marcar pago
