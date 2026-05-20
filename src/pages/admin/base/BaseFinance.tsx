@@ -13,6 +13,7 @@ import {
   Receipt,
   Calendar,
   Building2,
+  CheckCircle2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
