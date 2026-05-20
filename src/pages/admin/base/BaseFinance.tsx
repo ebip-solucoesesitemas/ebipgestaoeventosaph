@@ -262,13 +262,24 @@ export default function BaseFinance() {
                         </Badge>
                       )}
                     </div>
-                    <div className="text-right shrink-0">
+                    <div className="text-right shrink-0 flex flex-col items-end gap-2">
                       <p className="text-lg font-bold">
                         R$ {Number(budget.valor_contrato).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                       <Badge className={statusColors[budget.status] || ''}>
                         {budget.status}
                       </Badge>
+                      {budget.status === 'pendente' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1 text-stable border-stable/30 hover:bg-stable/10"
+                          onClick={() => handleMarkAsPaid(budget.id)}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Marcar pago
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
