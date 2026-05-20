@@ -30,7 +30,18 @@ import {
   Phone,
   User,
   FileBarChart,
+  CheckCircle2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CepInput } from "@/components/CepInput";
 import { format, differenceInMinutes, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
