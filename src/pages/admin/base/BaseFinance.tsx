@@ -127,6 +127,19 @@ export default function BaseFinance() {
   const totalDespesas = expenses.reduce((sum, e) => sum + Number(e.valor), 0);
   const saldo = totalReceitas - totalDespesas;
 
+  const handleMarkAsPaid = async (budgetId: string) => {
+    const { error } = await supabase
+      .from('event_budgets')
+      .update({ status: 'pago', data_pagamento: new Date().toISOString().slice(0, 10) })
+      .eq('id', budgetId);
+    if (error) {
+      toast({ title: 'Erro ao marcar como pago', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setBudgets((prev) => prev.map((b) => (b.id === budgetId ? { ...b, status: 'pago' } : b)));
+    toast({ title: 'Marcado como pago', description: 'O valor entrou em Receitas.' });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
