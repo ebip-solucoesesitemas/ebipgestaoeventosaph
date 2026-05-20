@@ -30,7 +30,18 @@ import {
   Phone,
   User,
   FileBarChart,
+  CheckCircle2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CepInput } from "@/components/CepInput";
 import { format, differenceInMinutes, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -114,6 +125,9 @@ export default function BaseEvents() {
   const [userAccounts, setUserAccounts] = useState<UserAccount[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [assignments, setAssignments] = useState<Record<string, EventAssignment[]>>({});
+  const [eventBudgets, setEventBudgets] = useState<Record<string, { id: string; status: string; valor_contrato: number }>>({});
+  const [payDialogOpen, setPayDialogOpen] = useState(false);
+  const [payBudgetId, setPayBudgetId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -206,6 +220,16 @@ export default function BaseEvents() {
           grouped[a.event_id].push(a);
         });
         setAssignments(grouped);
+
+        const { data: budgetsData } = await supabase
+          .from("event_budgets")
+          .select("id, event_id, status, valor_contrato")
+          .in("event_id", eventIds);
+        const budgetMap: Record<string, { id: string; status: string; valor_contrato: number }> = {};
+        budgetsData?.forEach((b: any) => {
+          if (b.event_id) budgetMap[b.event_id] = { id: b.id, status: b.status, valor_contrato: Number(b.valor_contrato) };
+        });
+        setEventBudgets(budgetMap);
       }
     }
     if (allVehiclesRes.data) setAllVehicles(allVehiclesRes.data);
@@ -485,6 +509,23 @@ export default function BaseEvents() {
     fetchDetails();
     setDialogOpen(true);
     toast({ title: "Evento duplicado", description: "Ajuste as datas e salve como novo evento." });
+  };
+
+  const handleMarkBudgetPaid = async () => {
+    if (!payBudgetId) return;
+    const { error } = await supabase.from("event_budgets").update({ status: "pago" }).eq("id", payBudgetId);
+    if (error) {
+      toast({ title: "Erro ao marcar como pago", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Marcado como pago", description: "O valor entrou em Receitas." });
+      setEventBudgets((prev) => {
+        const next = { ...prev };
+        for (const eid in next) if (next[eid].id === payBudgetId) next[eid] = { ...next[eid], status: "pago" };
+        return next;
+      });
+    }
+    setPayDialogOpen(false);
+    setPayBudgetId(null);
   };
 
   const handleCancelEvent = async () => {
@@ -1263,6 +1304,23 @@ export default function BaseEvents() {
                       <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
                         <Edit className="w-4 h-4" />
                       </Button>
+                      {(() => {
+                        const b = eventBudgets[event.id];
+                        if (!b || !(b.valor_contrato > 0) || b.status !== "pendente") return null;
+                        return (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Marcar como pago"
+                            onClick={() => {
+                              setPayBudgetId(b.id);
+                              setPayDialogOpen(true);
+                            }}
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-stable" />
+                          </Button>
+                        );
+                      })()}
                       {event.status !== "cancelado" && event.status !== "finalizado" && (
                         <Button
                           variant="ghost"
@@ -1364,6 +1422,23 @@ export default function BaseEvents() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja marcar este orçamento como pago? O valor será transferido para Receitas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPayBudgetId(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkBudgetPaid} className="bg-stable hover:bg-stable/90">
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
         <DialogContent className="w-[95vw] max-w-md">
