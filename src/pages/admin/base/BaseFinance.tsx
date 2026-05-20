@@ -130,7 +130,7 @@ export default function BaseFinance() {
   const handleMarkAsPaid = async (budgetId: string) => {
     const { error } = await supabase
       .from('event_budgets')
-      .update({ status: 'pago', data_pagamento: new Date().toISOString().slice(0, 10) })
+      .update({ status: 'pago' })
       .eq('id', budgetId);
     if (error) {
       toast({ title: 'Erro ao marcar como pago', description: error.message, variant: 'destructive' });
