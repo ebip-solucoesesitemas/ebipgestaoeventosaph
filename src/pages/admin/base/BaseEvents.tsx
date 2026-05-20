@@ -511,6 +511,23 @@ export default function BaseEvents() {
     toast({ title: "Evento duplicado", description: "Ajuste as datas e salve como novo evento." });
   };
 
+  const handleMarkBudgetPaid = async () => {
+    if (!payBudgetId) return;
+    const { error } = await supabase.from("event_budgets").update({ status: "pago" }).eq("id", payBudgetId);
+    if (error) {
+      toast({ title: "Erro ao marcar como pago", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Marcado como pago", description: "O valor entrou em Receitas." });
+      setEventBudgets((prev) => {
+        const next = { ...prev };
+        for (const eid in next) if (next[eid].id === payBudgetId) next[eid] = { ...next[eid], status: "pago" };
+        return next;
+      });
+    }
+    setPayDialogOpen(false);
+    setPayBudgetId(null);
+  };
+
   const handleCancelEvent = async () => {
     if (!cancelEventId || !motivoCancelamento.trim()) return;
     setIsCancelling(true);
