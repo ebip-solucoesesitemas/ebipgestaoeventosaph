@@ -1423,6 +1423,23 @@ export default function BaseEvents() {
         </DialogContent>
       </Dialog>
 
+      <AlertDialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja marcar este orçamento como pago? O valor será transferido para Receitas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPayBudgetId(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkBudgetPaid} className="bg-stable hover:bg-stable/90">
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
         <DialogContent className="w-[95vw] max-w-md">
           <DialogHeader>
