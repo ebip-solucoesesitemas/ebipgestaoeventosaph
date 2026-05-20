@@ -559,17 +559,28 @@ export default function BaseEvents() {
       }
 
       // Compute hours per event
+      // If end <= start, assume it crosses midnight and add 24h
+      const adjustEnd = (start: Date, end: Date) => {
+        if (end.getTime() <= start.getTime()) {
+          return new Date(end.getTime() + 24 * 60 * 60 * 1000);
+        }
+        return end;
+      };
+
       const computeHours = (eid: string, plannedStart: string, plannedEnd: string) => {
         const list = assignsByEvent[eid] || [];
         const checkins = list.map((a) => a.checkin_at).filter(Boolean) as string[];
         const checkouts = list.map((a) => a.checkout_at).filter(Boolean) as string[];
         if (checkins.length > 0 && checkouts.length > 0) {
           const minIn = new Date(Math.min(...checkins.map((c) => new Date(c).getTime())));
-          const maxOut = new Date(Math.max(...checkouts.map((c) => new Date(c).getTime())));
+          const maxOutRaw = new Date(Math.max(...checkouts.map((c) => new Date(c).getTime())));
+          const maxOut = adjustEnd(minIn, maxOutRaw);
           const mins = Math.max(0, differenceInMinutes(maxOut, minIn));
           return { hours: mins / 60, real: true };
         }
-        const mins = Math.max(0, differenceInMinutes(new Date(plannedEnd), new Date(plannedStart)));
+        const ini = new Date(plannedStart);
+        const fim = adjustEnd(ini, new Date(plannedEnd));
+        const mins = Math.max(0, differenceInMinutes(fim, ini));
         return { hours: mins / 60, real: false };
       };
 
@@ -590,11 +601,12 @@ export default function BaseEvents() {
         const h = Math.floor(hours);
         const m = Math.round((hours - h) * 60);
         const inicio = new Date(ev.data_inicio);
-        const fim = new Date(ev.data_fim);
+        const fimRaw = new Date(ev.data_fim);
+        const fim = adjustEnd(inicio, fimRaw);
         const mesmoDia = format(inicio, "yyyy-MM-dd") === format(fim, "yyyy-MM-dd");
         const horario = mesmoDia
-          ? `${format(inicio, "dd/MM/yyyy")} · ${format(inicio, "HH:mm")} às ${format(fim, "HH:mm")}`
-          : `${format(inicio, "dd/MM/yy HH:mm")} → ${format(fim, "dd/MM/yy HH:mm")}`;
+          ? `${format(inicio, "dd/MM/yyyy")} - ${format(inicio, "HH:mm")} as ${format(fim, "HH:mm")}`
+          : `${format(inicio, "dd/MM/yyyy HH:mm")} a ${format(fim, "dd/MM/yyyy HH:mm")}`;
         detailRows.push({
           nome: ev.nome_evento,
           data: horario,
