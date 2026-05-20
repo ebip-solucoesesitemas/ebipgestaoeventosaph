@@ -763,16 +763,9 @@ export default function BaseEvents() {
                       <SelectValue placeholder="Selecione o tipo de unidade (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Semi Presencial">Semi Presencial</SelectItem>
-                      <SelectItem value="Presencial">Presencial</SelectItem>
-                      <SelectItem value="USB">USB</SelectItem>
-                      <SelectItem value="USA">USA</SelectItem>
-                      <SelectItem value="USB dois Técnicos">USB dois Técnicos</SelectItem>
-                      <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
-                      <SelectItem value="Ambulatório">Ambulatório</SelectItem>
-                      <SelectItem value="USB somente condutor">USB somente condutor</SelectItem>
-                      <SelectItem value="Usb Plantão">Usb Plantão</SelectItem>
-                      <SelectItem value="Usb Plantão + Médico">Usb Plantão + Médico</SelectItem>
+                      {UNIT_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
