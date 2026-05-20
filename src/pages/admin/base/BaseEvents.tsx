@@ -125,6 +125,9 @@ export default function BaseEvents() {
   const [userAccounts, setUserAccounts] = useState<UserAccount[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [assignments, setAssignments] = useState<Record<string, EventAssignment[]>>({});
+  const [eventBudgets, setEventBudgets] = useState<Record<string, { id: string; status: string; valor_contrato: number }>>({});
+  const [payDialogOpen, setPayDialogOpen] = useState(false);
+  const [payBudgetId, setPayBudgetId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
