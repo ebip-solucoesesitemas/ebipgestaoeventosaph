@@ -6,6 +6,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   ArrowLeft,
   DollarSign,
   TrendingUp,
@@ -83,6 +93,8 @@ export default function BaseFinance() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!baseId) return;
@@ -127,17 +139,26 @@ export default function BaseFinance() {
   const totalDespesas = expenses.reduce((sum, e) => sum + Number(e.valor), 0);
   const saldo = totalReceitas - totalDespesas;
 
-  const handleMarkAsPaid = async (budgetId: string) => {
+  const handleMarkAsPaid = async () => {
+    if (!selectedBudgetId) return;
     const { error } = await supabase
       .from('event_budgets')
       .update({ status: 'pago' })
-      .eq('id', budgetId);
+      .eq('id', selectedBudgetId);
     if (error) {
       toast({ title: 'Erro ao marcar como pago', description: error.message, variant: 'destructive' });
+      setConfirmOpen(false);
       return;
     }
-    setBudgets((prev) => prev.map((b) => (b.id === budgetId ? { ...b, status: 'pago' } : b)));
+    setBudgets((prev) => prev.map((b) => (b.id === selectedBudgetId ? { ...b, status: 'pago' } : b)));
+    setConfirmOpen(false);
+    setSelectedBudgetId(null);
     toast({ title: 'Marcado como pago', description: 'O valor entrou em Receitas.' });
+  };
+
+  const openConfirmDialog = (budgetId: string) => {
+    setSelectedBudgetId(budgetId);
+    setConfirmOpen(true);
   };
 
   if (isLoading) {
@@ -274,7 +295,7 @@ export default function BaseFinance() {
                           size="sm"
                           variant="outline"
                           className="h-7 gap-1 text-stable border-stable/30 hover:bg-stable/10"
-                          onClick={() => handleMarkAsPaid(budget.id)}
+                          onClick={() => openConfirmDialog(budget.id)}
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Marcar pago
@@ -325,6 +346,24 @@ export default function BaseFinance() {
           )}
         </div>
       </div>
+
+      {/* Confirm dialog */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja marcar este orçamento como pago? O valor será transferido para Receitas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedBudgetId(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkAsPaid} className="bg-stable hover:bg-stable/90">
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
