@@ -29,11 +29,26 @@ import {
   XCircle,
   Phone,
   User,
+  FileBarChart,
 } from "lucide-react";
 import { CepInput } from "@/components/CepInput";
-import { format } from "date-fns";
+import { format, differenceInMinutes, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { localDatetimeToISO, isoToLocalDatetime } from "@/lib/utils";
+import { generatePDF } from "@/lib/pdf";
+
+const UNIT_TYPES = [
+  "Semi Presencial",
+  "Presencial",
+  "USB",
+  "USA",
+  "USB dois Técnicos",
+  "USA dois Enfermeiros",
+  "Ambulatório",
+  "USB somente condutor",
+  "Usb Plantão",
+  "Usb Plantão + Médico",
+] as const;
 
 interface Vehicle {
   id: string;
@@ -59,6 +74,7 @@ interface Event {
   equipe_completa: boolean;
   equipe_minima: number;
   status: string;
+  tipo_unidade?: string | null;
   vehicles?: Vehicle;
 }
 
@@ -107,6 +123,12 @@ export default function BaseEvents() {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
   const [filterProfessional, setFilterProfessional] = useState("");
+  const [filterTipoUnidade, setFilterTipoUnidade] = useState("");
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportMonth, setReportMonth] = useState(String(new Date().getMonth() + 1));
+  const [reportYear, setReportYear] = useState(String(new Date().getFullYear()));
+  const [reportTipoUnidade, setReportTipoUnidade] = useState("all");
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -494,6 +516,145 @@ export default function BaseEvents() {
     setIsCancelling(false);
   };
 
+  const handleGenerateReport = async () => {
+    if (!baseId || !base) return;
+    setGeneratingReport(true);
+    try {
+      const monthIdx = parseInt(reportMonth, 10) - 1;
+      const year = parseInt(reportYear, 10);
+      const periodStart = startOfMonth(new Date(year, monthIdx, 1));
+      const periodEnd = endOfMonth(periodStart);
+
+      let query = supabase
+        .from("events")
+        .select("id, nome_evento, data_inicio, data_fim, tipo_unidade, status")
+        .eq("base_id", baseId)
+        .gte("data_inicio", periodStart.toISOString())
+        .lte("data_inicio", periodEnd.toISOString())
+        .order("data_inicio", { ascending: true });
+
+      if (reportTipoUnidade !== "all") {
+        query = query.eq("tipo_unidade", reportTipoUnidade);
+      }
+
+      const { data: evs, error } = await query;
+      if (error) {
+        toast({ title: "Erro ao gerar relatório", description: error.message, variant: "destructive" });
+        return;
+      }
+
+      const eventList = evs || [];
+      const eventIds = eventList.map((e) => e.id);
+
+      const assignsByEvent: Record<string, { checkin_at: string | null; checkout_at: string | null }[]> = {};
+      if (eventIds.length > 0) {
+        const { data: assigns } = await supabase
+          .from("event_assignments")
+          .select("event_id, checkin_at, checkout_at")
+          .in("event_id", eventIds);
+        assigns?.forEach((a: any) => {
+          if (!assignsByEvent[a.event_id]) assignsByEvent[a.event_id] = [];
+          assignsByEvent[a.event_id].push({ checkin_at: a.checkin_at, checkout_at: a.checkout_at });
+        });
+      }
+
+      // Compute hours per event
+      const computeHours = (eid: string, plannedStart: string, plannedEnd: string) => {
+        const list = assignsByEvent[eid] || [];
+        const checkins = list.map((a) => a.checkin_at).filter(Boolean) as string[];
+        const checkouts = list.map((a) => a.checkout_at).filter(Boolean) as string[];
+        if (checkins.length > 0 && checkouts.length > 0) {
+          const minIn = new Date(Math.min(...checkins.map((c) => new Date(c).getTime())));
+          const maxOut = new Date(Math.max(...checkouts.map((c) => new Date(c).getTime())));
+          const mins = differenceInMinutes(maxOut, minIn);
+          return { hours: mins / 60, real: true };
+        }
+        const mins = differenceInMinutes(new Date(plannedEnd), new Date(plannedStart));
+        return { hours: mins / 60, real: false };
+      };
+
+      // Group by tipo_unidade
+      const summaryMap = new Map<string, { count: number; hours: number }>();
+      const detailRows: Record<string, string>[] = [];
+      let totalHours = 0;
+
+      eventList.forEach((ev: any) => {
+        const tipo = ev.tipo_unidade || "Sem tipo";
+        const { hours, real } = computeHours(ev.id, ev.data_inicio, ev.data_fim);
+        const cur = summaryMap.get(tipo) || { count: 0, hours: 0 };
+        cur.count += 1;
+        cur.hours += hours;
+        summaryMap.set(tipo, cur);
+        totalHours += hours;
+
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        detailRows.push({
+          nome: ev.nome_evento,
+          data: format(new Date(ev.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+          tipo,
+          horas: `${h}h ${m}min${real ? "" : " (previsto)"}`,
+        });
+      });
+
+      const summaryRows = Array.from(summaryMap.entries())
+        .sort((a, b) => b[1].count - a[1].count)
+        .map(([tipo, v]) => {
+          const h = Math.floor(v.hours);
+          const m = Math.round((v.hours - h) * 60);
+          return {
+            tipo,
+            qtd: String(v.count),
+            horas: `${h}h ${m}min`,
+          };
+        });
+
+      const totalH = Math.floor(totalHours);
+      const totalM = Math.round((totalHours - totalH) * 60);
+
+      const monthLabel = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][monthIdx];
+      const subtitle = `Base ${base.sigla} — ${base.nome} · Período: ${monthLabel}/${year}${reportTipoUnidade !== "all" ? ` · Tipo: ${reportTipoUnidade}` : ""}`;
+
+      generatePDF({
+        title: "Relatório de Eventos por Tipo de Unidade",
+        subtitle,
+        orientation: "landscape",
+        columns: [
+          { header: "Tipo de Unidade / Evento", dataKey: "col1" },
+          { header: "Data", dataKey: "col2" },
+          { header: "Qtd / Tipo", dataKey: "col3", halign: "center" },
+          { header: "Horas", dataKey: "col4", halign: "right" },
+        ],
+        rows: [],
+        groups: [
+          {
+            label: "Resumo por Tipo de Unidade",
+            rows: summaryRows.map((r) => ({ col1: r.tipo, col2: "", col3: r.qtd, col4: r.horas })),
+            subtotalLabel: "Subtotal",
+            subtotalValue: `${totalH}h ${totalM}min`,
+          },
+          {
+            label: "Detalhamento por Evento",
+            rows: detailRows.map((r) => ({ col1: r.nome, col2: r.data, col3: r.tipo, col4: r.horas })),
+            subtotalLabel: `Total: ${eventList.length} evento(s)`,
+            subtotalValue: `${totalH}h ${totalM}min`,
+          },
+        ],
+        totals: [
+          { label: "Total de Eventos", value: String(eventList.length) },
+          { label: "Total de Horas", value: `${totalH}h ${totalM}min` },
+        ],
+      });
+
+      setReportDialogOpen(false);
+      toast({ title: "Relatório gerado", description: `${eventList.length} evento(s) no período.` });
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
+
+
   const sendWhatsApp = (event: Event, profileId: string) => {
     const sendMessage = async () => {
       const { data: profileData } = await supabase
@@ -564,6 +725,12 @@ export default function BaseEvents() {
             <p className="text-muted-foreground">Eventos vinculados a esta base</p>
           </div>
         </div>
+
+        <div className="flex gap-2">
+        <Button variant="outline" className="btn-touch gap-2" onClick={() => setReportDialogOpen(true)}>
+          <FileBarChart className="w-5 h-5" />
+          <span className="hidden sm:inline">Relatório</span>
+        </Button>
 
         <Dialog
           open={dialogOpen}
@@ -741,16 +908,9 @@ export default function BaseEvents() {
                       <SelectValue placeholder="Selecione o tipo de unidade (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Semi Presencial">Semi Presencial</SelectItem>
-                      <SelectItem value="Presencial">Presencial</SelectItem>
-                      <SelectItem value="USB">USB</SelectItem>
-                      <SelectItem value="USA">USA</SelectItem>
-                      <SelectItem value="USB dois Técnicos">USB dois Técnicos</SelectItem>
-                      <SelectItem value="USA dois Enfermeiros">USA dois Enfermeiros</SelectItem>
-                      <SelectItem value="Ambulatório">Ambulatório</SelectItem>
-                      <SelectItem value="USB somente condutor">USB somente condutor</SelectItem>
-                      <SelectItem value="Usb Plantão">Usb Plantão</SelectItem>
-                      <SelectItem value="Usb Plantão + Médico">Usb Plantão + Médico</SelectItem>
+                      {UNIT_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -910,6 +1070,7 @@ export default function BaseEvents() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
@@ -990,7 +1151,21 @@ export default function BaseEvents() {
             className="input-touch w-44"
           />
         </div>
-        {(filterEventName || filterDate || filterMonth || filterYear || filterProfessional) && (
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Tipo de Unidade</Label>
+          <Select value={filterTipoUnidade || "all"} onValueChange={(v) => setFilterTipoUnidade(v === "all" ? "" : v)}>
+            <SelectTrigger className="input-touch w-48">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {UNIT_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {(filterEventName || filterDate || filterMonth || filterYear || filterProfessional || filterTipoUnidade) && (
           <Button
             variant="ghost"
             size="sm"
@@ -1000,6 +1175,7 @@ export default function BaseEvents() {
               setFilterMonth("");
               setFilterYear("");
               setFilterProfessional("");
+              setFilterTipoUnidade("");
             }}
           >
             Limpar filtros
@@ -1032,6 +1208,7 @@ export default function BaseEvents() {
               );
               if (!match) return false;
             }
+            if (filterTipoUnidade && (event.tipo_unidade || "") !== filterTipoUnidade) return false;
             return true;
           });
 
@@ -1164,6 +1341,61 @@ export default function BaseEvents() {
                 disabled={!motivoCancelamento.trim() || isCancelling}
               >
                 {isCancelling ? "Cancelando..." : "Confirmar Cancelamento"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+        <DialogContent className="w-[95vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle>Relatório de Eventos</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Gera PDF com eventos da base <strong>{base?.sigla}</strong>, quantidade por tipo de unidade e horas trabalhadas.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Mês</Label>
+                <Select value={reportMonth} onValueChange={setReportMonth}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((m, i) => (
+                      <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Ano</Label>
+                <Select value={reportYear} onValueChange={setReportYear}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Tipo de Unidade (opcional)</Label>
+              <Select value={reportTipoUnidade} onValueChange={setReportTipoUnidade}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  {UNIT_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setReportDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleGenerateReport} disabled={generatingReport}>
+                {generatingReport ? "Gerando..." : "Gerar PDF"}
               </Button>
             </div>
           </div>
