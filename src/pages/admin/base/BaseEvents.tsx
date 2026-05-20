@@ -1287,6 +1287,23 @@ export default function BaseEvents() {
                       <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
                         <Edit className="w-4 h-4" />
                       </Button>
+                      {(() => {
+                        const b = eventBudgets[event.id];
+                        if (!b || !(b.valor_contrato > 0) || b.status !== "pendente") return null;
+                        return (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Marcar como pago"
+                            onClick={() => {
+                              setPayBudgetId(b.id);
+                              setPayDialogOpen(true);
+                            }}
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-stable" />
+                          </Button>
+                        );
+                      })()}
                       {event.status !== "cancelado" && event.status !== "finalizado" && (
                         <Button
                           variant="ghost"
