@@ -139,17 +139,26 @@ export default function BaseFinance() {
   const totalDespesas = expenses.reduce((sum, e) => sum + Number(e.valor), 0);
   const saldo = totalReceitas - totalDespesas;
 
-  const handleMarkAsPaid = async (budgetId: string) => {
+  const handleMarkAsPaid = async () => {
+    if (!selectedBudgetId) return;
     const { error } = await supabase
       .from('event_budgets')
       .update({ status: 'pago' })
-      .eq('id', budgetId);
+      .eq('id', selectedBudgetId);
     if (error) {
       toast({ title: 'Erro ao marcar como pago', description: error.message, variant: 'destructive' });
+      setConfirmOpen(false);
       return;
     }
-    setBudgets((prev) => prev.map((b) => (b.id === budgetId ? { ...b, status: 'pago' } : b)));
+    setBudgets((prev) => prev.map((b) => (b.id === selectedBudgetId ? { ...b, status: 'pago' } : b)));
+    setConfirmOpen(false);
+    setSelectedBudgetId(null);
     toast({ title: 'Marcado como pago', description: 'O valor entrou em Receitas.' });
+  };
+
+  const openConfirmDialog = (budgetId: string) => {
+    setSelectedBudgetId(budgetId);
+    setConfirmOpen(true);
   };
 
   if (isLoading) {
