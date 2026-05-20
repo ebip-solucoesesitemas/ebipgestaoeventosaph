@@ -931,6 +931,7 @@ export default function BaseEvents() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
