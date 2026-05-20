@@ -627,7 +627,7 @@ export default function BaseEvents() {
         orientation: "landscape",
         columns: [
           { header: "Tipo de Unidade / Evento", dataKey: "col1" },
-          { header: "Data", dataKey: "col2" },
+          { header: "Período / Horário", dataKey: "col2" },
           { header: "Qtd / Tipo", dataKey: "col3", halign: "center" },
           { header: "Horas", dataKey: "col4", halign: "right" },
         ],
