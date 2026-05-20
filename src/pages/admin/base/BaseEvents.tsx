@@ -1005,7 +1005,21 @@ export default function BaseEvents() {
             className="input-touch w-44"
           />
         </div>
-        {(filterEventName || filterDate || filterMonth || filterYear || filterProfessional) && (
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Tipo de Unidade</Label>
+          <Select value={filterTipoUnidade || "all"} onValueChange={(v) => setFilterTipoUnidade(v === "all" ? "" : v)}>
+            <SelectTrigger className="input-touch w-48">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {UNIT_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {(filterEventName || filterDate || filterMonth || filterYear || filterProfessional || filterTipoUnidade) && (
           <Button
             variant="ghost"
             size="sm"
@@ -1015,6 +1029,7 @@ export default function BaseEvents() {
               setFilterMonth("");
               setFilterYear("");
               setFilterProfessional("");
+              setFilterTipoUnidade("");
             }}
           >
             Limpar filtros
@@ -1047,6 +1062,7 @@ export default function BaseEvents() {
               );
               if (!match) return false;
             }
+            if (filterTipoUnidade && (event.tipo_unidade || "") !== filterTipoUnidade) return false;
             return true;
           });
 
