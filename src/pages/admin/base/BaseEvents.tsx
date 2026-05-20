@@ -587,6 +587,12 @@ export default function BaseEvents() {
           </div>
         </div>
 
+        <div className="flex gap-2">
+        <Button variant="outline" className="btn-touch gap-2" onClick={() => setReportDialogOpen(true)}>
+          <FileBarChart className="w-5 h-5" />
+          <span className="hidden sm:inline">Relatório</span>
+        </Button>
+
         <Dialog
           open={dialogOpen}
           onOpenChange={(open) => {
