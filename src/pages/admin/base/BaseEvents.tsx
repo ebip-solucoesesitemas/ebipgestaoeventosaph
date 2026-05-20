@@ -220,6 +220,16 @@ export default function BaseEvents() {
           grouped[a.event_id].push(a);
         });
         setAssignments(grouped);
+
+        const { data: budgetsData } = await supabase
+          .from("event_budgets")
+          .select("id, event_id, status, valor_contrato")
+          .in("event_id", eventIds);
+        const budgetMap: Record<string, { id: string; status: string; valor_contrato: number }> = {};
+        budgetsData?.forEach((b: any) => {
+          if (b.event_id) budgetMap[b.event_id] = { id: b.id, status: b.status, valor_contrato: Number(b.valor_contrato) };
+        });
+        setEventBudgets(budgetMap);
       }
     }
     if (allVehiclesRes.data) setAllVehicles(allVehiclesRes.data);
