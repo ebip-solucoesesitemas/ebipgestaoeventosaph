@@ -13,6 +13,7 @@ import {
   Receipt,
   Calendar,
   Building2,
+  CheckCircle2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -125,6 +126,19 @@ export default function BaseFinance() {
 
   const totalDespesas = expenses.reduce((sum, e) => sum + Number(e.valor), 0);
   const saldo = totalReceitas - totalDespesas;
+
+  const handleMarkAsPaid = async (budgetId: string) => {
+    const { error } = await supabase
+      .from('event_budgets')
+      .update({ status: 'pago' })
+      .eq('id', budgetId);
+    if (error) {
+      toast({ title: 'Erro ao marcar como pago', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setBudgets((prev) => prev.map((b) => (b.id === budgetId ? { ...b, status: 'pago' } : b)));
+    toast({ title: 'Marcado como pago', description: 'O valor entrou em Receitas.' });
+  };
 
   if (isLoading) {
     return (
@@ -248,13 +262,24 @@ export default function BaseFinance() {
                         </Badge>
                       )}
                     </div>
-                    <div className="text-right shrink-0">
+                    <div className="text-right shrink-0 flex flex-col items-end gap-2">
                       <p className="text-lg font-bold">
                         R$ {Number(budget.valor_contrato).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                       <Badge className={statusColors[budget.status] || ''}>
                         {budget.status}
                       </Badge>
+                      {budget.status === 'pendente' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1 text-stable border-stable/30 hover:bg-stable/10"
+                          onClick={() => handleMarkAsPaid(budget.id)}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Marcar pago
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
