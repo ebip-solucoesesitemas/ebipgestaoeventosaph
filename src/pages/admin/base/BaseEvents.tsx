@@ -566,10 +566,10 @@ export default function BaseEvents() {
         if (checkins.length > 0 && checkouts.length > 0) {
           const minIn = new Date(Math.min(...checkins.map((c) => new Date(c).getTime())));
           const maxOut = new Date(Math.max(...checkouts.map((c) => new Date(c).getTime())));
-          const mins = differenceInMinutes(maxOut, minIn);
+          const mins = Math.max(0, differenceInMinutes(maxOut, minIn));
           return { hours: mins / 60, real: true };
         }
-        const mins = differenceInMinutes(new Date(plannedEnd), new Date(plannedStart));
+        const mins = Math.max(0, differenceInMinutes(new Date(plannedEnd), new Date(plannedStart)));
         return { hours: mins / 60, real: false };
       };
 
@@ -589,9 +589,15 @@ export default function BaseEvents() {
 
         const h = Math.floor(hours);
         const m = Math.round((hours - h) * 60);
+        const inicio = new Date(ev.data_inicio);
+        const fim = new Date(ev.data_fim);
+        const mesmoDia = format(inicio, "yyyy-MM-dd") === format(fim, "yyyy-MM-dd");
+        const horario = mesmoDia
+          ? `${format(inicio, "dd/MM/yyyy")} · ${format(inicio, "HH:mm")} às ${format(fim, "HH:mm")}`
+          : `${format(inicio, "dd/MM/yy HH:mm")} → ${format(fim, "dd/MM/yy HH:mm")}`;
         detailRows.push({
           nome: ev.nome_evento,
-          data: format(new Date(ev.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+          data: horario,
           tipo,
           horas: `${h}h ${m}min${real ? "" : " (previsto)"}`,
         });
