@@ -93,6 +93,8 @@ export default function BaseFinance() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!baseId) return;
