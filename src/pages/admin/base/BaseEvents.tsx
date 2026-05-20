@@ -29,11 +29,26 @@ import {
   XCircle,
   Phone,
   User,
+  FileBarChart,
 } from "lucide-react";
 import { CepInput } from "@/components/CepInput";
-import { format } from "date-fns";
+import { format, differenceInMinutes, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { localDatetimeToISO, isoToLocalDatetime } from "@/lib/utils";
+import { generatePDF } from "@/lib/pdf";
+
+const UNIT_TYPES = [
+  "Semi Presencial",
+  "Presencial",
+  "USB",
+  "USA",
+  "USB dois Técnicos",
+  "USA dois Enfermeiros",
+  "Ambulatório",
+  "USB somente condutor",
+  "Usb Plantão",
+  "Usb Plantão + Médico",
+] as const;
 
 interface Vehicle {
   id: string;
