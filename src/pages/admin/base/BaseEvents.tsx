@@ -74,6 +74,7 @@ interface Event {
   equipe_completa: boolean;
   equipe_minima: number;
   status: string;
+  tipo_unidade?: string | null;
   vehicles?: Vehicle;
 }
 
