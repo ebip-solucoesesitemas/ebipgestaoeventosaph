@@ -123,6 +123,12 @@ export default function BaseEvents() {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
   const [filterProfessional, setFilterProfessional] = useState("");
+  const [filterTipoUnidade, setFilterTipoUnidade] = useState("");
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportMonth, setReportMonth] = useState(String(new Date().getMonth() + 1));
+  const [reportYear, setReportYear] = useState(String(new Date().getFullYear()));
+  const [reportTipoUnidade, setReportTipoUnidade] = useState("all");
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
