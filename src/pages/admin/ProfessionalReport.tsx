@@ -70,7 +70,7 @@ export default function ProfessionalReport() {
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
 
-    let profilesQuery = supabase.from('profiles').select('id, nome, especialidade, cpf, chave_pix, base_id').eq('hidden', false).eq('is_account_only', false);
+    let profilesQuery = supabase.from('profiles').select('id, nome, especialidade, base_id').eq('hidden', false).eq('is_account_only', false);
     if (selectedBase !== "all") {
       profilesQuery = profilesQuery.eq('base_id', selectedBase);
     }
@@ -92,12 +92,29 @@ export default function ProfessionalReport() {
 
     const ajudaCustoValor = ajudaCustoRes.data?.valor || 0;
 
-    const profiles = profilesRes.data || [];
+    const profilesBase = (profilesRes.data || []) as any[];
     const rates = ratesRes.data || [];
     const assignments = assignmentsRes.data || [];
     const payments = paymentsRes.data || [];
 
+    // Load private data
+    const profileIds = profilesBase.map((p) => p.id);
+    let privMap = new Map<string, { cpf: string | null; chave_pix: string | null }>();
+    if (profileIds.length > 0) {
+      const { data: privs } = await (supabase as any)
+        .from('profile_private')
+        .select('profile_id, cpf, chave_pix')
+        .in('profile_id', profileIds);
+      (privs || []).forEach((p: any) => privMap.set(p.profile_id, { cpf: p.cpf, chave_pix: p.chave_pix }));
+    }
+    const profiles = profilesBase.map((p) => ({
+      ...p,
+      cpf: privMap.get(p.id)?.cpf ?? null,
+      chave_pix: privMap.get(p.id)?.chave_pix ?? null,
+    }));
+
     const ratesMap = new Map(rates.map(r => [r.profile_id, r.valor_hora || 0]));
+
     
     const reportData: ReportData[] = profiles.map(profile => {
       const profileAssignments = assignments.filter(a => a.profile_id === profile.id);
