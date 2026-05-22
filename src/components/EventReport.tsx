@@ -90,8 +90,9 @@ export default function EventReport() {
         supabase.from("events").select("*, vehicles(prefixo, modelo, placa), bases(nome, sigla)").eq("id", id).maybeSingle(),
         supabase
           .from("event_assignments")
-          .select("id, checkin_at, checkout_at, profiles(nome, especialidade, registro_profissional, telefone)")
+          .select("id, checkin_at, checkout_at, profiles(id, nome, especialidade, registro_profissional)")
           .eq("event_id", id),
+
         supabase.from("event_signatures").select("id, tipo, nome_responsavel, assinatura_url, created_at").eq("event_id", id),
         supabase.from("event_budgets").select("*, clients(nome, telefone, endereco)").eq("event_id", id).limit(1),
       ]);
