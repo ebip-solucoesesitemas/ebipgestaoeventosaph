@@ -148,21 +148,9 @@ export default function AdminUsers() {
         .eq("hidden", false)
         .order("nome");
       if (error) throw error;
-      const profiles = (data || []) as any[];
-      const ids = profiles.map((p) => p.id);
-      if (ids.length > 0) {
-        const { data: privs } = await (supabase as any)
-          .from("profile_private")
-          .select("profile_id, telefone")
-          .in("profile_id", ids);
-        const phoneMap = new Map<string, string | null>();
-        (privs || []).forEach((p: any) => phoneMap.set(p.profile_id, p.telefone));
-        profiles.forEach((p) => { p.telefone = phoneMap.get(p.id) ?? null; });
-      }
-      return profiles as UserProfile[];
+      return data as UserProfile[];
     },
   });
-
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -212,10 +200,11 @@ export default function AdminUsers() {
         registro_profissional: form.registro_profissional.trim(),
         cargo: form.cargo,
         base_id: form.base_id || null,
+        telefone: form.telefone.trim() || null,
         is_account_only: form.is_account_only,
       };
 
-      const { error, data: updateData } = await supabase
+      const { error, data: updateData, count } = await supabase
         .from("profiles")
         .update(payload)
         .eq("id", editingUser.id)
@@ -225,13 +214,6 @@ export default function AdminUsers() {
       if (!updateData || updateData.length === 0) {
         throw new Error("Falha ao atualizar perfil - verifique as permissões");
       }
-
-      // Upsert telefone in profile_private
-      await (supabase as any).from("profile_private").upsert(
-        { profile_id: editingUser.id, telefone: form.telefone.trim() || null },
-        { onConflict: "profile_id" }
-      );
-
 
       // Update user_roles if cargo changed and user has auth account
       if (editingUser.cargo !== form.cargo && editingUser.user_id) {

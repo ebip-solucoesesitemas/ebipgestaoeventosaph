@@ -1014,49 +1014,13 @@ export type Database = {
           },
         ]
       }
-      profile_private: {
-        Row: {
-          chave_pix: string | null
-          cpf: string | null
-          created_at: string
-          profile_id: string
-          telefone: string | null
-          telefone_celular: string | null
-          updated_at: string
-        }
-        Insert: {
-          chave_pix?: string | null
-          cpf?: string | null
-          created_at?: string
-          profile_id: string
-          telefone?: string | null
-          telefone_celular?: string | null
-          updated_at?: string
-        }
-        Update: {
-          chave_pix?: string | null
-          cpf?: string | null
-          created_at?: string
-          profile_id?: string
-          telefone?: string | null
-          telefone_celular?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profile_private_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           accepted_terms_at: string | null
           base_id: string | null
           cargo: Database["public"]["Enums"]["cargo_tipo"]
+          chave_pix: string | null
+          cpf: string | null
           created_at: string | null
           especialidade: Database["public"]["Enums"]["especialidade_tipo"]
           hidden: boolean
@@ -1064,6 +1028,8 @@ export type Database = {
           is_account_only: boolean
           nome: string
           registro_profissional: string | null
+          telefone: string | null
+          telefone_celular: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -1071,6 +1037,8 @@ export type Database = {
           accepted_terms_at?: string | null
           base_id?: string | null
           cargo?: Database["public"]["Enums"]["cargo_tipo"]
+          chave_pix?: string | null
+          cpf?: string | null
           created_at?: string | null
           especialidade: Database["public"]["Enums"]["especialidade_tipo"]
           hidden?: boolean
@@ -1078,6 +1046,8 @@ export type Database = {
           is_account_only?: boolean
           nome: string
           registro_profissional?: string | null
+          telefone?: string | null
+          telefone_celular?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -1085,6 +1055,8 @@ export type Database = {
           accepted_terms_at?: string | null
           base_id?: string | null
           cargo?: Database["public"]["Enums"]["cargo_tipo"]
+          chave_pix?: string | null
+          cpf?: string | null
           created_at?: string | null
           especialidade?: Database["public"]["Enums"]["especialidade_tipo"]
           hidden?: boolean
@@ -1092,6 +1064,8 @@ export type Database = {
           is_account_only?: boolean
           nome?: string
           registro_profissional?: string | null
+          telefone?: string | null
+          telefone_celular?: string | null
           updated_at?: string | null
           user_id?: string | null
         }

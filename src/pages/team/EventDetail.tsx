@@ -138,21 +138,11 @@ export default function EventDetail() {
     if (eventData?.user_id) {
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("id, nome")
+        .select("nome, telefone")
         .eq("user_id", eventData.user_id)
         .single();
-      let telefone: string | null = null;
-      if (profileData?.id) {
-        const { data: priv } = await (supabase as any)
-          .from("profile_private")
-          .select("telefone")
-          .eq("profile_id", profileData.id)
-          .maybeSingle();
-        telefone = priv?.telefone ?? null;
-      }
-      responsibleProfileData = profileData ? { nome: profileData.nome, telefone } : null;
+      responsibleProfileData = profileData;
     }
-
 
     // ... (restante do código anterior da fetchData)
 
