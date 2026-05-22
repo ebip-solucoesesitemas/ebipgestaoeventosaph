@@ -111,7 +111,23 @@ export default function EventReport() {
       }
 
       setEvent(eventRes.data as unknown as EventData);
-      if (teamRes.data) setTeam(teamRes.data.filter((m: any) => m.profiles) as unknown as TeamMember[]);
+      let teamData = (teamRes.data || []).filter((m: any) => m.profiles) as any[];
+      // Load phone numbers from profile_private
+      const teamProfileIds = teamData.map((m) => m.profiles?.id).filter(Boolean);
+      if (teamProfileIds.length > 0) {
+        const { data: privs } = await (supabase as any)
+          .from("profile_private")
+          .select("profile_id, telefone")
+          .in("profile_id", teamProfileIds);
+        const phoneMap = new Map<string, string | null>();
+        (privs || []).forEach((p: any) => phoneMap.set(p.profile_id, p.telefone));
+        teamData = teamData.map((m) => ({
+          ...m,
+          profiles: m.profiles ? { ...m.profiles, telefone: phoneMap.get(m.profiles.id) ?? null } : m.profiles,
+        }));
+      }
+      setTeam(teamData as unknown as TeamMember[]);
+
       if (sigRes.data) {
         setSignatures(sigRes.data as SignatureRecord[]);
       }
