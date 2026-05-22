@@ -60,7 +60,7 @@ export default function PayrollReport() {
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
 
-    let profilesQuery = supabase.from("profiles").select("id, nome, especialidade, cpf, chave_pix, base_id").eq("hidden", false).eq("is_account_only", false);
+    let profilesQuery = supabase.from("profiles").select("id, nome, especialidade, base_id").eq("hidden", false).eq("is_account_only", false);
     if (selectedBase !== "all") {
       profilesQuery = profilesQuery.eq("base_id", selectedBase);
     }
@@ -82,9 +82,25 @@ export default function PayrollReport() {
     const ajudaCustoValor = ajudaCustoRes.data?.valor || 0;
 
     const assignments = assignmentsRes.data || [];
-    const allProfiles = profilesRes.data || [];
+    const allProfilesBase = (profilesRes.data || []) as any[];
     const rates = ratesRes.data || [];
     const events = eventsRes.data || [];
+
+    // Load private data (cpf, chave_pix) from profile_private
+    const allProfileIds = allProfilesBase.map((p) => p.id);
+    let privMap = new Map<string, { cpf: string | null; chave_pix: string | null }>();
+    if (allProfileIds.length > 0) {
+      const { data: privs } = await (supabase as any)
+        .from("profile_private")
+        .select("profile_id, cpf, chave_pix")
+        .in("profile_id", allProfileIds);
+      (privs || []).forEach((p: any) => privMap.set(p.profile_id, { cpf: p.cpf, chave_pix: p.chave_pix }));
+    }
+    const allProfiles = allProfilesBase.map((p) => ({
+      ...p,
+      cpf: privMap.get(p.id)?.cpf ?? null,
+      chave_pix: privMap.get(p.id)?.chave_pix ?? null,
+    }));
 
     setProfiles(allProfiles.map((p) => ({ id: p.id, nome: p.nome })));
 
@@ -92,6 +108,7 @@ export default function PayrollReport() {
     setProfileDataMap(profileMap);
     const ratesMap = new Map(rates.map((r) => [r.profile_id, r]));
     const eventsMap = new Map(events.map((e) => [e.id, e]));
+
 
     // Filter out assignments referencing deleted profiles
     const validAssignments = assignments.filter((a) => profileMap.has(a.profile_id));
