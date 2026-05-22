@@ -107,16 +107,13 @@ Deno.serve(async (req) => {
       especialidade: profileData.especialidade,
       registro_profissional: profileData.registro_profissional || "",
       cargo: profileData.cargo || "equipe",
+      telefone: profileData.telefone || null,
       is_account_only: profileData.is_account_only || false,
     };
     if (profileData.base_id) {
       profileInsert.base_id = profileData.base_id;
     }
-    const { data: profileRow, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .insert(profileInsert)
-      .select("id")
-      .single();
+    const { error: profileError } = await supabaseAdmin.from("profiles").insert(profileInsert);
 
     if (profileError) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
@@ -124,15 +121,6 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // 2b. Insert sensitive private fields if provided
-    if (profileData.telefone) {
-      await supabaseAdmin.from("profile_private").insert({
-        profile_id: profileRow.id,
-        telefone: profileData.telefone || null,
-      });
-    }
-
 
     // 3. Add user role
     const role = profileData.cargo === "admin" ? "admin" : "equipe";

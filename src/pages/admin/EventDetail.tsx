@@ -140,7 +140,7 @@ export default function AdminEventDetail() {
     try {
       const [eventRes, assignmentsRes, attendancesRes, expensesRes] = await Promise.all([
         supabase.from('events').select('*, vehicles(*)').eq('id', id).single() as any,
-        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade)').eq('event_id', id),
+        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade, telefone)').eq('event_id', id),
         supabase.from('clinical_attendances').select('*, profiles:profissional_id(nome, especialidade)').eq('event_id', id).order('created_at'),
         supabase.from('event_expenses').select('*').eq('event_id', id).order('data_despesa'),
       ]);
@@ -157,44 +157,18 @@ export default function AdminEventDetail() {
       if (eventData?.user_id) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('id, nome')
+          .select('nome, telefone')
           .eq('user_id', eventData.user_id)
           .single();
-        let telefone: string | null = null;
-        if (profileData?.id) {
-          const { data: priv } = await (supabase as any)
-            .from('profile_private')
-            .select('telefone')
-            .eq('profile_id', profileData.id)
-            .maybeSingle();
-          telefone = priv?.telefone ?? null;
-        }
-        eventData = { ...eventData, responsible_profile: { ...(profileData || {}), telefone } };
+        eventData = { ...eventData, responsible_profile: profileData };
       }
-
-      // Load telefones for assignment profiles
-      const assignmentsRaw = (assignmentsRes.data || []) as any[];
-      const profileIds = assignmentsRaw.map(a => a.profiles?.id).filter(Boolean);
-      let phoneMap: Record<string, string | null> = {};
-      if (profileIds.length > 0) {
-        const { data: privs } = await (supabase as any)
-          .from('profile_private')
-          .select('profile_id, telefone')
-          .in('profile_id', profileIds);
-        (privs || []).forEach((p: any) => { phoneMap[p.profile_id] = p.telefone; });
-      }
-      const assignmentsWithPhone = assignmentsRaw.map(a => ({
-        ...a,
-        profiles: a.profiles ? { ...a.profiles, telefone: phoneMap[a.profiles.id] || null } : a.profiles,
-      }));
 
       setEvent(eventData);
       setKmInicial(eventData.km_inicial?.toString() || '');
       setKmFinal(eventData.km_final?.toString() || '');
-      setAssignments(assignmentsWithPhone as any);
+      setAssignments(assignmentsRes.data || []);
       setAttendances((attendancesRes.data as Attendance[]) || []);
       setExpenses(expensesRes.data || []);
-
     } catch (error) {
       console.error('Unexpected error loading event:', error);
       toast({ title: 'Erro inesperado', description: 'Não foi possível carregar o evento', variant: 'destructive' });

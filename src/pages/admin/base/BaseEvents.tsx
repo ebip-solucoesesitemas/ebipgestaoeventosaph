@@ -716,14 +716,13 @@ export default function BaseEvents() {
 
   const sendWhatsApp = (event: Event, profileId: string) => {
     const sendMessage = async () => {
-      const { data: profileData } = await (supabase as any)
-        .from("profile_private")
-        .select("telefone")
-        .eq("profile_id", profileId)
-        .maybeSingle();
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("nome, telefone")
+        .eq("id", profileId)
+        .single();
 
       const telefone = (profileData as any)?.telefone;
-
       if (!telefone) {
         toast({ title: "Profissional sem telefone cadastrado", variant: "destructive" });
         return;

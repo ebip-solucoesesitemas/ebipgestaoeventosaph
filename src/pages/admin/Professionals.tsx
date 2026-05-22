@@ -111,24 +111,15 @@ export default function AdminProfessionals() {
 
   const fetchProfiles = async () => {
     setIsLoading(true);
-    const [profilesRes, ratesRes, privRes] = await Promise.all([
+    const [profilesRes, ratesRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('professional_rates').select('*'),
-      (supabase as any).from('profile_private').select('profile_id, cpf, chave_pix, telefone'),
     ]);
 
     if (profilesRes.error) {
       toast({ title: 'Erro ao carregar', description: profilesRes.error.message, variant: 'destructive' });
     } else {
-      const privMap = new Map<string, any>();
-      (privRes.data || []).forEach((p: any) => privMap.set(p.profile_id, p));
-      const merged = (profilesRes.data || []).map((p: any) => ({
-        ...p,
-        cpf: privMap.get(p.id)?.cpf ?? null,
-        chave_pix: privMap.get(p.id)?.chave_pix ?? null,
-        telefone: privMap.get(p.id)?.telefone ?? null,
-      }));
-      setProfiles(merged as Profile[]);
+      setProfiles(profilesRes.data || []);
     }
 
     const ratesMap: RateMap = {};
@@ -138,7 +129,6 @@ export default function AdminProfessionals() {
     setRates(ratesMap);
     setIsLoading(false);
   };
-
 
   const fetchBases = async () => {
     const { data } = await supabase.from('bases').select('id, nome, sigla').order('nome');
@@ -183,15 +173,11 @@ export default function AdminProfessionals() {
         especialidade: formData.especialidade as any,
         registro_profissional: formData.registro_profissional,
         cargo: formData.cargo as any,
-        base_id: formData.base_id || null,
-      };
-      const privatePayload = {
         cpf: formData.cpf || null,
         telefone: formData.telefone || null,
         chave_pix: formData.chave_pix || null,
+        base_id: formData.base_id || null,
       };
-
-      let targetProfileId: string;
 
       if (editingProfile) {
         const { error } = await supabase
@@ -200,7 +186,6 @@ export default function AdminProfessionals() {
           .eq('id', editingProfile.id);
 
         if (error) throw error;
-        targetProfileId = editingProfile.id;
 
         await saveProfessionalRates(editingProfile.id);
         toast({ title: 'Profissional atualizado!' });
@@ -215,18 +200,10 @@ export default function AdminProfessionals() {
           .single();
 
         if (error) throw error;
-        targetProfileId = createdProfile.id;
 
         await saveProfessionalRates(createdProfile.id);
         toast({ title: 'Profissional cadastrado com sucesso!' });
       }
-
-      // Upsert sensitive private data
-      await (supabase as any).from('profile_private').upsert(
-        { profile_id: targetProfileId, ...privatePayload },
-        { onConflict: 'profile_id' }
-      );
-
 
       setDialogOpen(false);
       resetForm();
