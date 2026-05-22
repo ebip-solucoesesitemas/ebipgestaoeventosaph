@@ -148,9 +148,21 @@ export default function AdminUsers() {
         .eq("hidden", false)
         .order("nome");
       if (error) throw error;
-      return data as UserProfile[];
+      const profiles = (data || []) as any[];
+      const ids = profiles.map((p) => p.id);
+      if (ids.length > 0) {
+        const { data: privs } = await (supabase as any)
+          .from("profile_private")
+          .select("profile_id, telefone")
+          .in("profile_id", ids);
+        const phoneMap = new Map<string, string | null>();
+        (privs || []).forEach((p: any) => phoneMap.set(p.profile_id, p.telefone));
+        profiles.forEach((p) => { p.telefone = phoneMap.get(p.id) ?? null; });
+      }
+      return profiles as UserProfile[];
     },
   });
+
 
   const createMutation = useMutation({
     mutationFn: async () => {
