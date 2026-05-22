@@ -183,11 +183,15 @@ export default function AdminProfessionals() {
         especialidade: formData.especialidade as any,
         registro_profissional: formData.registro_profissional,
         cargo: formData.cargo as any,
+        base_id: formData.base_id || null,
+      };
+      const privatePayload = {
         cpf: formData.cpf || null,
         telefone: formData.telefone || null,
         chave_pix: formData.chave_pix || null,
-        base_id: formData.base_id || null,
       };
+
+      let targetProfileId: string;
 
       if (editingProfile) {
         const { error } = await supabase
@@ -196,6 +200,7 @@ export default function AdminProfessionals() {
           .eq('id', editingProfile.id);
 
         if (error) throw error;
+        targetProfileId = editingProfile.id;
 
         await saveProfessionalRates(editingProfile.id);
         toast({ title: 'Profissional atualizado!' });
@@ -210,10 +215,18 @@ export default function AdminProfessionals() {
           .single();
 
         if (error) throw error;
+        targetProfileId = createdProfile.id;
 
         await saveProfessionalRates(createdProfile.id);
         toast({ title: 'Profissional cadastrado com sucesso!' });
       }
+
+      // Upsert sensitive private data
+      await (supabase as any).from('profile_private').upsert(
+        { profile_id: targetProfileId, ...privatePayload },
+        { onConflict: 'profile_id' }
+      );
+
 
       setDialogOpen(false);
       resetForm();
