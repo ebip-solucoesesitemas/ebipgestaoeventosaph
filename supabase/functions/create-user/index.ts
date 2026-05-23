@@ -107,18 +107,29 @@ Deno.serve(async (req) => {
       especialidade: profileData.especialidade,
       registro_profissional: profileData.registro_profissional || "",
       cargo: profileData.cargo || "equipe",
-      telefone: profileData.telefone || null,
       is_account_only: profileData.is_account_only || false,
     };
     if (profileData.base_id) {
       profileInsert.base_id = profileData.base_id;
     }
-    const { error: profileError } = await supabaseAdmin.from("profiles").insert(profileInsert);
+    const { data: createdProfile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .insert(profileInsert)
+      .select("id")
+      .single();
 
     if (profileError) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
       return new Response(JSON.stringify({ error: profileError.message }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 2b. Save private fields (telefone) in profile_private
+    if (profileData.telefone && createdProfile?.id) {
+      await supabaseAdmin.from("profile_private").upsert({
+        profile_id: createdProfile.id,
+        telefone: profileData.telefone,
       });
     }
 
