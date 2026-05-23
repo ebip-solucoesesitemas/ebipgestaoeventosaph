@@ -140,7 +140,7 @@ export default function AdminEventDetail() {
     try {
       const [eventRes, assignmentsRes, attendancesRes, expensesRes] = await Promise.all([
         supabase.from('events').select('*, vehicles(*)').eq('id', id).single() as any,
-        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade, telefone)').eq('event_id', id),
+        supabase.from('event_assignments').select('*, profiles(id, nome, especialidade)').eq('event_id', id),
         supabase.from('clinical_attendances').select('*, profiles:profissional_id(nome, especialidade)').eq('event_id', id).order('created_at'),
         supabase.from('event_expenses').select('*').eq('event_id', id).order('data_despesa'),
       ]);
@@ -157,16 +157,41 @@ export default function AdminEventDetail() {
       if (eventData?.user_id) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('nome, telefone')
+          .select('id, nome')
           .eq('user_id', eventData.user_id)
           .single();
-        eventData = { ...eventData, responsible_profile: profileData };
+        let telefone: string | null = null;
+        if (profileData?.id) {
+          const { data: priv } = await supabase
+            .from('profile_private')
+            .select('telefone')
+            .eq('profile_id', profileData.id)
+            .maybeSingle();
+          telefone = priv?.telefone ?? null;
+        }
+        eventData = { ...eventData, responsible_profile: profileData ? { nome: profileData.nome, telefone } : null };
       }
+
+      // Enrich assignments with telefone from profile_private
+      const assignments = (assignmentsRes.data || []) as any[];
+      const profileIds = assignments.map((a) => a.profiles?.id).filter(Boolean);
+      const phoneMap = new Map<string, string | null>();
+      if (profileIds.length > 0) {
+        const { data: privs } = await supabase
+          .from('profile_private')
+          .select('profile_id, telefone')
+          .in('profile_id', profileIds);
+        privs?.forEach((p) => phoneMap.set(p.profile_id, p.telefone));
+      }
+      const enrichedAssignments = assignments.map((a) => ({
+        ...a,
+        profiles: a.profiles ? { ...a.profiles, telefone: phoneMap.get(a.profiles.id) ?? null } : a.profiles,
+      }));
 
       setEvent(eventData);
       setKmInicial(eventData.km_inicial?.toString() || '');
       setKmFinal(eventData.km_final?.toString() || '');
-      setAssignments(assignmentsRes.data || []);
+      setAssignments(enrichedAssignments as any);
       setAttendances((attendancesRes.data as Attendance[]) || []);
       setExpenses(expensesRes.data || []);
     } catch (error) {
