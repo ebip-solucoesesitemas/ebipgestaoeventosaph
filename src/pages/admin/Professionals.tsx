@@ -182,10 +182,13 @@ export default function AdminProfessionals() {
         especialidade: formData.especialidade as any,
         registro_profissional: formData.registro_profissional,
         cargo: formData.cargo as any,
+        base_id: formData.base_id || null,
+      };
+
+      const privatePayload = {
         cpf: formData.cpf || null,
         telefone: formData.telefone || null,
         chave_pix: formData.chave_pix || null,
-        base_id: formData.base_id || null,
       };
 
       if (editingProfile) {
@@ -196,6 +199,7 @@ export default function AdminProfessionals() {
 
         if (error) throw error;
 
+        await supabase.from('profile_private').upsert({ profile_id: editingProfile.id, ...privatePayload });
         await saveProfessionalRates(editingProfile.id);
         toast({ title: 'Profissional atualizado!' });
       } else {
@@ -210,6 +214,7 @@ export default function AdminProfessionals() {
 
         if (error) throw error;
 
+        await supabase.from('profile_private').upsert({ profile_id: createdProfile.id, ...privatePayload });
         await saveProfessionalRates(createdProfile.id);
         toast({ title: 'Profissional cadastrado com sucesso!' });
       }
