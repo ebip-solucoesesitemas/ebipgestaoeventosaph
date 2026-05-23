@@ -111,15 +111,24 @@ export default function AdminProfessionals() {
 
   const fetchProfiles = async () => {
     setIsLoading(true);
-    const [profilesRes, ratesRes] = await Promise.all([
+    const [profilesRes, ratesRes, privateRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('hidden', false).eq('is_account_only', false).order('nome'),
       supabase.from('professional_rates').select('*'),
+      supabase.from('profile_private').select('profile_id, telefone, cpf, chave_pix'),
     ]);
 
     if (profilesRes.error) {
       toast({ title: 'Erro ao carregar', description: profilesRes.error.message, variant: 'destructive' });
     } else {
-      setProfiles(profilesRes.data || []);
+      const privateMap = new Map<string, { telefone: string | null; cpf: string | null; chave_pix: string | null }>();
+      privateRes.data?.forEach((p) => privateMap.set(p.profile_id, { telefone: p.telefone, cpf: p.cpf, chave_pix: p.chave_pix }));
+      const merged: Profile[] = (profilesRes.data || []).map((p: any) => ({
+        ...p,
+        telefone: privateMap.get(p.id)?.telefone ?? null,
+        cpf: privateMap.get(p.id)?.cpf ?? null,
+        chave_pix: privateMap.get(p.id)?.chave_pix ?? null,
+      }));
+      setProfiles(merged);
     }
 
     const ratesMap: RateMap = {};
