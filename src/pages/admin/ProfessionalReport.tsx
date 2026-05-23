@@ -70,11 +70,11 @@ export default function ProfessionalReport() {
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
 
-    let profilesQuery = supabase.from('profiles').select('id, nome, especialidade, cpf, chave_pix, base_id').eq('hidden', false).eq('is_account_only', false);
+    let profilesQuery = supabase.from('profiles').select('id, nome, especialidade, base_id').eq('hidden', false).eq('is_account_only', false);
     if (selectedBase !== "all") {
       profilesQuery = profilesQuery.eq('base_id', selectedBase);
     }
-    const [profilesRes, ratesRes, assignmentsRes, paymentsRes, ajudaCustoRes] = await Promise.all([
+    const [profilesRes, ratesRes, assignmentsRes, paymentsRes, ajudaCustoRes, privateRes] = await Promise.all([
       profilesQuery.order('nome'),
       supabase.from('professional_rates').select('profile_id, valor_hora'),
       supabase.from('event_assignments')
@@ -88,14 +88,21 @@ export default function ProfessionalReport() {
         .gte('created_at', monthStart.toISOString())
         .lte('created_at', monthEnd.toISOString()),
       supabase.from('operational_rates').select('valor').eq('tipo', 'ajuda_custo_6h').single(),
+      supabase.from('profile_private').select('profile_id, cpf, chave_pix'),
     ]);
 
     const ajudaCustoValor = ajudaCustoRes.data?.valor || 0;
 
-    const profiles = profilesRes.data || [];
+    const profilesRaw = (profilesRes.data || []) as any[];
     const rates = ratesRes.data || [];
     const assignments = assignmentsRes.data || [];
     const payments = paymentsRes.data || [];
+    const privateMap = new Map((privateRes.data || []).map((p) => [p.profile_id, p]));
+    const profiles = profilesRaw.map((p) => ({
+      ...p,
+      cpf: privateMap.get(p.id)?.cpf || '',
+      chave_pix: privateMap.get(p.id)?.chave_pix || '',
+    }));
 
     const ratesMap = new Map(rates.map(r => [r.profile_id, r.valor_hora || 0]));
     
