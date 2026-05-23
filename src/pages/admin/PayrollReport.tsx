@@ -60,12 +60,12 @@ export default function PayrollReport() {
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
 
-    let profilesQuery = supabase.from("profiles").select("id, nome, especialidade, cpf, chave_pix, base_id").eq("hidden", false).eq("is_account_only", false);
+    let profilesQuery = supabase.from("profiles").select("id, nome, especialidade, base_id").eq("hidden", false).eq("is_account_only", false);
     if (selectedBase !== "all") {
       profilesQuery = profilesQuery.eq("base_id", selectedBase);
     }
 
-    const [assignmentsRes, profilesRes, ratesRes, eventsRes, ajudaCustoRes] = await Promise.all([
+    const [assignmentsRes, profilesRes, ratesRes, eventsRes, ajudaCustoRes, privateRes] = await Promise.all([
     supabase.
     from("event_assignments").
     select("profile_id, event_id, checkin_at, checkout_at").
@@ -76,19 +76,26 @@ export default function PayrollReport() {
     profilesQuery.order("nome"),
     supabase.from("professional_rates").select("profile_id, valor_hora, valor_evento"),
     supabase.from("events").select("id, nome_evento, data_inicio"),
-    supabase.from("operational_rates").select("valor").eq("tipo", "ajuda_custo_6h").single()]
+    supabase.from("operational_rates").select("valor").eq("tipo", "ajuda_custo_6h").single(),
+    supabase.from("profile_private").select("profile_id, cpf, chave_pix")]
     );
 
     const ajudaCustoValor = ajudaCustoRes.data?.valor || 0;
 
     const assignments = assignmentsRes.data || [];
-    const allProfiles = profilesRes.data || [];
+    const allProfiles = (profilesRes.data || []) as any[];
     const rates = ratesRes.data || [];
     const events = eventsRes.data || [];
+    const privateMap = new Map((privateRes.data || []).map((p) => [p.profile_id, p]));
+    const profilesEnriched = allProfiles.map((p) => ({
+      ...p,
+      cpf: privateMap.get(p.id)?.cpf || null,
+      chave_pix: privateMap.get(p.id)?.chave_pix || null,
+    }));
 
-    setProfiles(allProfiles.map((p) => ({ id: p.id, nome: p.nome })));
+    setProfiles(profilesEnriched.map((p) => ({ id: p.id, nome: p.nome })));
 
-    const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
+    const profileMap = new Map(profilesEnriched.map((p) => [p.id, p]));
     setProfileDataMap(profileMap);
     const ratesMap = new Map(rates.map((r) => [r.profile_id, r]));
     const eventsMap = new Map(events.map((e) => [e.id, e]));
