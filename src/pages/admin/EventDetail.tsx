@@ -999,6 +999,24 @@ export default function AdminEventDetail() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirm finish event dialog */}
+      <AlertDialog open={confirmFinishOpen} onOpenChange={setConfirmFinishOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalizar evento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja finalizar o evento <strong>{event?.nome_evento}</strong>? Essa ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmFinish}>
+              Sim, finalizar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
