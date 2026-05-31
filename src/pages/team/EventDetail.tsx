@@ -111,6 +111,8 @@ export default function EventDetail() {
   const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
   const [pendingEscopos, setPendingEscopos] = useState<string[]>([]);
   const [draftEscopos, setDraftEscopos] = useState<string[]>([]);
+  const [confirmFinishOpen, setConfirmFinishOpen] = useState(false);
+
 
   // KM state
   const [kmInicial, setKmInicial] = useState("");
