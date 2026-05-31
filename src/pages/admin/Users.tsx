@@ -206,11 +206,10 @@ export default function AdminUsers() {
         registro_profissional: form.registro_profissional.trim(),
         cargo: form.cargo,
         base_id: form.base_id || null,
-        telefone: form.telefone.trim() || null,
         is_account_only: form.is_account_only,
       };
 
-      const { error, data: updateData, count } = await supabase
+      const { error, data: updateData } = await supabase
         .from("profiles")
         .update(payload)
         .eq("id", editingUser.id)
@@ -220,6 +219,12 @@ export default function AdminUsers() {
       if (!updateData || updateData.length === 0) {
         throw new Error("Falha ao atualizar perfil - verifique as permissões");
       }
+
+      const { error: privError } = await supabase
+        .from("profile_private")
+        .upsert({ profile_id: editingUser.id, telefone: form.telefone.trim() || null }, { onConflict: "profile_id" });
+      if (privError) throw new Error(privError.message);
+
 
       // Update user_roles if cargo changed and user has auth account
       if (editingUser.cargo !== form.cargo && editingUser.user_id) {
