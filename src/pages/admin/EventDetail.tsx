@@ -143,6 +143,9 @@ export default function AdminEventDetail() {
   const [manualCheckinTimes, setManualCheckinTimes] = useState<Record<string, string>>({});
   const [manualCheckoutTimes, setManualCheckoutTimes] = useState<Record<string, string>>({});
 
+  // Confirmation dialog for finishing event
+  const [confirmFinishOpen, setConfirmFinishOpen] = useState(false);
+
   const fetchData = async () => {
     if (!id) return;
     setIsLoading(true);
