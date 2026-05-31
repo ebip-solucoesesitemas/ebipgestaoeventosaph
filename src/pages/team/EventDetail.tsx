@@ -9,6 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+import {
   ArrowLeft,
   Plus,
   Calendar,
@@ -100,6 +111,8 @@ export default function EventDetail() {
   const [signatures, setSignatures] = useState<SignatureRecord[]>([]);
   const [pendingEscopos, setPendingEscopos] = useState<string[]>([]);
   const [draftEscopos, setDraftEscopos] = useState<string[]>([]);
+  const [confirmFinishOpen, setConfirmFinishOpen] = useState(false);
+
 
   // KM state
   const [kmInicial, setKmInicial] = useState("");
@@ -590,27 +603,47 @@ export default function EventDetail() {
         <Button
           className="w-full gap-2"
           variant="outline"
-          onClick={async () => {
-            const { error } = await supabase.from("events").update({ status: "finalizado" }).eq("id", event.id);
-            if (error) {
-              toast({ title: "Erro ao finalizar evento", description: error.message, variant: "destructive" });
-            } else {
-              // Release vehicle back to available
-              if (event.viatura_id) {
-                await supabase
-                  .from("vehicles")
-                  .update({ status: "disponivel" } as any)
-                  .eq("id", event.viatura_id);
-              }
-              toast({ title: "Evento finalizado com sucesso!" });
-              await fetchData();
-            }
-          }}
+          onClick={() => setConfirmFinishOpen(true)}
         >
           <CheckCircle2 className="w-5 h-5" />
           Finalizar Evento
         </Button>
       )}
+
+      <AlertDialog open={confirmFinishOpen} onOpenChange={setConfirmFinishOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalizar evento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja finalizar o evento "{event?.nome_evento}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const { error } = await supabase.from("events").update({ status: "finalizado" }).eq("id", event!.id);
+                if (error) {
+                  toast({ title: "Erro ao finalizar evento", description: error.message, variant: "destructive" });
+                } else {
+                  if (event?.viatura_id) {
+                    await supabase
+                      .from("vehicles")
+                      .update({ status: "disponivel" } as any)
+                      .eq("id", event.viatura_id);
+                  }
+                  toast({ title: "Evento finalizado com sucesso!" });
+                  await fetchData();
+                }
+                setConfirmFinishOpen(false);
+              }}
+            >
+              Sim, finalizar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {isEventFinalized && (
         <Card className="border-stable/30 bg-stable/5">
