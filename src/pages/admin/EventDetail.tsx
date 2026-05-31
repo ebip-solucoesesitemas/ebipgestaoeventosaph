@@ -6,6 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -132,6 +142,9 @@ export default function AdminEventDetail() {
   // Manual checkin/checkout datetime state per assignment
   const [manualCheckinTimes, setManualCheckinTimes] = useState<Record<string, string>>({});
   const [manualCheckoutTimes, setManualCheckoutTimes] = useState<Record<string, string>>({});
+
+  // Confirmation dialog for finishing event
+  const [confirmFinishOpen, setConfirmFinishOpen] = useState(false);
 
   const fetchData = async () => {
     if (!id) return;
@@ -302,6 +315,27 @@ export default function AdminEventDetail() {
     }
   };
 
+  const handleConfirmFinish = async () => {
+    if (!event) return;
+    setConfirmFinishOpen(false);
+    const { error } = await supabase
+      .from('events')
+      .update({ status: 'finalizado' } as any)
+      .eq('id', event.id);
+    if (error) {
+      toast({ title: 'Erro ao finalizar evento', description: error.message, variant: 'destructive' });
+    } else {
+      if (event.viatura_id) {
+        await supabase
+          .from('vehicles')
+          .update({ status: 'disponivel' } as any)
+          .eq('id', event.viatura_id);
+      }
+      toast({ title: 'Evento finalizado com sucesso!' });
+      fetchData();
+    }
+  };
+
   if (isLoading || !event) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -401,25 +435,7 @@ export default function AdminEventDetail() {
         <Button
           className="w-full gap-2"
           variant="outline"
-          onClick={async () => {
-            const { error } = await supabase
-              .from('events')
-              .update({ status: 'finalizado' } as any)
-              .eq('id', event.id);
-            if (error) {
-              toast({ title: 'Erro ao finalizar evento', description: error.message, variant: 'destructive' });
-            } else {
-              // Release vehicle back to available
-              if (event.viatura_id) {
-                await supabase
-                  .from('vehicles')
-                  .update({ status: 'disponivel' } as any)
-                  .eq('id', event.viatura_id);
-              }
-              toast({ title: 'Evento finalizado com sucesso!' });
-              fetchData();
-            }
-          }}
+          onClick={() => setConfirmFinishOpen(true)}
         >
           <CheckCircle2 className="w-5 h-5" />
           Finalizar Evento
@@ -983,6 +999,24 @@ export default function AdminEventDetail() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirm finish event dialog */}
+      <AlertDialog open={confirmFinishOpen} onOpenChange={setConfirmFinishOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalizar evento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja finalizar o evento <strong>{event?.nome_evento}</strong>? Essa ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmFinish}>
+              Sim, finalizar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
