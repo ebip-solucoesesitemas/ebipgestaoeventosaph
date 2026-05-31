@@ -315,6 +315,27 @@ export default function AdminEventDetail() {
     }
   };
 
+  const handleConfirmFinish = async () => {
+    if (!event) return;
+    setConfirmFinishOpen(false);
+    const { error } = await supabase
+      .from('events')
+      .update({ status: 'finalizado' } as any)
+      .eq('id', event.id);
+    if (error) {
+      toast({ title: 'Erro ao finalizar evento', description: error.message, variant: 'destructive' });
+    } else {
+      if (event.viatura_id) {
+        await supabase
+          .from('vehicles')
+          .update({ status: 'disponivel' } as any)
+          .eq('id', event.viatura_id);
+      }
+      toast({ title: 'Evento finalizado com sucesso!' });
+      fetchData();
+    }
+  };
+
   if (isLoading || !event) {
     return (
       <div className="flex items-center justify-center py-20">
