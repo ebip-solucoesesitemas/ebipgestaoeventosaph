@@ -113,8 +113,13 @@ export default function AdminUsers() {
     setNewPassword("");
   };
 
-  const openEditDialog = (user: UserProfile) => {
+  const openEditDialog = async (user: UserProfile) => {
     setEditingUser(user);
+    const { data: priv } = await supabase
+      .from("profile_private")
+      .select("telefone")
+      .eq("profile_id", user.id)
+      .maybeSingle();
     setForm({
       nome: user.nome,
       email: "",
@@ -123,11 +128,12 @@ export default function AdminUsers() {
       especialidade: user.especialidade,
       registro_profissional: user.registro_profissional,
       base_id: user.base_id || "",
-      telefone: (user as any).telefone || "",
+      telefone: priv?.telefone || "",
       is_account_only: user.is_account_only || false,
     });
     setOpen(true);
   };
+
 
   const { data: bases = [] } = useQuery({
     queryKey: ["bases-list"],
