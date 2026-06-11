@@ -61,20 +61,28 @@ export default function EventSignature({ eventId, tipo, label, disabled, onSaved
 
     setIsSaving(true);
     try {
-      // Persist directly in the event record to avoid mobile upload aborts in storage
-      const signatureDataUrl = sigPadRef.current.getDataUrl("image/png", 0.5);
+      // Use JPEG with quality compression (PNG ignores quality param, resulting in huge payloads that abort on mobile)
+      const signatureDataUrl = sigPadRef.current.getDataUrl("image/jpeg", 0.5);
 
-      if (!signatureDataUrl?.startsWith("data:image/png;base64,")) {
+      if (!signatureDataUrl?.startsWith("data:image/jpeg;base64,")) {
         toast({ title: "Erro ao processar assinatura", description: "Tente assinar novamente.", variant: "destructive" });
         return;
       }
 
-      const { error } = await supabase.from("event_signatures").insert({
+      // Race against a timeout so the UI never hangs forever on slow networks
+      const insertPromise = supabase.from("event_signatures").insert({
         event_id: eventId,
         tipo,
         nome_responsavel: nomeResponsavel.trim(),
         assinatura_url: signatureDataUrl,
       });
+
+      const { error } = (await Promise.race([
+        insertPromise,
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ error: { message: "Tempo esgotado. Verifique sua conexão e tente novamente." } }), 30000),
+        ),
+      ])) as { error: { message: string } | null };
 
       if (error) {
         toast({ title: "Erro ao registrar assinatura", description: error.message, variant: "destructive" });
