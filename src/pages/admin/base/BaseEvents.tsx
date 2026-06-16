@@ -1356,7 +1356,14 @@ export default function BaseEvents() {
                   <div className="flex flex-wrap gap-2">
                     {event.vehicles && (
                       <Badge variant="secondary" className="gap-1">
-                        <Truck className="w-3 h-3" /> {event.vehicles.prefixo}
+                        <Truck className="w-3 h-3" /> Viatura: {event.vehicles.prefixo}
+                        {event.vehicles.modelo ? ` - ${event.vehicles.modelo}` : ""}
+                        {(event.vehicles as any).placa ? ` (${(event.vehicles as any).placa})` : ""}
+                      </Badge>
+                    )}
+                    {event.tipo_unidade && (
+                      <Badge variant="outline" className="gap-1">
+                        {event.tipo_unidade}
                       </Badge>
                     )}
                     {eventAssigns.map((a) => (
