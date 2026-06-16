@@ -1368,9 +1368,16 @@ export default function BaseEvents() {
                     )}
                     {eventAssigns.map((a) => (
                       <div key={a.id} className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                        <Badge variant="outline" className="gap-1">
-                          <Users className="w-3 h-3" />
-                          {a.profiles?.nome}
+                        <Badge variant="outline" className="gap-1 py-1">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-3 h-3" />
+                            <div className="flex flex-col items-start leading-tight">
+                              <span>{a.profiles?.nome}</span>
+                              {a.profiles?.especialidade && (
+                                <span className="text-[11px] text-muted-foreground">{a.profiles.especialidade}</span>
+                              )}
+                            </div>
+                          </div>
                         </Badge>
                         <Button
                           variant="ghost"
