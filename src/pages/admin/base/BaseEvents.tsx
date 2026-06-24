@@ -718,9 +718,10 @@ export default function BaseEvents() {
     const sendMessage = async () => {
       const { data: profileData } = await supabase
         .from("profile_private")
-        .select("telefone")
+        .select("telefone, telefone_celular")
         .eq("profile_id", profileId)
-      const telefone = (profileData as any)?.telefone;
+        .single();
+      const telefone = (profileData as any)?.telefone || (profileData as any)?.telefone_celular;
       if (!telefone) {
         toast({ title: "Profissional sem telefone cadastrado", variant: "destructive" });
         return;
