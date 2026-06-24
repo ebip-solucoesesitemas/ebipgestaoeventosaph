@@ -592,8 +592,11 @@ export default function AdminEvents() {
     if (!profile) return;
 
     const sendMessage = async () => {
-      const { data: profileData } = await supabase.from("profiles").select("telefone").eq("id", profileId).single();
-
+      const { data: profileData } = await supabase
+        .from("profile_private")
+        .select("telefone")
+        .eq("profile_id", profileId)
+        .single();
       const telefone = (profileData as any)?.telefone;
       if (!telefone) {
         toast({ title: "Profissional sem telefone cadastrado", variant: "destructive" });
