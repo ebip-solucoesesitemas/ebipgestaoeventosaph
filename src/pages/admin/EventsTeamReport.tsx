@@ -158,23 +158,15 @@ export default function EventsTeamReport() {
 
         if (filteredTeam.length === 0) return;
 
-        // Header row for event
-        rows.push({
-          evento: event.event_name,
-          data: format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR }),
-          local: event.local,
-          viatura: event.viatura || '—',
-          nomes: '',
-        });
-
-        // Team member rows (just names)
-        filteredTeam.forEach((member) => {
+        // For compact report: first member row includes event name and date, following rows leave them blank
+        filteredTeam.forEach((member, idx) => {
           rows.push({
-            evento: '',
-            data: '',
-            local: '',
-            viatura: '',
+            evento: idx === 0 ? event.event_name : '',
+            data: idx === 0 ? format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR }) : '',
+            registro_profissional: member.registro_profissional || '',
+            viatura: event.viatura || '—',
             nomes: member.nome,
+            especialidade: member.especialidade || '',
           });
         });
 
@@ -182,18 +174,20 @@ export default function EventsTeamReport() {
         rows.push({
           evento: '',
           data: '',
-          local: '',
+          registro_profissional: '',
           viatura: '',
           nomes: '',
+          especialidade: '',
         });
       });
 
       const columns = [
         { header: 'Evento', dataKey: 'evento' },
         { header: 'Data', dataKey: 'data', halign: 'center' as const },
-        { header: 'Local', dataKey: 'local' },
+        { header: 'Registro Profissional', dataKey: 'registro_profissional' },
         { header: 'Viatura', dataKey: 'viatura' },
         { header: 'Nomes da Equipe', dataKey: 'nomes' },
+        { header: 'Especialidade', dataKey: 'especialidade' },
       ];
 
       generatePDF({
