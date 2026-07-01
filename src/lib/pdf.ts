@@ -65,17 +65,19 @@ export function generatePDF(options: PDFOptions) {
             return "";
           }),
         ],
-        styles: { fontSize: 8, cellPadding: 2, halign: 'left' as HAlignType },
-        headStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
+        styles: { fontSize: 8, cellPadding: 2, halign: 'left' as HAlignType, fillColor: [255, 255, 255], lineColor: [200, 200, 200], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
         columnStyles: columns.reduce((acc, col, i) => {
           acc[i] = { halign: (col.halign || 'left') as HAlignType };
           return acc;
         }, {} as Record<number, { halign: HAlignType }>),
         didParseCell: (data: any) => {
-          // Style subtotal row
+          // Style subtotal row: bold and add a thin top border
           if (data.row.index === group.rows.length && data.section === "body") {
             data.cell.styles.fontStyle = "bold";
-            data.cell.styles.fillColor = [240, 240, 240];
+            data.cell.styles.fillColor = [255, 255, 255];
+            data.cell.styles.lineWidth = 0.3;
+            data.cell.styles.lineColor = [120, 120, 120];
           }
         },
         margin: { left: 14, right: 14 },
@@ -102,8 +104,8 @@ export function generatePDF(options: PDFOptions) {
         styles: { halign: (c.halign || 'left') as HAlignType },
       }))],
       body: rows.map((row) => columns.map((c) => String(row[c.dataKey] ?? ""))),
-      styles: { fontSize: 8, cellPadding: 2, halign: 'left' as HAlignType },
-      headStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
+      styles: { fontSize: 8, cellPadding: 2, halign: 'left' as HAlignType, fillColor: [255, 255, 255], lineColor: [200, 200, 200], lineWidth: 0.1 },
+      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
       columnStyles: columns.reduce((acc, col, i) => {
         acc[i] = { halign: (col.halign || 'left') as HAlignType };
         return acc;
