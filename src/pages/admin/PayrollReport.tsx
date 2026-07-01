@@ -337,6 +337,17 @@ export default function PayrollReport() {
               )}
             </SelectContent>
           </Select>
+          <Select value={selectedEspecialidade} onValueChange={setSelectedEspecialidade}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Todas as Especialidades" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Especialidades</SelectItem>
+              {especialidades.map((e) =>
+              <SelectItem key={e} value={e}>{e}</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-32">
               <SelectValue />
