@@ -41,10 +41,8 @@ const predefinedEspecialidades = [
   'Médico',
   'Enfermeiro',
   'Técnico',
-  'Técnico enfermagem',
   'Socorrista',
   'VTR',
-  'Operacional'
 ];
 
 export default function EventsTeamReport() {
@@ -394,7 +392,6 @@ export default function EventsTeamReport() {
                   );
                 })()}
               </CardContent>
-              <div className="h-1 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100" />
             </Card>
           ))
         )}
