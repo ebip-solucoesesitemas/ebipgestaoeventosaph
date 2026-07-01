@@ -42,6 +42,7 @@ export default function PayrollReport() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedProfile, setSelectedProfile] = useState("all");
+  const [selectedEspecialidade, setSelectedEspecialidade] = useState("all");
   const [selectedBase, setSelectedBase] = useState("all");
   const [bases, setBases] = useState<{id: string; sigla: string; nome: string}[]>([]);
   const [profiles, setProfiles] = useState<{id: string;nome: string;}[]>([]);
