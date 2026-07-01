@@ -152,38 +152,40 @@ export default function EventsTeamReport() {
       const rows: any[] = [];
 
       filteredEvents.forEach(event => {
-        if (event.team.length === 0) {
+        const filteredTeam = selectedEspecialidades.length === 0 
+          ? event.team 
+          : event.team.filter(m => selectedEspecialidades.includes(m.especialidade));
+
+        if (filteredTeam.length === 0) return;
+
+        // Header row for event
+        rows.push({
+          evento: event.event_name,
+          data: format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR }),
+          local: event.local,
+          viatura: event.viatura || '—',
+          nomes: '',
+        });
+
+        // Team member rows (just names)
+        filteredTeam.forEach((member) => {
           rows.push({
-            evento: event.event_name,
-            data: format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR }),
-            local: event.local,
-            viatura: event.viatura || '—',
-            nome: '(sem equipe)',
-            funcao: '—',
-            crm_coren: '—',
-            telefone: '—',
+            evento: '',
+            data: '',
+            local: '',
+            viatura: '',
+            nomes: member.nome,
           });
-        } else {
-          const filteredTeam = selectedEspecialidades.length === 0 
-            ? event.team 
-            : event.team.filter(m => selectedEspecialidades.includes(m.especialidade));
+        });
 
-          if (filteredTeam.length === 0) return;
-
-          filteredTeam.forEach((member, idx) => {
-            const crm_coren = member.registro_profissional || '—';
-            rows.push({
-              evento: idx === 0 ? event.event_name : '',
-              data: idx === 0 ? format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR }) : '',
-              local: idx === 0 ? event.local : '',
-              viatura: idx === 0 ? (event.viatura || '—') : '',
-              nome: member.nome,
-              funcao: member.especialidade,
-              crm_coren,
-              telefone: member.telefone || '—',
-            });
-          });
-        }
+        // Blank row separator
+        rows.push({
+          evento: '',
+          data: '',
+          local: '',
+          viatura: '',
+          nomes: '',
+        });
       });
 
       const columns = [
@@ -191,10 +193,7 @@ export default function EventsTeamReport() {
         { header: 'Data', dataKey: 'data', halign: 'center' as const },
         { header: 'Local', dataKey: 'local' },
         { header: 'Viatura', dataKey: 'viatura' },
-        { header: 'Nome', dataKey: 'nome' },
-        { header: 'Função', dataKey: 'funcao' },
-        { header: 'CRM / COREN', dataKey: 'crm_coren' },
-        { header: 'Telefone', dataKey: 'telefone' },
+        { header: 'Nomes da Equipe', dataKey: 'nomes' },
       ];
 
       generatePDF({
@@ -314,7 +313,7 @@ export default function EventsTeamReport() {
         </Card>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {isLoading ? (
           <Card>
             <CardContent className="py-12 flex items-center justify-center">
@@ -329,45 +328,46 @@ export default function EventsTeamReport() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6 bg-white p-6 rounded-lg border">
-            {filteredEvents.map((event, eventIdx) => {
-              const filteredTeam = selectedEspecialidades.length === 0 
-                ? event.team 
-                : event.team.filter(m => selectedEspecialidades.includes(m.especialidade));
+          filteredEvents.map((event) => {
+            const filteredTeam = selectedEspecialidades.length === 0 
+              ? event.team 
+              : event.team.filter(m => selectedEspecialidades.includes(m.especialidade));
 
-              if (filteredTeam.length === 0 && selectedEspecialidades.length > 0) {
-                return null;
-              }
+            if (filteredTeam.length === 0 && selectedEspecialidades.length > 0) {
+              return null;
+            }
 
-              return (
-                <div key={event.event_id}>
-                  <div className="mb-3">
-                    <h3 className="font-bold text-base text-gray-900">{event.event_name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR })} • {event.local}
-                      {event.viatura && ` • Viatura: ${event.viatura}`}
+            return (
+              <Card key={event.event_id}>
+                <CardHeader>
+                  <div>
+                    <CardTitle className="text-lg">{event.event_name}</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {format(new Date(event.event_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} • {event.local}
                     </p>
+                    {event.viatura && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        <span className="font-medium">Viatura:</span> {event.viatura}
+                      </p>
+                    )}
                   </div>
-
+                </CardHeader>
+                <CardContent>
                   {filteredTeam.length === 0 ? (
-                    <p className="text-sm text-gray-500 italic ml-4">Sem equipe escalada</p>
+                    <p className="text-sm text-muted-foreground italic">Sem equipe escalada</p>
                   ) : (
-                    <div className="ml-4 space-y-1 mb-4">
+                    <div className="space-y-2">
                       {filteredTeam.map((member, idx) => (
-                        <p key={idx} className="text-sm text-gray-800">
-                          <span className="font-medium">{member.especialidade}:</span> {member.nome}
-                          {member.registro_profissional && ` (${member.registro_profissional})`}
-                          {member.telefone && ` • ${member.telefone}`}
+                        <p key={idx} className="text-sm">
+                          {member.nome}
                         </p>
                       ))}
                     </div>
                   )}
-
-                  <div className="border-b border-gray-300 my-4" />
-                </div>
-              );
-            })}
-          </div>
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
     </div>
