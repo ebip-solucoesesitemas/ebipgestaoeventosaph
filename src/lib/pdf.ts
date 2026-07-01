@@ -13,31 +13,54 @@ interface PDFOptions {
   rows: Record<string, string | number>[];
   groups?: { label: string; rows: Record<string, string | number>[]; subtotalLabel: string; subtotalValue: string }[];
   totals?: { label: string; value: string }[];
+  compact?: boolean;
 }
 
 export function generatePDF(options: PDFOptions) {
-  const { title, subtitle, orientation = "landscape", columns, rows, groups, totals } = options;
+  const { title, subtitle, orientation = "landscape", columns, rows, groups, totals, compact = true } = options;
 
   const doc = new jsPDF({ orientation, unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
 
-  // Header
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("Anjos da Vida Saúde", pageWidth / 2, 15, { align: "center" });
-
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "normal");
-  doc.text(title, pageWidth / 2, 22, { align: "center" });
-
-  if (subtitle) {
+  // Header (compact layout)
+  if (compact) {
     doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(subtitle, pageWidth / 2, 28, { align: "center" });
-    doc.setTextColor(0);
+    doc.setFont("helvetica", "bold");
+    doc.text("Anjos da Vida Saúde", pageWidth / 2, 12, { align: "center" });
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(title, pageWidth / 2, 17, { align: "center" });
+
+    if (subtitle) {
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(subtitle, pageWidth / 2, 21, { align: "center" });
+      doc.setTextColor(0);
+    }
+
+    var startY = subtitle ? 24 : 20;
+  } else {
+    // default (non-compact)
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Anjos da Vida Saúde", pageWidth / 2, 15, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(title, pageWidth / 2, 22, { align: "center" });
+
+    if (subtitle) {
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(subtitle, pageWidth / 2, 28, { align: "center" });
+      doc.setTextColor(0);
+    }
+
+    var startY = subtitle ? 34 : 28;
   }
 
-  const startY = subtitle ? 34 : 28;
+  const marginLR = compact ? 8 : 14;
 
   if (groups && groups.length > 0) {
     let currentY = startY;
@@ -65,8 +88,8 @@ export function generatePDF(options: PDFOptions) {
             return "";
           }),
         ],
-        styles: { fontSize: 8, cellPadding: 2, halign: 'left' as HAlignType, fillColor: [255, 255, 255], lineColor: [200, 200, 200], lineWidth: 0.1 },
-        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
+        styles: { fontSize: compact ? 7 : 8, cellPadding: compact ? 1 : 2, halign: 'left' as HAlignType, fillColor: [255, 255, 255], lineColor: [100, 100, 100], lineWidth: compact ? 0.12 : 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold", fontSize: compact ? 7 : 8 },
         columnStyles: columns.reduce((acc, col, i) => {
           acc[i] = { halign: (col.halign || 'left') as HAlignType };
           return acc;
@@ -76,11 +99,11 @@ export function generatePDF(options: PDFOptions) {
           if (data.row.index === group.rows.length && data.section === "body") {
             data.cell.styles.fontStyle = "bold";
             data.cell.styles.fillColor = [255, 255, 255];
-            data.cell.styles.lineWidth = 0.3;
-            data.cell.styles.lineColor = [120, 120, 120];
+            data.cell.styles.lineWidth = compact ? 0.2 : 0.3;
+            data.cell.styles.lineColor = [80, 80, 80];
           }
         },
-        margin: { left: 14, right: 14 },
+        margin: { left: marginLR, right: marginLR },
       });
 
       currentY = (doc as any).lastAutoTable.finalY + 8;
@@ -89,7 +112,7 @@ export function generatePDF(options: PDFOptions) {
     // Grand total
     if (totals) {
       totals.forEach((total) => {
-        doc.setFontSize(12);
+        doc.setFontSize(compact ? 9 : 12);
         doc.setFont("helvetica", "bold");
         doc.text(`${total.label}: ${total.value}`, pageWidth - 14, currentY, { align: "right" });
         currentY += 7;
@@ -104,19 +127,19 @@ export function generatePDF(options: PDFOptions) {
         styles: { halign: (c.halign || 'left') as HAlignType },
       }))],
       body: rows.map((row) => columns.map((c) => String(row[c.dataKey] ?? ""))),
-      styles: { fontSize: 8, cellPadding: 2, halign: 'left' as HAlignType, fillColor: [255, 255, 255], lineColor: [200, 200, 200], lineWidth: 0.1 },
-      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
+      styles: { fontSize: compact ? 7 : 8, cellPadding: compact ? 1 : 2, halign: 'left' as HAlignType, fillColor: [255, 255, 255], lineColor: [100, 100, 100], lineWidth: compact ? 0.12 : 0.1 },
+      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold", fontSize: compact ? 7 : 8 },
       columnStyles: columns.reduce((acc, col, i) => {
         acc[i] = { halign: (col.halign || 'left') as HAlignType };
         return acc;
       }, {} as Record<number, { halign: HAlignType }>),
-      margin: { left: 14, right: 14 },
+      margin: { left: marginLR, right: marginLR },
     });
 
     if (totals) {
-      const finalY = (doc as any).lastAutoTable.finalY + 8;
+      const finalY = (doc as any).lastAutoTable.finalY + 6;
       totals.forEach((total, i) => {
-        doc.setFontSize(11);
+        doc.setFontSize(compact ? 9 : 11);
         doc.setFont("helvetica", "bold");
         doc.text(`${total.label}: ${total.value}`, pageWidth - 14, finalY + i * 7, { align: "right" });
       });
@@ -127,9 +150,9 @@ export function generatePDF(options: PDFOptions) {
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
+    doc.setFontSize(compact ? 7 : 8);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(150);
+    doc.setTextColor(120);
     const pageHeight = doc.internal.pageSize.getHeight();
     doc.text(
       `Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} — Página ${i}/${pageCount}`,
