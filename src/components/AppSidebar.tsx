@@ -70,6 +70,7 @@ const configLinks: MenuLink[] = [
   { href: "/admin/operational-rates", label: "Valores Operacionais", icon: Settings, permissionKey: "finance.manage" },
   { href: "/admin/regulation-phones", label: "Tel. Regulação", icon: Shield, permissionKey: "bases.view" },
   { href: "/admin/professional-report", label: "Relatórios", icon: ClipboardList, permissionKey: "professionals.view" },
+  { href: "/admin/events-team-report", label: "Relatório de Eventos", icon: ClipboardList, permissionKey: "professionals.view" },
   { href: "/admin/payroll", label: "Pagamentos", icon: Wallet, permissionKey: "payroll.view" },
   { href: "/admin/payroll-report", label: "Folha de Pagamento", icon: ClipboardList, permissionKey: "payroll.view" },
   ...(/* super-admin only */ [] as MenuLink[]),
