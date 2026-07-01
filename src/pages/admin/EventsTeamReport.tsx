@@ -3,7 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { FileText, Download, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -41,17 +47,29 @@ const months = [
   "Dezembro",
 ];
 
-const predefinedEspecialidades = ["Médico", "Enfermeiro", "Técnico", "Socorrista", "VTR"];
+const predefinedEspecialidades = [
+  "Médico",
+  "Enfermeiro",
+  "Técnico",
+  "Socorrista",
+  "VTR",
+];
 
 export default function EventsTeamReport() {
   const { toast } = useToast();
   const [events, setEvents] = useState<EventTeamData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().getMonth().toString(),
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    new Date().getFullYear().toString(),
+  );
   const [searchEvent, setSearchEvent] = useState("");
-  const [selectedEspecialidades, setSelectedEspecialidades] = useState<string[]>([]);
+  const [selectedEspecialidades, setSelectedEspecialidades] = useState<
+    string[]
+  >([]);
 
   useEffect(() => {
     fetchEvents();
@@ -60,7 +78,9 @@ export default function EventsTeamReport() {
   const fetchEvents = async () => {
     setIsLoading(true);
 
-    const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
+    const monthStart = startOfMonth(
+      new Date(parseInt(selectedYear), parseInt(selectedMonth)),
+    );
     const monthEnd = endOfMonth(monthStart);
 
     try {
@@ -72,6 +92,7 @@ export default function EventsTeamReport() {
           nome_evento,
           data_inicio,
           local,
+          tipo_unidade,
           vehicles(prefixo, modelo, placa),
           event_assignments(
             profiles(
@@ -89,25 +110,30 @@ export default function EventsTeamReport() {
 
       if (error) throw error;
 
-      const formattedEvents: EventTeamData[] = (eventsData || []).map((e: any) => {
-        const vehicle = e.vehicles;
-        const viaturaLabel = vehicle ? `${vehicle.prefixo} (${vehicle.modelo} / ${vehicle.placa})` : null;
-        return {
-          event_id: e.id,
-          event_name: e.nome_evento,
-          event_date: e.data_inicio,
-          local: e.local,
-          viatura: viaturaLabel,
-          team: (e.event_assignments || [])
-            .filter((a: any) => a.profiles)
-            .map((a: any) => ({
-              nome: a.profiles.nome,
-              especialidade: a.profiles.especialidade,
-              registro_profissional: a.profiles.registro_profissional || "",
-              telefone: a.profiles.profile_private?.[0]?.telefone || null,
-            })),
-        };
-      });
+      const formattedEvents: EventTeamData[] = (eventsData || []).map(
+        (e: any) => {
+          const vehicle = e.vehicles;
+          const viaturaLabel = vehicle
+            ? `${vehicle.prefixo} (${vehicle.modelo} / ${vehicle.placa})`
+            : null;
+          return {
+            event_id: e.id,
+            event_name: e.nome_evento,
+            event_date: e.data_inicio,
+            local: e.local,
+            tipo_unidade: (e.tipo_unidade as string) || null,
+            viatura: viaturaLabel,
+            team: (e.event_assignments || [])
+              .filter((a: any) => a.profiles)
+              .map((a: any) => ({
+                nome: a.profiles.nome,
+                especialidade: a.profiles.especialidade,
+                registro_profissional: a.profiles.registro_profissional || "",
+                telefone: a.profiles.profile_private?.[0]?.telefone || null,
+              })),
+          };
+        },
+      );
 
       setEvents(formattedEvents);
     } catch (err: any) {
@@ -122,16 +148,24 @@ export default function EventsTeamReport() {
   };
 
   const filteredEvents = events.filter((e) => {
-    const matchesSearch = !searchEvent || e.event_name.toLowerCase().includes(searchEvent.toLowerCase());
+    const matchesSearch =
+      !searchEvent ||
+      e.event_name.toLowerCase().includes(searchEvent.toLowerCase());
     const hasTeamWithSelected =
       selectedEspecialidades.length === 0 ||
-      e.team.some((member) => selectedEspecialidades.includes(member.especialidade));
+      e.team.some((member) =>
+        selectedEspecialidades.includes(member.especialidade),
+      );
     return matchesSearch && hasTeamWithSelected;
   });
 
   // Extract unique especialidades from all events and merge with predefined ones
-  const dynamicEspecialidades = Array.from(new Set(events.flatMap((e) => e.team.map((m) => m.especialidade))));
-  const allEspecialidades = Array.from(new Set([...predefinedEspecialidades, ...dynamicEspecialidades])).sort();
+  const dynamicEspecialidades = Array.from(
+    new Set(events.flatMap((e) => e.team.map((m) => m.especialidade))),
+  );
+  const allEspecialidades = Array.from(
+    new Set([...predefinedEspecialidades, ...dynamicEspecialidades]),
+  ).sort();
 
   const handleExportPDF = async () => {
     if (filteredEvents.length === 0) {
@@ -152,7 +186,9 @@ export default function EventsTeamReport() {
         const filteredTeam =
           selectedEspecialidades.length === 0
             ? event.team
-            : event.team.filter((m) => selectedEspecialidades.includes(m.especialidade));
+            : event.team.filter((m) =>
+                selectedEspecialidades.includes(m.especialidade),
+              );
 
         if (filteredTeam.length === 0) return;
 
@@ -160,9 +196,15 @@ export default function EventsTeamReport() {
         filteredTeam.forEach((member, idx) => {
           rows.push({
             evento: idx === 0 ? event.event_name : "",
-            data: idx === 0 ? format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR }) : "",
+            data:
+              idx === 0
+                ? format(new Date(event.event_date), "dd/MM/yyyy", {
+                    locale: ptBR,
+                  })
+                : "",
             registro_profissional: member.registro_profissional || "",
-            viatura: event.viatura || "—",
+            tipo_viatura:
+              idx === 0 ? event.tipo_unidade || event.viatura || "—" : "",
             nomes: member.nome,
             especialidade: member.especialidade || "",
           });
@@ -172,20 +214,20 @@ export default function EventsTeamReport() {
         rows.push({
           evento: "",
           data: "",
-          registro_profissional: "",
-          viatura: "",
           nomes: "",
+          registro_profissional: "",
           especialidade: "",
+          tipo_viatura: "",
         });
       });
 
       const columns = [
         { header: "Evento", dataKey: "evento" },
         { header: "Data", dataKey: "data", halign: "center" as const },
+        { header: "Nomes da Equipe", dataKey: "nomes" },
         { header: "Registro Profissional", dataKey: "registro_profissional" },
         { header: "Especialidade", dataKey: "especialidade" },
-        { header: "Viatura", dataKey: "viatura" },
-        { header: "Nomes da Equipe", dataKey: "nomes" },
+        { header: "Tipo de Viatura", dataKey: "tipo_viatura" },
       ];
 
       generatePDF({
@@ -247,7 +289,11 @@ export default function EventsTeamReport() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={handleExportPDF} disabled={isGenerating || filteredEvents.length === 0} className="gap-2">
+          <Button
+            onClick={handleExportPDF}
+            disabled={isGenerating || filteredEvents.length === 0}
+            className="gap-2"
+          >
             <Download className="w-4 h-4" />
             {isGenerating ? "Gerando..." : "Exportar PDF"}
           </Button>
@@ -279,20 +325,33 @@ export default function EventsTeamReport() {
                     checked={selectedEspecialidades.includes(esp)}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        setSelectedEspecialidades([...selectedEspecialidades, esp]);
+                        setSelectedEspecialidades([
+                          ...selectedEspecialidades,
+                          esp,
+                        ]);
                       } else {
-                        setSelectedEspecialidades(selectedEspecialidades.filter((e) => e !== esp));
+                        setSelectedEspecialidades(
+                          selectedEspecialidades.filter((e) => e !== esp),
+                        );
                       }
                     }}
                   />
-                  <Label htmlFor={`esp-${esp}`} className="font-normal cursor-pointer">
+                  <Label
+                    htmlFor={`esp-${esp}`}
+                    className="font-normal cursor-pointer"
+                  >
                     {esp}
                   </Label>
                 </div>
               ))}
             </div>
             {selectedEspecialidades.length > 0 && (
-              <Button variant="ghost" size="sm" className="mt-3" onClick={() => setSelectedEspecialidades([])}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3"
+                onClick={() => setSelectedEspecialidades([])}
+              >
                 Limpar Filtros
               </Button>
             )}
@@ -311,7 +370,9 @@ export default function EventsTeamReport() {
           <Card>
             <CardContent className="py-12 text-center">
               <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nenhum evento encontrado neste período</p>
+              <p className="text-muted-foreground">
+                Nenhum evento encontrado neste período
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -319,9 +380,14 @@ export default function EventsTeamReport() {
             const filteredTeam =
               selectedEspecialidades.length === 0
                 ? event.team
-                : event.team.filter((m) => selectedEspecialidades.includes(m.especialidade));
+                : event.team.filter((m) =>
+                    selectedEspecialidades.includes(m.especialidade),
+                  );
 
-            if (filteredTeam.length === 0 && selectedEspecialidades.length > 0) {
+            if (
+              filteredTeam.length === 0 &&
+              selectedEspecialidades.length > 0
+            ) {
               return null;
             }
 
@@ -329,20 +395,30 @@ export default function EventsTeamReport() {
               <Card key={event.event_id}>
                 <CardHeader>
                   <div>
-                    <CardTitle className="text-lg">{event.event_name}</CardTitle>
+                    <CardTitle className="text-lg">
+                      {event.event_name}
+                    </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {format(new Date(event.event_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} • {event.local}
+                      {format(
+                        new Date(event.event_date),
+                        "dd/MM/yyyy 'às' HH:mm",
+                        { locale: ptBR },
+                      )}{" "}
+                      • {event.local}
                     </p>
                     {event.viatura && (
                       <p className="text-sm text-muted-foreground mt-1">
-                        <span className="font-medium">Viatura:</span> {event.viatura}
+                        <span className="font-medium">Viatura:</span>{" "}
+                        {event.viatura}
                       </p>
                     )}
                   </div>
                 </CardHeader>
                 <CardContent>
                   {filteredTeam.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic">Sem equipe escalada</p>
+                    <p className="text-sm text-muted-foreground italic">
+                      Sem equipe escalada
+                    </p>
                   ) : (
                     <div className="space-y-2">
                       {filteredTeam.map((member, idx) => (
