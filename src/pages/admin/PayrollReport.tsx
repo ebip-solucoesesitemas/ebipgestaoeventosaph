@@ -42,6 +42,7 @@ export default function PayrollReport() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedProfile, setSelectedProfile] = useState("all");
+  const [selectedEspecialidade, setSelectedEspecialidade] = useState("all");
   const [selectedBase, setSelectedBase] = useState("all");
   const [bases, setBases] = useState<{id: string; sigla: string; nome: string}[]>([]);
   const [profiles, setProfiles] = useState<{id: string;nome: string;}[]>([]);
@@ -160,9 +161,15 @@ export default function PayrollReport() {
     fetchData();
   }, [selectedMonth, selectedYear, selectedBase]);
 
-  const filteredLines = selectedProfile === "all" ?
-  lines :
-  lines.filter((l) => l.profile_id === selectedProfile);
+  const filteredLines = lines.filter((l) => {
+    if (selectedProfile !== "all" && l.profile_id !== selectedProfile) return false;
+    if (selectedEspecialidade !== "all" && l.especialidade !== selectedEspecialidade) return false;
+    return true;
+  });
+
+  const especialidades = Array.from(new Set(
+    Array.from(profileDataMap.values()).map((p: any) => p.especialidade).filter(Boolean)
+  )).sort();
 
   const grandTotal = filteredLines.reduce((s, l) => s + l.line_total, 0);
 
@@ -327,6 +334,17 @@ export default function PayrollReport() {
               <SelectItem value="all">Todos os Profissionais</SelectItem>
               {profiles.map((p) =>
               <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+          <Select value={selectedEspecialidade} onValueChange={setSelectedEspecialidade}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Todas as Especialidades" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Especialidades</SelectItem>
+              {especialidades.map((e) =>
+              <SelectItem key={e} value={e}>{e}</SelectItem>
               )}
             </SelectContent>
           </Select>
