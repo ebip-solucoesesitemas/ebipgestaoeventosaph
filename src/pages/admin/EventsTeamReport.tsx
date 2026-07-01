@@ -1,22 +1,16 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { FileText, Download, Search } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { generatePDF } from '@/lib/pdf';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { FileText, Download, Search } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { format, startOfMonth, endOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { generatePDF } from "@/lib/pdf";
 
 interface EventTeamData {
   event_id: string;
@@ -33,17 +27,21 @@ interface EventTeamData {
 }
 
 const months = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
-const predefinedEspecialidades = [
-  'Médico',
-  'Enfermeiro',
-  'Técnico',
-  'Socorrista',
-  'VTR',
-];
+const predefinedEspecialidades = ["Médico", "Enfermeiro", "Técnico", "Socorrista", "VTR"];
 
 export default function EventsTeamReport() {
   const { toast } = useToast();
@@ -52,7 +50,7 @@ export default function EventsTeamReport() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-  const [searchEvent, setSearchEvent] = useState('');
+  const [searchEvent, setSearchEvent] = useState("");
   const [selectedEspecialidades, setSelectedEspecialidades] = useState<string[]>([]);
 
   useEffect(() => {
@@ -61,14 +59,15 @@ export default function EventsTeamReport() {
 
   const fetchEvents = async () => {
     setIsLoading(true);
-    
+
     const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
     const monthEnd = endOfMonth(monthStart);
 
     try {
       const { data: eventsData, error } = await supabase
-        .from('events')
-        .select(`
+        .from("events")
+        .select(
+          `
           id,
           nome_evento,
           data_inicio,
@@ -82,10 +81,11 @@ export default function EventsTeamReport() {
               profile_private(telefone)
             )
           )
-        `)
-        .gte('data_inicio', monthStart.toISOString())
-        .lte('data_inicio', monthEnd.toISOString())
-        .order('data_inicio', { ascending: false });
+        `,
+        )
+        .gte("data_inicio", monthStart.toISOString())
+        .lte("data_inicio", monthEnd.toISOString())
+        .order("data_inicio", { ascending: false });
 
       if (error) throw error;
 
@@ -103,7 +103,7 @@ export default function EventsTeamReport() {
             .map((a: any) => ({
               nome: a.profiles.nome,
               especialidade: a.profiles.especialidade,
-              registro_profissional: a.profiles.registro_profissional || '',
+              registro_profissional: a.profiles.registro_profissional || "",
               telefone: a.profiles.profile_private?.[0]?.telefone || null,
             })),
         };
@@ -112,36 +112,33 @@ export default function EventsTeamReport() {
       setEvents(formattedEvents);
     } catch (err: any) {
       toast({
-        title: 'Erro ao carregar eventos',
+        title: "Erro ao carregar eventos",
         description: err.message,
-        variant: 'destructive'
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredEvents = events.filter(e => {
+  const filteredEvents = events.filter((e) => {
     const matchesSearch = !searchEvent || e.event_name.toLowerCase().includes(searchEvent.toLowerCase());
-    const hasTeamWithSelected = selectedEspecialidades.length === 0 || 
-      e.team.some(member => selectedEspecialidades.includes(member.especialidade));
+    const hasTeamWithSelected =
+      selectedEspecialidades.length === 0 ||
+      e.team.some((member) => selectedEspecialidades.includes(member.especialidade));
     return matchesSearch && hasTeamWithSelected;
   });
 
   // Extract unique especialidades from all events and merge with predefined ones
-  const dynamicEspecialidades = Array.from(
-    new Set(events.flatMap(e => e.team.map(m => m.especialidade)))
-  );
-  const allEspecialidades = Array.from(
-    new Set([...predefinedEspecialidades, ...dynamicEspecialidades])
-  ).sort();
+  const dynamicEspecialidades = Array.from(new Set(events.flatMap((e) => e.team.map((m) => m.especialidade))));
+  const allEspecialidades = Array.from(new Set([...predefinedEspecialidades, ...dynamicEspecialidades])).sort();
 
   const handleExportPDF = async () => {
     if (filteredEvents.length === 0) {
       toast({
-        title: 'Nenhum evento',
-        description: 'Selecione um período com eventos',
-        variant: 'destructive'
+        title: "Nenhum evento",
+        description: "Selecione um período com eventos",
+        variant: "destructive",
       });
       return;
     }
@@ -151,43 +148,44 @@ export default function EventsTeamReport() {
     try {
       const rows: any[] = [];
 
-      filteredEvents.forEach(event => {
-        const filteredTeam = selectedEspecialidades.length === 0 
-          ? event.team 
-          : event.team.filter(m => selectedEspecialidades.includes(m.especialidade));
+      filteredEvents.forEach((event) => {
+        const filteredTeam =
+          selectedEspecialidades.length === 0
+            ? event.team
+            : event.team.filter((m) => selectedEspecialidades.includes(m.especialidade));
 
         if (filteredTeam.length === 0) return;
 
         // For compact report: first member row includes event name and date, following rows leave them blank
         filteredTeam.forEach((member, idx) => {
           rows.push({
-            evento: idx === 0 ? event.event_name : '',
-            data: idx === 0 ? format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR }) : '',
-            registro_profissional: member.registro_profissional || '',
-            viatura: event.viatura || '—',
+            evento: idx === 0 ? event.event_name : "",
+            data: idx === 0 ? format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR }) : "",
+            registro_profissional: member.registro_profissional || "",
+            viatura: event.viatura || "—",
             nomes: member.nome,
-            especialidade: member.especialidade || '',
+            especialidade: member.especialidade || "",
           });
         });
 
         // Blank row separator
         rows.push({
-          evento: '',
-          data: '',
-          registro_profissional: '',
-          viatura: '',
-          nomes: '',
-          especialidade: '',
+          evento: "",
+          data: "",
+          registro_profissional: "",
+          viatura: "",
+          nomes: "",
+          especialidade: "",
         });
       });
 
       const columns = [
-        { header: 'Evento', dataKey: 'evento' },
-        { header: 'Data', dataKey: 'data', halign: 'center' as const },
-        { header: 'Registro Profissional', dataKey: 'registro_profissional' },
-        { header: 'Viatura', dataKey: 'viatura' },
-        { header: 'Nomes da Equipe', dataKey: 'nomes' },
-        { header: 'Especialidade', dataKey: 'especialidade' },
+        { header: "Evento", dataKey: "evento" },
+        { header: "Data", dataKey: "data", halign: "center" as const },
+        { header: "Registro Profissional", dataKey: "registro_profissional" },
+        { header: "Especialidade", dataKey: "especialidade" },
+        { header: "Viatura", dataKey: "viatura" },
+        { header: "Nomes da Equipe", dataKey: "nomes" },
       ];
 
       generatePDF({
@@ -197,14 +195,14 @@ export default function EventsTeamReport() {
       });
 
       toast({
-        title: 'PDF gerado com sucesso!',
-        description: 'O relatório foi exportado',
+        title: "PDF gerado com sucesso!",
+        description: "O relatório foi exportado",
       });
     } catch (err: any) {
       toast({
-        title: 'Erro ao gerar PDF',
+        title: "Erro ao gerar PDF",
         description: err.message,
-        variant: 'destructive'
+        variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
@@ -231,7 +229,9 @@ export default function EventsTeamReport() {
             </SelectTrigger>
             <SelectContent>
               {months.map((month, idx) => (
-                <SelectItem key={idx} value={idx.toString()}>{month}</SelectItem>
+                <SelectItem key={idx} value={idx.toString()}>
+                  {month}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -240,18 +240,16 @@ export default function EventsTeamReport() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {years.map(year => (
-                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+              {years.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button 
-            onClick={handleExportPDF} 
-            disabled={isGenerating || filteredEvents.length === 0}
-            className="gap-2"
-          >
+          <Button onClick={handleExportPDF} disabled={isGenerating || filteredEvents.length === 0} className="gap-2">
             <Download className="w-4 h-4" />
-            {isGenerating ? 'Gerando...' : 'Exportar PDF'}
+            {isGenerating ? "Gerando..." : "Exportar PDF"}
           </Button>
         </div>
       </div>
@@ -283,7 +281,7 @@ export default function EventsTeamReport() {
                       if (checked) {
                         setSelectedEspecialidades([...selectedEspecialidades, esp]);
                       } else {
-                        setSelectedEspecialidades(selectedEspecialidades.filter(e => e !== esp));
+                        setSelectedEspecialidades(selectedEspecialidades.filter((e) => e !== esp));
                       }
                     }}
                   />
@@ -294,12 +292,7 @@ export default function EventsTeamReport() {
               ))}
             </div>
             {selectedEspecialidades.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-3"
-                onClick={() => setSelectedEspecialidades([])}
-              >
+              <Button variant="ghost" size="sm" className="mt-3" onClick={() => setSelectedEspecialidades([])}>
                 Limpar Filtros
               </Button>
             )}
@@ -323,9 +316,10 @@ export default function EventsTeamReport() {
           </Card>
         ) : (
           filteredEvents.map((event) => {
-            const filteredTeam = selectedEspecialidades.length === 0 
-              ? event.team 
-              : event.team.filter(m => selectedEspecialidades.includes(m.especialidade));
+            const filteredTeam =
+              selectedEspecialidades.length === 0
+                ? event.team
+                : event.team.filter((m) => selectedEspecialidades.includes(m.especialidade));
 
             if (filteredTeam.length === 0 && selectedEspecialidades.length > 0) {
               return null;
