@@ -314,7 +314,7 @@ export default function EventsTeamReport() {
         </Card>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {isLoading ? (
           <Card>
             <CardContent className="py-12 flex items-center justify-center">
@@ -329,71 +329,45 @@ export default function EventsTeamReport() {
             </CardContent>
           </Card>
         ) : (
-          filteredEvents.map((event) => (
-            <Card key={event.event_id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{event.event_name}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {format(new Date(event.event_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} • {event.local}
+          <div className="space-y-6 bg-white p-6 rounded-lg border">
+            {filteredEvents.map((event, eventIdx) => {
+              const filteredTeam = selectedEspecialidades.length === 0 
+                ? event.team 
+                : event.team.filter(m => selectedEspecialidades.includes(m.especialidade));
+
+              if (filteredTeam.length === 0 && selectedEspecialidades.length > 0) {
+                return null;
+              }
+
+              return (
+                <div key={event.event_id}>
+                  <div className="mb-3">
+                    <h3 className="font-bold text-base text-gray-900">{event.event_name}</h3>
+                    <p className="text-sm text-gray-600">
+                      {format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR })} • {event.local}
+                      {event.viatura && ` • Viatura: ${event.viatura}`}
                     </p>
-                    {event.viatura && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        <span className="font-medium">Viatura:</span> {event.viatura}
-                      </p>
-                    )}
                   </div>
-                  <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                    {(() => {
-                      const count = selectedEspecialidades.length === 0 
-                        ? event.team.length 
-                        : event.team.filter(m => selectedEspecialidades.includes(m.especialidade)).length;
-                      return `${count} ${count === 1 ? 'profissional' : 'profissionais'}`;
-                    })()}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {event.team.length === 0 ? (
-                  <p className="text-sm text-muted-foreground italic">Sem equipe escalada</p>
-                ) : (() => {
-                  const filteredTeam = selectedEspecialidades.length === 0 
-                    ? event.team 
-                    : event.team.filter(m => selectedEspecialidades.includes(m.especialidade));
 
-                  if (filteredTeam.length === 0) {
-                    return <p className="text-sm text-muted-foreground italic">Nenhum membro com as funções selecionadas</p>;
-                  }
-
-                  return (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-2 px-3 font-semibold">Nome</th>
-                            <th className="text-left py-2 px-3 font-semibold">Função</th>
-                            <th className="text-left py-2 px-3 font-semibold">CRM / COREN</th>
-                            <th className="text-left py-2 px-3 font-semibold">Telefone</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredTeam.map((member, idx) => (
-                            <tr key={idx} className="border-b last:border-0 hover:bg-muted/50">
-                              <td className="py-2 px-3">{member.nome}</td>
-                              <td className="py-2 px-3">{member.especialidade}</td>
-                              <td className="py-2 px-3 font-medium">{member.registro_profissional || '—'}</td>
-                              <td className="py-2 px-3">{member.telefone || '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  {filteredTeam.length === 0 ? (
+                    <p className="text-sm text-gray-500 italic ml-4">Sem equipe escalada</p>
+                  ) : (
+                    <div className="ml-4 space-y-1 mb-4">
+                      {filteredTeam.map((member, idx) => (
+                        <p key={idx} className="text-sm text-gray-800">
+                          <span className="font-medium">{member.especialidade}:</span> {member.nome}
+                          {member.registro_profissional && ` (${member.registro_profissional})`}
+                          {member.telefone && ` • ${member.telefone}`}
+                        </p>
+                      ))}
                     </div>
-                  );
-                })()}
-              </CardContent>
-            </Card>
-          ))
+                  )}
+
+                  <div className="border-b border-gray-300 my-4" />
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
