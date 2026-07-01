@@ -5,6 +5,7 @@ import { resolveSignatureUrl } from "@/lib/signatureUrl";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Printer } from "lucide-react";
+import { filterTeamMembers, getTeamRegistrationLabel, getTeamRegistrationType, type TeamReportFilter } from "@/lib/eventReport";
 
 interface EventData {
   id: string;
@@ -24,6 +25,8 @@ interface TeamMember {
   id: string;
   checkin_at: string | null;
   checkout_at: string | null;
+  crm?: string | null;
+  coren?: string | null;
   profiles: {
     nome: string;
     especialidade: string;
@@ -57,6 +60,7 @@ export default function EventReport() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [teamFilter, setTeamFilter] = useState<TeamReportFilter>("all");
 
   // Wait for auth session to be restored from localStorage
   useEffect(() => {
@@ -174,6 +178,8 @@ export default function EventReport() {
     event.km_inicial != null && event.km_final != null && event.km_final > event.km_inicial
       ? event.km_final - event.km_inicial
       : null;
+
+  const filteredTeam = filterTeamMembers(team as any, teamFilter);
 
   const statusLabel: Record<string, string> = {
     em_andamento: "Em andamento",
@@ -340,30 +346,47 @@ export default function EventReport() {
 
         {/* Team */}
         <section className="mb-5">
-          <h2 className="text-xs font-bold uppercase bg-gray-900 text-white px-3 py-1.5 mb-0">
-            Equipe Escalada
-          </h2>
+          <div className="flex items-center justify-between bg-gray-900 px-3 py-1.5">
+            <h2 className="text-xs font-bold uppercase text-white">
+              Equipe Escalada
+            </h2>
+            <select
+              value={teamFilter}
+              onChange={(e) => setTeamFilter(e.target.value as TeamReportFilter)}
+              className="rounded border border-gray-300 bg-white px-2 py-1 text-[10px] text-gray-700"
+            >
+              <option value="all">Todos</option>
+              <option value="with_registration">Com CRM/COREN</option>
+              <option value="medical">Médicos</option>
+              <option value="nursing">Enfermagem</option>
+            </select>
+          </div>
           <div className="border border-gray-400 border-t-0">
-            {team.length === 0 ? (
-              <p className="text-gray-500 text-[10px] px-3 py-3 italic">Nenhum profissional escalado para este evento</p>
+            {filteredTeam.length === 0 ? (
+              <p className="text-gray-500 text-[10px] px-3 py-3 italic">Nenhum profissional encontrado com este filtro</p>
             ) : (
               <table className="w-full text-[10px]">
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="text-left px-2 py-1.5 font-semibold border-b border-gray-300">Nome</th>
                     <th className="text-left px-2 py-1.5 font-semibold border-b border-gray-300">Função</th>
-                    <th className="text-left px-2 py-1.5 font-semibold border-b border-gray-300">Registro</th>
+                    <th className="text-left px-2 py-1.5 font-semibold border-b border-gray-300">CRM / COREN</th>
                     <th className="text-left px-2 py-1.5 font-semibold border-b border-gray-300">Telefone</th>
                     <th className="text-center px-2 py-1.5 font-semibold border-b border-gray-300">Check-in</th>
                     <th className="text-center px-2 py-1.5 font-semibold border-b border-gray-300">Checkout</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {team.map((m, idx) => (
+                  {filteredTeam.map((m, idx) => (
                     <tr key={m.id} className={idx % 2 === 1 ? "bg-gray-50" : ""}>
                       <td className="px-2 py-1.5 border-b border-gray-200 font-medium">{m.profiles.nome}</td>
                       <td className="px-2 py-1.5 border-b border-gray-200">{m.profiles.especialidade}</td>
-                      <td className="px-2 py-1.5 border-b border-gray-200">{m.profiles.registro_profissional}</td>
+                      <td className="px-2 py-1.5 border-b border-gray-200">
+                        <div className="font-medium">{getTeamRegistrationLabel(m as any)}</div>
+                        {getTeamRegistrationType(m as any) ? (
+                          <div className="text-[9px] text-gray-500">{getTeamRegistrationType(m as any)}</div>
+                        ) : null}
+                      </td>
                       <td className="px-2 py-1.5 border-b border-gray-200">{m.profiles.telefone || "—"}</td>
                       <td className="px-2 py-1.5 border-b border-gray-200 text-center">
                         {m.checkin_at ? format(new Date(m.checkin_at), "HH:mm") : "___:___"}
