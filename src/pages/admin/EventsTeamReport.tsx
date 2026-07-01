@@ -23,6 +23,7 @@ interface EventTeamData {
   event_name: string;
   event_date: string;
   local: string;
+  viatura?: string | null;
   team: Array<{
     nome: string;
     especialidade: string;
@@ -34,6 +35,16 @@ interface EventTeamData {
 const months = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+const predefinedEspecialidades = [
+  'Médico',
+  'Enfermeiro',
+  'Técnico',
+  'Técnico enfermagem',
+  'Socorrista',
+  'VTR',
+  'Operacional'
 ];
 
 export default function EventsTeamReport() {
@@ -64,6 +75,7 @@ export default function EventsTeamReport() {
           nome_evento,
           data_inicio,
           local,
+          vehicles(prefixo, modelo, placa),
           event_assignments(
             profiles(
               nome,
@@ -79,20 +91,25 @@ export default function EventsTeamReport() {
 
       if (error) throw error;
 
-      const formattedEvents: EventTeamData[] = (eventsData || []).map((e: any) => ({
-        event_id: e.id,
-        event_name: e.nome_evento,
-        event_date: e.data_inicio,
-        local: e.local,
-        team: (e.event_assignments || [])
-          .filter((a: any) => a.profiles)
-          .map((a: any) => ({
-            nome: a.profiles.nome,
-            especialidade: a.profiles.especialidade,
-            registro_profissional: a.profiles.registro_profissional || '',
-            telefone: a.profiles.profile_private?.[0]?.telefone || null,
-          })),
-      }));
+      const formattedEvents: EventTeamData[] = (eventsData || []).map((e: any) => {
+        const vehicle = e.vehicles;
+        const viaturaLabel = vehicle ? `${vehicle.prefixo} (${vehicle.modelo} / ${vehicle.placa})` : null;
+        return {
+          event_id: e.id,
+          event_name: e.nome_evento,
+          event_date: e.data_inicio,
+          local: e.local,
+          viatura: viaturaLabel,
+          team: (e.event_assignments || [])
+            .filter((a: any) => a.profiles)
+            .map((a: any) => ({
+              nome: a.profiles.nome,
+              especialidade: a.profiles.especialidade,
+              registro_profissional: a.profiles.registro_profissional || '',
+              telefone: a.profiles.profile_private?.[0]?.telefone || null,
+            })),
+        };
+      });
 
       setEvents(formattedEvents);
     } catch (err: any) {
@@ -113,9 +130,12 @@ export default function EventsTeamReport() {
     return matchesSearch && hasTeamWithSelected;
   });
 
-  // Extract unique especialidades from all events
-  const allEspecialidades = Array.from(
+  // Extract unique especialidades from all events and merge with predefined ones
+  const dynamicEspecialidades = Array.from(
     new Set(events.flatMap(e => e.team.map(m => m.especialidade)))
+  );
+  const allEspecialidades = Array.from(
+    new Set([...predefinedEspecialidades, ...dynamicEspecialidades])
   ).sort();
 
   const handleExportPDF = async () => {
@@ -139,6 +159,7 @@ export default function EventsTeamReport() {
             evento: event.event_name,
             data: format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR }),
             local: event.local,
+            viatura: event.viatura || '—',
             nome: '(sem equipe)',
             funcao: '—',
             crm_coren: '—',
@@ -157,6 +178,7 @@ export default function EventsTeamReport() {
               evento: idx === 0 ? event.event_name : '',
               data: idx === 0 ? format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR }) : '',
               local: idx === 0 ? event.local : '',
+              viatura: idx === 0 ? (event.viatura || '—') : '',
               nome: member.nome,
               funcao: member.especialidade,
               crm_coren,
@@ -170,6 +192,7 @@ export default function EventsTeamReport() {
         { header: 'Evento', dataKey: 'evento' },
         { header: 'Data', dataKey: 'data', halign: 'center' as const },
         { header: 'Local', dataKey: 'local' },
+        { header: 'Viatura', dataKey: 'viatura' },
         { header: 'Nome', dataKey: 'nome' },
         { header: 'Função', dataKey: 'funcao' },
         { header: 'CRM / COREN', dataKey: 'crm_coren' },
@@ -317,6 +340,11 @@ export default function EventsTeamReport() {
                     <p className="text-sm text-muted-foreground mt-1">
                       {format(new Date(event.event_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} • {event.local}
                     </p>
+                    {event.viatura && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        <span className="font-medium">Viatura:</span> {event.viatura}
+                      </p>
+                    )}
                   </div>
                   <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-1 rounded">
                     {(() => {
@@ -366,6 +394,7 @@ export default function EventsTeamReport() {
                   );
                 })()}
               </CardContent>
+              <div className="h-1 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100" />
             </Card>
           ))
         )}
