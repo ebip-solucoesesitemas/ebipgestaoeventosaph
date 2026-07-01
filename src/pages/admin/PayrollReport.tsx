@@ -161,9 +161,15 @@ export default function PayrollReport() {
     fetchData();
   }, [selectedMonth, selectedYear, selectedBase]);
 
-  const filteredLines = selectedProfile === "all" ?
-  lines :
-  lines.filter((l) => l.profile_id === selectedProfile);
+  const filteredLines = lines.filter((l) => {
+    if (selectedProfile !== "all" && l.profile_id !== selectedProfile) return false;
+    if (selectedEspecialidade !== "all" && l.especialidade !== selectedEspecialidade) return false;
+    return true;
+  });
+
+  const especialidades = Array.from(new Set(
+    Array.from(profileDataMap.values()).map((p: any) => p.especialidade).filter(Boolean)
+  )).sort();
 
   const grandTotal = filteredLines.reduce((s, l) => s + l.line_total, 0);
 
