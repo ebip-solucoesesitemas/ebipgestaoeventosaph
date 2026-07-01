@@ -11,12 +11,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { FileText, Download, Search } from "lucide-react";
+import { FileText, Download, Search, FileSpreadsheet } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { generatePDF } from "@/lib/pdf";
+import { downloadExcelFile } from "@/lib/excel";
 
 interface EventTeamData {
   event_id: string;
@@ -167,6 +168,55 @@ export default function EventsTeamReport() {
     new Set([...predefinedEspecialidades, ...dynamicEspecialidades]),
   ).sort();
 
+  const buildRowsAndColumns = () => {
+    const rows: any[] = [];
+
+    filteredEvents.forEach((event) => {
+      const filteredTeam =
+        selectedEspecialidades.length === 0
+          ? event.team
+          : event.team.filter((m) => selectedEspecialidades.includes(m.especialidade));
+
+      if (filteredTeam.length === 0) return;
+
+      filteredTeam.forEach((member, idx) => {
+        rows.push({
+          evento: idx === 0 ? event.event_name : "",
+          data:
+            idx === 0
+              ? format(new Date(event.event_date), "dd/MM/yyyy", {
+                  locale: ptBR,
+                })
+              : "",
+          registro_profissional: member.registro_profissional || "",
+          tipo_viatura: idx === 0 ? event.tipo_unidade || event.viatura || "—" : "",
+          nomes: member.nome,
+          especialidade: member.especialidade || "",
+        });
+      });
+
+      rows.push({
+        evento: "",
+        data: "",
+        nomes: "",
+        registro_profissional: "",
+        especialidade: "",
+        tipo_viatura: "",
+      });
+    });
+
+    const columns = [
+      { header: "Evento", dataKey: "evento" },
+      { header: "Data", dataKey: "data", halign: "center" as const },
+      { header: "Nomes da Equipe", dataKey: "nomes" },
+      { header: "Registro Profissional", dataKey: "registro_profissional" },
+      { header: "Especialidade", dataKey: "especialidade" },
+      { header: "Tipo de Viatura", dataKey: "tipo_viatura" },
+    ];
+
+    return { rows, columns };
+  };
+
   const handleExportPDF = async () => {
     if (filteredEvents.length === 0) {
       toast({
@@ -180,55 +230,7 @@ export default function EventsTeamReport() {
     setIsGenerating(true);
 
     try {
-      const rows: any[] = [];
-
-      filteredEvents.forEach((event) => {
-        const filteredTeam =
-          selectedEspecialidades.length === 0
-            ? event.team
-            : event.team.filter((m) =>
-                selectedEspecialidades.includes(m.especialidade),
-              );
-
-        if (filteredTeam.length === 0) return;
-
-        // For compact report: first member row includes event name and date, following rows leave them blank
-        filteredTeam.forEach((member, idx) => {
-          rows.push({
-            evento: idx === 0 ? event.event_name : "",
-            data:
-              idx === 0
-                ? format(new Date(event.event_date), "dd/MM/yyyy", {
-                    locale: ptBR,
-                  })
-                : "",
-            registro_profissional: member.registro_profissional || "",
-            tipo_viatura:
-              idx === 0 ? event.tipo_unidade || event.viatura || "—" : "",
-            nomes: member.nome,
-            especialidade: member.especialidade || "",
-          });
-        });
-
-        // Blank row separator
-        rows.push({
-          evento: "",
-          data: "",
-          nomes: "",
-          registro_profissional: "",
-          especialidade: "",
-          tipo_viatura: "",
-        });
-      });
-
-      const columns = [
-        { header: "Evento", dataKey: "evento" },
-        { header: "Data", dataKey: "data", halign: "center" as const },
-        { header: "Nomes da Equipe", dataKey: "nomes" },
-        { header: "Registro Profissional", dataKey: "registro_profissional" },
-        { header: "Especialidade", dataKey: "especialidade" },
-        { header: "Tipo de Viatura", dataKey: "tipo_viatura" },
-      ];
+      const { rows, columns } = buildRowsAndColumns();
 
       generatePDF({
         title: `Relatório de Eventos com Equipe — ${months[parseInt(selectedMonth)]} / ${selectedYear}`,
@@ -248,6 +250,38 @@ export default function EventsTeamReport() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (filteredEvents.length === 0) {
+      toast({
+        title: "Nenhum evento",
+        description: "Selecione um período com eventos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { rows, columns } = buildRowsAndColumns();
+      downloadExcelFile(
+        columns,
+        rows,
+        `relatorio_eventos_${months[parseInt(selectedMonth)]}_${selectedYear}`,
+        "Relatório de Eventos",
+      );
+
+      toast({
+        title: "Excel gerado com sucesso!",
+        description: "O arquivo foi baixado",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao gerar Excel",
+        description: err.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -296,6 +330,15 @@ export default function EventsTeamReport() {
           >
             <Download className="w-4 h-4" />
             {isGenerating ? "Gerando..." : "Exportar PDF"}
+          </Button>
+          <Button
+            onClick={handleExportExcel}
+            disabled={isGenerating || filteredEvents.length === 0}
+            variant="outline"
+            className="gap-2"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Exportar Excel
           </Button>
         </div>
       </div>
